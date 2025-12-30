@@ -1,5 +1,13 @@
+// Singleton instance
+let chatPanelInstance = null;
+
 class ChatPanel {
   constructor() {
+    // Return existing instance if already created (singleton pattern)
+    if (chatPanelInstance) {
+      return chatPanelInstance;
+    }
+
     this.elements = {
       panel: document.getElementById('chat-panel'),
       messages: document.getElementById('chat-messages'),
@@ -11,6 +19,8 @@ class ChatPanel {
     this.isVisible = false;
     this.setupEventListeners();
     this.setupNetworkListeners();
+
+    chatPanelInstance = this;
   }
 
   setupEventListeners() {

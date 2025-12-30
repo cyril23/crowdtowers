@@ -209,46 +209,61 @@ class GameScene extends Phaser.Scene {
     // Set session code in menu
     this.menuCodeValue.textContent = this.sessionCode;
 
-    // Copy code button
+    // Copy code button - use onclick to replace any existing handler
     this.menuCopyBtn = document.getElementById('menu-copy-btn');
-    this.menuCopyBtn.addEventListener('click', (e) => {
+    this.menuCopyBtn.onclick = (e) => {
       e.stopPropagation();
       navigator.clipboard.writeText(this.sessionCode);
       this.menuCopyBtn.textContent = 'Copied!';
       setTimeout(() => {
         this.menuCopyBtn.textContent = 'Copy';
       }, 1500);
-    });
+    };
 
-    // Menu toggle - stop propagation to prevent document click from closing it
-    this.menuToggleBtn.addEventListener('click', (e) => {
+    // Menu toggle - use onclick to replace any existing handler (prevents duplicate listeners)
+    this.menuToggleBtn.onclick = (e) => {
       e.stopPropagation();
+      e.preventDefault();
       this.menuDropdown.classList.toggle('hidden');
-      // Update chat button text when menu opens
+      // Position and update dropdown when menu opens
       if (!this.menuDropdown.classList.contains('hidden')) {
+        // Position dropdown below the button, aligned to its right edge
+        const btnRect = this.menuToggleBtn.getBoundingClientRect();
+        const dropdownWidth = this.menuDropdown.offsetWidth;
+        // Align right edge of dropdown with right edge of button
+        let left = btnRect.right - dropdownWidth;
+        // Make sure it doesn't go off the left edge of screen
+        if (left < 10) left = 10;
+        this.menuDropdown.style.top = (btnRect.bottom + 5) + 'px';
+        this.menuDropdown.style.left = left + 'px';
         this.updateChatButtonText();
       }
-    });
+    };
 
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!this.menuToggleBtn.contains(e.target) && !this.menuDropdown.contains(e.target)) {
-        this.menuDropdown.classList.add('hidden');
-      }
-    });
+    // Close menu when clicking outside - use a named handler to avoid duplicates
+    if (!window._menuCloseHandlerAdded) {
+      window._menuCloseHandlerAdded = true;
+      document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('game-menu-dropdown');
+        const toggleBtn = document.getElementById('menu-toggle-btn');
+        if (dropdown && toggleBtn && !toggleBtn.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    }
 
-    // Pause button in menu
-    this.menuPauseBtn.addEventListener('click', () => {
+    // Pause button in menu - use onclick to replace any existing handler
+    this.menuPauseBtn.onclick = () => {
       networkManager.pauseGame();
       this.menuDropdown.classList.add('hidden');
-    });
+    };
 
-    // Chat toggle button in menu
-    this.menuChatBtn.addEventListener('click', () => {
+    // Chat toggle button in menu - use onclick to replace any existing handler
+    this.menuChatBtn.onclick = () => {
       this.chatPanel.toggle();
       this.updateChatButtonText();
       this.menuDropdown.classList.add('hidden');
-    });
+    };
   }
 
   updateChatButtonText() {

@@ -68,6 +68,7 @@ html, body {
 /* Game Menu Dropdown */
 #game-menu {
   position: relative;
+  pointer-events: auto;
 }
 
 #menu-toggle-btn {
@@ -79,6 +80,7 @@ html, body {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
+  pointer-events: auto;
 }
 
 #menu-toggle-btn:hover {
@@ -86,15 +88,13 @@ html, body {
 }
 
 #game-menu-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 5px;
+  position: fixed;
   background: rgba(26, 26, 46, 0.95);
   border-radius: 8px;
   padding: 10px;
   min-width: 160px;
   z-index: 150;
+  pointer-events: auto;
 }
 
 #menu-session-code {
