@@ -323,8 +323,9 @@ class GameScene extends Phaser.Scene {
       console.log('Tower error:', data.error);
     });
 
-    // Enemy killed - just update budget (enemy will disappear from next state sync)
+    // Enemy killed - show death effect and update budget
     networkManager.on(SOCKET_EVENTS.ENEMY_KILLED, (data) => {
+      this.showDeathEffect(data.x, data.y);
       this.gameState.budget = data.newBudget;
       this.hud.updateBudget(data.newBudget);
       this.towerMenu.updateBudget(data.newBudget);
@@ -661,17 +662,35 @@ class GameScene extends Phaser.Scene {
 
   showImpactEffect(x, y, color) {
     const impact = this.add.graphics();
+    impact.setPosition(x, y);  // Position Graphics at impact location
     impact.setDepth(151);
-    impact.fillStyle(color, 0.6);
-    impact.fillCircle(x, y, 8);
+    impact.fillStyle(color, 0.8);
+    impact.fillCircle(0, 0, 4);  // Draw at (0,0) relative to Graphics position
 
     this.tweens.add({
       targets: impact,
       alpha: 0,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 80,
+      onComplete: () => impact.destroy()
+    });
+  }
+
+  showDeathEffect(x, y) {
+    const puff = this.add.graphics();
+    puff.setPosition(x, y);
+    puff.setDepth(151);
+    puff.fillStyle(0xffffff, 0.6);
+    puff.fillCircle(0, 0, 8);
+
+    this.tweens.add({
+      targets: puff,
+      alpha: 0,
       scaleX: 2,
       scaleY: 2,
       duration: 150,
-      onComplete: () => impact.destroy()
+      onComplete: () => puff.destroy()
     });
   }
 
