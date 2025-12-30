@@ -133,7 +133,8 @@ function setupSocketHandlers(io) {
         let gameState = null;
         const manager = activeGames.get(sessionCode);
         if (manager) {
-          gameState = manager.getState();
+          const state = manager.getState();
+          gameState = state.gameState;
         }
 
         socket.emit(SOCKET_EVENTS.JOIN_SUCCESS, {
