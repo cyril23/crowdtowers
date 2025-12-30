@@ -28,7 +28,7 @@ class HUD {
   }
 
   updateBudget(value) {
-    this.elements.budget.textContent = value;
+    this.elements.budget.textContent = '$' + value;
   }
 
   updateWave(value) {

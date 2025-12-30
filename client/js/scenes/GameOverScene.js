@@ -46,10 +46,12 @@ class GameOverScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const statsText = [
-      `Waves Survived: ${this.finalWave}/${GAME_CONFIG.TOTAL_WAVES}`,
+      `Waves Survived: ${this.finalWave}`,
       `Towers Built: ${this.stats.towersBuilt}`,
+      `Total Upgrades: ${this.stats.totalUpgrades}`,
+      `Highest Tower Level: ${this.stats.highestTowerLevel}`,
       `Lives Remaining: ${this.stats.livesRemaining}`,
-      `Budget Remaining: ${this.stats.budgetRemaining}B`
+      `Budget Remaining: $${this.stats.budgetRemaining}`
     ].join('\n');
 
     this.add.text(centerX, centerY + 40, statsText, {

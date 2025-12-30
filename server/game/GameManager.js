@@ -19,6 +19,10 @@ class GameManager {
     this.gameLoop = null;
     this.waveTimeout = null;
     this.lastTick = Date.now();
+
+    // Stats tracking
+    this.totalUpgrades = 0;
+    this.highestTowerLevel = 1;
   }
 
   start() {
@@ -153,6 +157,11 @@ class GameManager {
 
     if (this.gameData.gameState.lives <= 0) {
       this.gameOver(false);
+    }
+
+    // Check if wave is complete (even if last enemy escaped)
+    if (this.enemies.length === 0 && this.gameData.gameState.waveInProgress) {
+      this.waveComplete();
     }
   }
 
@@ -429,7 +438,9 @@ class GameManager {
       stats: {
         towersBuilt: this.gameData.gameState.towers.length,
         livesRemaining: this.gameData.gameState.lives,
-        budgetRemaining: this.gameData.gameState.budget
+        budgetRemaining: this.gameData.gameState.budget,
+        totalUpgrades: this.totalUpgrades,
+        highestTowerLevel: this.highestTowerLevel
       }
     });
   }
@@ -500,6 +511,12 @@ class GameManager {
 
     tower.level = nextLevel;
     this.gameData.gameState.budget -= cost;
+
+    // Track stats
+    this.totalUpgrades++;
+    if (nextLevel > this.highestTowerLevel) {
+      this.highestTowerLevel = nextLevel;
+    }
 
     this.log.event('TOWER_UPGRADED', {
       type: tower.type,

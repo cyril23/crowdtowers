@@ -81,7 +81,7 @@ class TowerMenu {
         <div class="tower-icon" style="background-color: ${colorHex}"></div>
         <div class="tower-info">
           <div class="tower-name">${tower.name}</div>
-          <div class="tower-cost">${tower.cost}B</div>
+          <div class="tower-cost">$${tower.cost}</div>
         </div>
         <div class="tower-stats">
           <div>DMG: ${tower.damage}</div>
@@ -180,13 +180,13 @@ class TowerMenu {
       <h3>${towerDef.name}</h3>
       <p>Level: ${tower.level}</p>
       <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
-      <p>Upgrade Cost: ${upgradeCost}B</p>
-      <p class="sell-info">Sell Value: ${sellValue}B (50%)</p>
+      <p>Upgrade Cost: $${upgradeCost}</p>
+      <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
     this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
-    this.elements.sellBtn.textContent = `Sell (+${sellValue}B)`;
+    this.elements.sellBtn.textContent = `Sell (+$${sellValue})`;
 
     this.elements.upgradePanel.classList.remove('hidden');
   }
@@ -235,13 +235,13 @@ class TowerMenu {
       <h3>${towerDef.name}</h3>
       <p>Level: ${tower.level}</p>
       <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
-      <p>Upgrade Cost: ${upgradeCost}B</p>
-      <p class="sell-info">Sell Value: ${sellValue}B (50%)</p>
+      <p>Upgrade Cost: $${upgradeCost}</p>
+      <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
     this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
-    this.elements.sellBtn.textContent = `Sell (+${sellValue}B)`;
+    this.elements.sellBtn.textContent = `Sell (+$${sellValue})`;
   }
 
   showEnemyPanel(enemy) {
@@ -277,7 +277,7 @@ class TowerMenu {
       <h3>${enemyDef.name}</h3>
       <p>Health: ${enemy.health}/${enemy.maxHealth} (${healthPercent}%)</p>
       <p>Speed: ${enemyDef.speed}</p>
-      <p>Reward: ${enemyDef.reward}B</p>
+      <p>Reward: $${enemyDef.reward}</p>
       ${specialDesc}
       ${strongTowers.length ? `<p class="enemy-weak">Weak to: ${strongTowers.join(', ')}</p>` : ''}
       ${weakTowers.length ? `<p class="enemy-strong">Strong vs: ${weakTowers.join(', ')}</p>` : ''}
