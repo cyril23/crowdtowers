@@ -23,6 +23,7 @@ class GameManager {
     // Stats tracking
     this.totalUpgrades = 0;
     this.highestTowerLevel = 1;
+    this.totalBudgetSpent = 0;
   }
 
   start() {
@@ -440,7 +441,8 @@ class GameManager {
         livesRemaining: this.gameData.gameState.lives,
         budgetRemaining: this.gameData.gameState.budget,
         totalUpgrades: this.totalUpgrades,
-        highestTowerLevel: this.highestTowerLevel
+        highestTowerLevel: this.highestTowerLevel,
+        totalBudgetSpent: this.totalBudgetSpent
       }
     });
   }
@@ -483,6 +485,7 @@ class GameManager {
 
     this.gameData.gameState.towers.push(tower);
     this.gameData.gameState.budget -= cost;
+    this.totalBudgetSpent += cost;
 
     this.log.event('TOWER_PLACED', {
       type: towerType,
@@ -511,6 +514,7 @@ class GameManager {
 
     tower.level = nextLevel;
     this.gameData.gameState.budget -= cost;
+    this.totalBudgetSpent += cost;
 
     // Track stats
     this.totalUpgrades++;

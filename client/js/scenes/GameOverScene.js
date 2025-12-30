@@ -38,32 +38,46 @@ class GameOverScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // Stats
-    this.add.text(centerX, centerY - 30, 'Final Statistics', {
+    // Stats header
+    this.add.text(centerX, centerY - 40, 'Final Statistics', {
       fontSize: '20px',
       color: '#aaaaaa',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    const statsText = [
+    // Left column (game progress)
+    const leftStats = [
       `Waves Survived: ${this.finalWave}`,
       `Towers Built: ${this.stats.towersBuilt}`,
       `Total Upgrades: ${this.stats.totalUpgrades}`,
-      `Highest Tower Level: ${this.stats.highestTowerLevel}`,
-      `Lives Remaining: ${this.stats.livesRemaining}`,
-      `Budget Remaining: $${this.stats.budgetRemaining}`
+      `Highest Tower Level: ${this.stats.highestTowerLevel}`
     ].join('\n');
 
-    this.add.text(centerX, centerY + 40, statsText, {
-      fontSize: '18px',
+    this.add.text(centerX - 20, centerY + 20, leftStats, {
+      fontSize: '16px',
       color: '#ffffff',
       fontFamily: 'Arial',
-      align: 'center',
-      lineSpacing: 10
-    }).setOrigin(0.5);
+      align: 'right',
+      lineSpacing: 8
+    }).setOrigin(1, 0);
+
+    // Right column (resources)
+    const rightStats = [
+      `Lives Remaining: ${this.stats.livesRemaining}`,
+      `Budget Remaining: $${this.stats.budgetRemaining}`,
+      `Total Spent: $${this.stats.totalBudgetSpent}`
+    ].join('\n');
+
+    this.add.text(centerX + 20, centerY + 20, rightStats, {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      align: 'left',
+      lineSpacing: 8
+    }).setOrigin(0, 0);
 
     // Buttons
-    this.add.text(centerX, centerY + 140, 'Play Again', {
+    this.add.text(centerX, centerY + 170, 'Play Again', {
       fontSize: '24px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -76,7 +90,7 @@ class GameOverScene extends Phaser.Scene {
         window.location.reload();
       });
 
-    this.add.text(centerX, centerY + 200, 'Main Menu', {
+    this.add.text(centerX, centerY + 230, 'Main Menu', {
       fontSize: '18px',
       color: '#aaaaaa',
       fontFamily: 'Arial'
