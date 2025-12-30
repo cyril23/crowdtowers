@@ -146,12 +146,15 @@ class TowerSprite extends Phaser.GameObjects.Container {
     // Remove all event listeners
     this.removeAllListeners();
 
-    // Clear graphics content first
+    // Destroy graphics objects (not just clear) to ensure full cleanup
     if (this.graphics) {
-      this.graphics.clear();
+      this.graphics.destroy();
     }
     if (this.rangeIndicator) {
-      this.rangeIndicator.clear();
+      this.rangeIndicator.destroy();
+    }
+    if (this.levelText) {
+      this.levelText.destroy();
     }
 
     // Remove from scene's display list explicitly

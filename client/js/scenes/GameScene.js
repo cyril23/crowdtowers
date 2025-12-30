@@ -27,6 +27,9 @@ class GameScene extends Phaser.Scene {
     this.towers = [];
     this.towerSprites = new Map();
 
+    // Store network handlers for cleanup on shutdown
+    this.networkHandlers = [];
+
     // Enemy data from server (rendered directly, no individual sprites)
     this.enemyData = [];
 
@@ -274,14 +277,20 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  // Helper to register network handlers and track them for cleanup
+  registerNetworkHandler(event, handler) {
+    networkManager.on(event, handler);
+    this.networkHandlers.push({ event, handler });
+  }
+
   setupNetworkListeners() {
     // Game state sync
-    networkManager.on(SOCKET_EVENTS.GAME_STATE_SYNC, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_STATE_SYNC, (data) => {
       this.updateGameState(data);
     });
 
     // Tower placed
-    networkManager.on(SOCKET_EVENTS.TOWER_PLACED, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.TOWER_PLACED, (data) => {
       this.gameState.budget = data.newBudget;
       this.gameState.towers.push(data.tower);
       this.createTowerSprite(data.tower);
@@ -290,7 +299,7 @@ class GameScene extends Phaser.Scene {
     });
 
     // Tower upgraded
-    networkManager.on(SOCKET_EVENTS.TOWER_UPGRADED, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.TOWER_UPGRADED, (data) => {
       this.gameState.budget = data.newBudget;
       const tower = this.gameState.towers.find(t => t.id === data.towerId);
       if (tower) {
@@ -306,16 +315,16 @@ class GameScene extends Phaser.Scene {
     });
 
     // Tower sold
-    networkManager.on(SOCKET_EVENTS.TOWER_SOLD, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.TOWER_SOLD, (data) => {
       this.gameState.budget = data.newBudget;
 
-      // Remove tower from local state
+      // Remove tower from gameState.towers
       const towerIndex = this.gameState.towers.findIndex(t => t.id === data.towerId);
       if (towerIndex !== -1) {
         this.gameState.towers.splice(towerIndex, 1);
       }
 
-      // Remove tower from towers array
+      // Remove tower from this.towers array
       const towersIndex = this.towers.findIndex(t => t.id === data.towerId);
       if (towersIndex !== -1) {
         this.towers.splice(towersIndex, 1);
@@ -331,15 +340,23 @@ class GameScene extends Phaser.Scene {
       this.hud.updateBudget(data.newBudget);
       this.towerMenu.updateBudget(data.newBudget);
       this.towerMenu.hideUpgradePanel();
+
+      // Clear InputManager's selected tower reference if it was the sold tower
+      if (this.inputManager.selectedTower && this.inputManager.selectedTower.id === data.towerId) {
+        this.inputManager.selectedTower = null;
+      }
+
+      // Clear placement preview (it may show stale "can't place" indicator)
+      this.placementPreview.clear();
     });
 
     // Tower error
-    networkManager.on(SOCKET_EVENTS.TOWER_ERROR, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.TOWER_ERROR, (data) => {
       console.log('Tower error:', data.error);
     });
 
     // Enemy killed - show death effect and update budget
-    networkManager.on(SOCKET_EVENTS.ENEMY_KILLED, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.ENEMY_KILLED, (data) => {
       this.showDeathEffect(data.x, data.y);
       this.gameState.budget = data.newBudget;
       this.hud.updateBudget(data.newBudget);
@@ -347,34 +364,34 @@ class GameScene extends Phaser.Scene {
     });
 
     // Enemy reached exit
-    networkManager.on(SOCKET_EVENTS.ENEMY_REACHED_EXIT, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.ENEMY_REACHED_EXIT, (data) => {
       this.gameState.lives = data.livesRemaining;
       this.hud.updateLives(data.livesRemaining);
     });
 
     // Wave events
-    networkManager.on(SOCKET_EVENTS.WAVE_START, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.WAVE_START, (data) => {
       this.gameState.currentWave = data.waveNumber;
       this.hud.updateWave(data.waveNumber);
       this.showWaveNotification(`Wave ${data.waveNumber} Starting!`);
     });
 
-    networkManager.on(SOCKET_EVENTS.WAVE_COMPLETE, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.WAVE_COMPLETE, (data) => {
       this.showWaveNotification(`Wave ${data.waveNumber} Complete!`);
     });
 
     // Pause/Resume
-    networkManager.on(SOCKET_EVENTS.GAME_PAUSED, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_PAUSED, (data) => {
       this.pausedByText.textContent = `Paused by ${data.pausedBy}`;
       this.pauseOverlay.classList.remove('hidden');
     });
 
-    networkManager.on(SOCKET_EVENTS.GAME_RESUMED, () => {
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_RESUMED, () => {
       this.pauseOverlay.classList.add('hidden');
     });
 
     // Game over
-    networkManager.on(SOCKET_EVENTS.GAME_OVER, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_OVER, (data) => {
       this.scene.start('GameOverScene', {
         victory: data.victory,
         finalWave: data.finalWave,
@@ -383,7 +400,7 @@ class GameScene extends Phaser.Scene {
     });
 
     // Tower fired - show projectile
-    networkManager.on(SOCKET_EVENTS.TOWER_FIRED, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.TOWER_FIRED, (data) => {
       this.createProjectile(data);
     });
   }
@@ -446,9 +463,18 @@ class GameScene extends Phaser.Scene {
   }
 
   createTowerSprite(tower) {
+    // Prevent duplicate sprites for same tower
+    if (this.towerSprites.has(tower.id)) {
+      return;
+    }
+
     const sprite = new TowerSprite(this, tower, this.tileSize);
     this.towerSprites.set(tower.id, sprite);
-    this.towers.push(tower);
+
+    // Only add to towers array if not already present
+    if (!this.towers.some(t => t.id === tower.id)) {
+      this.towers.push(tower);
+    }
 
     sprite.on('pointerdown', () => {
       this.inputManager.selectTower(tower);
@@ -710,6 +736,14 @@ class GameScene extends Phaser.Scene {
   }
 
   shutdown() {
+    // Remove all registered network handlers to prevent duplicates
+    if (this.networkHandlers) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
     if (this.projectileUpdateEvent) {
       this.projectileUpdateEvent.remove();
       this.projectileUpdateEvent = null;
