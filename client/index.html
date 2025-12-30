@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Alien Invasion - Tower Defense</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="game-container">
+    <div id="loading">Loading...</div>
+  </div>
+
+  <!-- Chat Panel (shown during lobby and game) -->
+  <div id="chat-panel" class="hidden">
+    <div id="chat-header">
+      <span>Chat</span>
+      <button id="chat-close">×</button>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-container">
+      <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200">
+      <button id="chat-send">Send</button>
+    </div>
+  </div>
+
+  <!-- HUD Overlay -->
+  <div id="hud" class="hidden">
+    <div id="hud-left">
+      <div id="lives-display">Lives: <span id="lives-value">10</span></div>
+      <div id="budget-display">Budget: <span id="budget-value">500</span></div>
+      <div id="wave-display">Wave: <span id="wave-value">0</span>/25</div>
+    </div>
+    <div id="hud-right">
+      <div id="game-menu">
+        <button id="menu-toggle-btn">Menu</button>
+        <div id="game-menu-dropdown" class="hidden">
+          <div id="menu-session-code">
+            <span class="menu-label">Code:</span>
+            <span id="menu-code-value"></span>
+            <button id="menu-copy-btn">Copy</button>
+          </div>
+          <button id="menu-pause-btn">Pause Game</button>
+          <button id="menu-chat-btn">Show Chat</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tower Selection Panel -->
+  <div id="tower-panel" class="hidden">
+    <div id="tower-panel-header">Select Tower</div>
+    <div id="tower-list"></div>
+  </div>
+
+  <!-- Tower Upgrade Panel -->
+  <div id="upgrade-panel" class="hidden">
+    <div id="upgrade-info"></div>
+    <div id="upgrade-buttons">
+      <button id="upgrade-btn">Upgrade</button>
+      <button id="sell-btn">Sell</button>
+    </div>
+    <button id="upgrade-close">Close</button>
+  </div>
+
+  <!-- Enemy Info Panel -->
+  <div id="enemy-panel" class="hidden">
+    <div id="enemy-info"></div>
+    <button id="enemy-close">Close</button>
+  </div>
+
+
+  <!-- Pause Overlay -->
+  <div id="pause-overlay" class="hidden">
+    <div id="pause-content">
+      <h2>Game Paused</h2>
+      <p id="paused-by"></p>
+      <button id="resume-btn">Resume</button>
+    </div>
+  </div>
+
+  <!-- Kick Vote Modal -->
+  <div id="vote-modal" class="hidden">
+    <div id="vote-content">
+      <h3>Kick Vote</h3>
+      <p id="vote-target"></p>
+      <p id="vote-count"></p>
+      <div id="vote-buttons">
+        <button id="vote-yes">Yes</button>
+        <button id="vote-no">No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
+  <script src="/shared/constants.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/managers/NetworkManager.js"></script>
+  <script src="/js/managers/InputManager.js"></script>
+  <script src="/js/ui/HUD.js"></script>
+  <script src="/js/ui/ChatPanel.js"></script>
+  <script src="/js/ui/TowerMenu.js"></script>
+  <script src="/js/entities/Tower.js"></script>
+  <script src="/js/entities/Enemy.js"></script>
+  <script src="/js/scenes/BootScene.js"></script>
+  <script src="/js/scenes/MenuScene.js"></script>
+  <script src="/js/scenes/LobbyScene.js"></script>
+  <script src="/js/scenes/GameScene.js"></script>
+  <script src="/js/scenes/GameOverScene.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

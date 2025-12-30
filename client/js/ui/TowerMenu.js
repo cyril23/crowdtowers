@@ -1,0 +1,300 @@
+class TowerMenu {
+  constructor() {
+    this.elements = {
+      panel: document.getElementById('tower-panel'),
+      list: document.getElementById('tower-list'),
+      upgradePanel: document.getElementById('upgrade-panel'),
+      upgradeInfo: document.getElementById('upgrade-info'),
+      upgradeBtn: document.getElementById('upgrade-btn'),
+      sellBtn: document.getElementById('sell-btn'),
+      upgradeClose: document.getElementById('upgrade-close'),
+      enemyPanel: document.getElementById('enemy-panel'),
+      enemyInfo: document.getElementById('enemy-info'),
+      enemyClose: document.getElementById('enemy-close')
+    };
+
+    this.selectedType = null;
+    this.selectedTower = null;
+    this.selectedEnemy = null;
+    this.currentBudget = 0;
+    this.onTowerSelect = null;
+    this.onTowerDeselect = null;
+    this.onTowerSold = null;
+
+    this.setupEventListeners();
+    this.buildTowerList();
+  }
+
+  setupEventListeners() {
+    this.elements.upgradeBtn.addEventListener('click', () => {
+      if (this.selectedTower) {
+        networkManager.upgradeTower(this.selectedTower.id);
+      }
+    });
+
+    this.elements.sellBtn.addEventListener('click', () => {
+      if (this.selectedTower) {
+        networkManager.sellTower(this.selectedTower.id);
+        this.hideUpgradePanel();
+      }
+    });
+
+    this.elements.upgradeClose.addEventListener('click', () => {
+      this.hideUpgradePanel();
+    });
+
+    this.elements.enemyClose.addEventListener('click', () => {
+      this.hideEnemyPanel();
+    });
+  }
+
+  // Calculate total cost of tower (base + all upgrades)
+  getTotalTowerCost(towerType, level) {
+    const tower = TOWERS[towerType];
+    let total = 0;
+    for (let l = 1; l <= level; l++) {
+      if (l === 1) {
+        total += tower.cost;
+      } else {
+        total += Math.floor(tower.cost * Math.pow(tower.upgradeMultiplier, l - 1));
+      }
+    }
+    return total;
+  }
+
+  // Get sell value (50% of total investment)
+  getSellValue(towerType, level) {
+    return Math.floor(this.getTotalTowerCost(towerType, level) * 0.5);
+  }
+
+  buildTowerList() {
+    this.elements.list.innerHTML = '';
+
+    Object.entries(TOWERS).forEach(([type, tower]) => {
+      const towerEl = document.createElement('div');
+      towerEl.className = 'tower-item';
+      towerEl.dataset.type = type;
+
+      const colorHex = '#' + tower.color.toString(16).padStart(6, '0');
+
+      towerEl.innerHTML = `
+        <div class="tower-icon" style="background-color: ${colorHex}"></div>
+        <div class="tower-info">
+          <div class="tower-name">${tower.name}</div>
+          <div class="tower-cost">${tower.cost}B</div>
+        </div>
+        <div class="tower-stats">
+          <div>DMG: ${tower.damage}</div>
+          <div>RNG: ${tower.range}</div>
+        </div>
+      `;
+
+      towerEl.addEventListener('click', () => {
+        this.selectTower(type);
+      });
+
+      // Touch support for mobile
+      towerEl.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        this.selectTower(type);
+      });
+
+      this.elements.list.appendChild(towerEl);
+    });
+  }
+
+  selectTower(type) {
+    // If clicking the same tower, deselect it
+    if (this.selectedType === type) {
+      this.clearHighlight();
+      if (this.onTowerDeselect) {
+        this.onTowerDeselect();
+      }
+      return;
+    }
+
+    // Remove previous selection
+    const prev = this.elements.list.querySelector('.selected');
+    if (prev) {
+      prev.classList.remove('selected');
+    }
+
+    // Add new selection
+    const towerEl = this.elements.list.querySelector(`[data-type="${type}"]`);
+    if (towerEl) {
+      towerEl.classList.add('selected');
+    }
+
+    this.selectedType = type;
+
+    if (this.onTowerSelect) {
+      this.onTowerSelect(type);
+    }
+  }
+
+  highlightTower(type) {
+    // Visual update only - does NOT trigger onTowerSelect callback
+    // This prevents circular calls when InputManager.selectTowerType calls this
+    const prev = this.elements.list.querySelector('.selected');
+    if (prev) {
+      prev.classList.remove('selected');
+    }
+
+    const towerEl = this.elements.list.querySelector(`[data-type="${type}"]`);
+    if (towerEl) {
+      towerEl.classList.add('selected');
+    }
+
+    this.selectedType = type;
+  }
+
+  clearHighlight() {
+    const prev = this.elements.list.querySelector('.selected');
+    if (prev) {
+      prev.classList.remove('selected');
+    }
+    this.selectedType = null;
+  }
+
+  show() {
+    this.elements.panel.classList.remove('hidden');
+  }
+
+  hide() {
+    this.elements.panel.classList.add('hidden');
+  }
+
+  showUpgradePanel(tower, budget) {
+    this.selectedTower = tower;
+    this.currentBudget = budget;
+    const towerDef = TOWERS[tower.type];
+
+    const upgradeCost = Math.floor(towerDef.cost * Math.pow(towerDef.upgradeMultiplier, tower.level));
+    const currentDamage = towerDef.damage * (1 + towerDef.damagePerLevel * (tower.level - 1));
+    const nextDamage = towerDef.damage * (1 + towerDef.damagePerLevel * tower.level);
+    const sellValue = this.getSellValue(tower.type, tower.level);
+
+    const canAfford = budget >= upgradeCost;
+
+    this.elements.upgradeInfo.innerHTML = `
+      <h3>${towerDef.name}</h3>
+      <p>Level: ${tower.level}</p>
+      <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
+      <p>Upgrade Cost: ${upgradeCost}B</p>
+      <p class="sell-info">Sell Value: ${sellValue}B (50%)</p>
+    `;
+
+    this.elements.upgradeBtn.disabled = !canAfford;
+    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
+    this.elements.sellBtn.textContent = `Sell (+${sellValue}B)`;
+
+    this.elements.upgradePanel.classList.remove('hidden');
+  }
+
+  hideUpgradePanel() {
+    this.selectedTower = null;
+    this.elements.upgradePanel.classList.add('hidden');
+  }
+
+  updateBudget(budget) {
+    this.currentBudget = budget;
+
+    // Update tower affordability display
+    Object.entries(TOWERS).forEach(([type, tower]) => {
+      const towerEl = this.elements.list.querySelector(`[data-type="${type}"]`);
+      if (towerEl) {
+        if (budget < tower.cost) {
+          towerEl.classList.add('unaffordable');
+        } else {
+          towerEl.classList.remove('unaffordable');
+        }
+      }
+    });
+
+    // Refresh upgrade panel if open (e.g., when enemy killed gives money)
+    if (this.selectedTower) {
+      this.refreshUpgradePanel();
+    }
+  }
+
+  refreshUpgradePanel() {
+    if (!this.selectedTower) return;
+
+    const tower = this.selectedTower;
+    const towerDef = TOWERS[tower.type];
+    const budget = this.currentBudget;
+
+    const upgradeCost = Math.floor(towerDef.cost * Math.pow(towerDef.upgradeMultiplier, tower.level));
+    const currentDamage = towerDef.damage * (1 + towerDef.damagePerLevel * (tower.level - 1));
+    const nextDamage = towerDef.damage * (1 + towerDef.damagePerLevel * tower.level);
+    const sellValue = this.getSellValue(tower.type, tower.level);
+
+    const canAfford = budget >= upgradeCost;
+
+    this.elements.upgradeInfo.innerHTML = `
+      <h3>${towerDef.name}</h3>
+      <p>Level: ${tower.level}</p>
+      <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
+      <p>Upgrade Cost: ${upgradeCost}B</p>
+      <p class="sell-info">Sell Value: ${sellValue}B (50%)</p>
+    `;
+
+    this.elements.upgradeBtn.disabled = !canAfford;
+    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
+    this.elements.sellBtn.textContent = `Sell (+${sellValue}B)`;
+  }
+
+  showEnemyPanel(enemy) {
+    this.selectedEnemy = enemy;
+    this.hideUpgradePanel(); // Hide tower panel if open
+
+    const enemyDef = ENEMIES[enemy.enemyType];
+    const healthPercent = Math.round((enemy.health / enemy.maxHealth) * 100);
+
+    // Build special ability description
+    let specialDesc = '';
+    if (enemyDef.special === 'phase') {
+      specialDesc = `<p class="enemy-special">⚡ Phase: ${Math.round(enemyDef.phaseChance * 100)}% dodge chance</p>`;
+    } else if (enemyDef.special === 'armor') {
+      specialDesc = `<p class="enemy-special">🛡️ Armor: ${Math.round(enemyDef.armorReduction * 100)}% damage reduction</p>`;
+    } else if (enemyDef.special === 'spawn') {
+      specialDesc = `<p class="enemy-special">🥚 Spawns ${enemyDef.spawnCount} ${enemyDef.spawnType}s on death</p>`;
+    }
+
+    // Find which towers are strong/weak against this enemy
+    const strongTowers = [];
+    const weakTowers = [];
+    Object.entries(TOWERS).forEach(([type, tower]) => {
+      if (tower.strongVs && tower.strongVs.includes(enemy.enemyType)) {
+        strongTowers.push(tower.name);
+      }
+      if (tower.weakVs && tower.weakVs.includes(enemy.enemyType)) {
+        weakTowers.push(tower.name);
+      }
+    });
+
+    this.elements.enemyInfo.innerHTML = `
+      <h3>${enemyDef.name}</h3>
+      <p>Health: ${enemy.health}/${enemy.maxHealth} (${healthPercent}%)</p>
+      <p>Speed: ${enemyDef.speed}</p>
+      <p>Reward: ${enemyDef.reward}B</p>
+      ${specialDesc}
+      ${strongTowers.length ? `<p class="enemy-weak">Weak to: ${strongTowers.join(', ')}</p>` : ''}
+      ${weakTowers.length ? `<p class="enemy-strong">Strong vs: ${weakTowers.join(', ')}</p>` : ''}
+    `;
+
+    this.elements.enemyPanel.classList.remove('hidden');
+  }
+
+  hideEnemyPanel() {
+    this.selectedEnemy = null;
+    this.elements.enemyPanel.classList.add('hidden');
+  }
+
+  updateEnemyPanel(enemy) {
+    if (this.selectedEnemy && this.selectedEnemy.id === enemy.id) {
+      this.selectedEnemy.health = enemy.health;
+      this.showEnemyPanel(this.selectedEnemy);
+    }
+  }
+}

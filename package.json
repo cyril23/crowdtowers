@@ -1,0 +1,31 @@
+{
+  "name": "alien-invasion-tower-defense",
+  "version": "1.0.0",
+  "description": "Multiplayer cooperative tower defense game",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "lint": "eslint server shared client --fix"
+  },
+  "keywords": [
+    "tower-defense",
+    "multiplayer",
+    "phaser",
+    "websocket",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.1.0",
+    "socket.io": "^4.8.3",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "nodemon": "^3.1.11"
+  }
+}
