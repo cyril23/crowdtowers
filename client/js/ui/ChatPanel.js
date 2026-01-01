@@ -131,4 +131,12 @@ class ChatPanel {
   clear() {
     this.elements.messages.innerHTML = '';
   }
+
+  setLobbyMode(enabled) {
+    if (enabled) {
+      this.elements.panel.classList.add('lobby-mode');
+    } else {
+      this.elements.panel.classList.remove('lobby-mode');
+    }
+  }
 }

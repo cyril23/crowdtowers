@@ -26,6 +26,7 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Starting budget: 500 (shared among all players)
 - Tower sell value: **50% of total investment** (base + all upgrades)
 - Upgrade cost formula: `baseCost × 1.5^(level-1)`
+- Upgrade damage formula: `baseDamage × 1.35^(level-1)` (geometric scaling)
 
 ### Enemy Specials
 - **Phasewalker:** 30% chance to dodge any attack
@@ -50,13 +51,19 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Three sizes: small (12×12), medium (20×20), large (28×28)
 
 ## Wave Progression (infinite, cycling)
-- Waves 1-5: Swarmlings only
-- Waves 6-10: + Drones
-- Waves 11-15: + Phasewalkers
-- Waves 16-20: + Behemoths
-- Waves 21-25: All types, wave 25 includes Broodmothers
-- **Wave 26+:** Cycles back to wave 1 composition with scaled HP
-- **HP scaling:** +20% per wave (linear, continues forever)
+- Waves 1-10: Swarmlings, then Drones introduced
+- Waves 11-20: Phasewalkers introduced
+- Waves 21-30: Behemoths introduced
+- Waves 31-40: Broodmothers introduced
+- Waves 41-50: All enemy types, increasing intensity
+- **Wave 50:** Final boss wave (40 enemies, all types)
+- **Wave 51+:** Cycles back to wave 1 composition with massive scaling
+
+### HP Scaling Formula
+- **Base:** +20% per wave (linear, continues forever)
+- **Cycle bonus:** 2× HP per complete 50-wave cycle
+- **Accelerated scaling:** After cycle 1, adds +10% per wave per cycle
+- **Example:** Wave 51 enemies have ~2.4× the HP of wave 1 enemies
 - **Speed:** Constant (does not scale with wave)
 - **No victory condition** - game continues until defeat
 

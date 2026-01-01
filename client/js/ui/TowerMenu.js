@@ -170,8 +170,8 @@ class TowerMenu {
     const towerDef = TOWERS[tower.type];
 
     const upgradeCost = Math.floor(towerDef.cost * Math.pow(towerDef.upgradeMultiplier, tower.level));
-    const currentDamage = towerDef.damage * (1 + towerDef.damagePerLevel * (tower.level - 1));
-    const nextDamage = towerDef.damage * (1 + towerDef.damagePerLevel * tower.level);
+    const currentDamage = towerDef.damage * Math.pow(towerDef.damageMultiplier, tower.level - 1);
+    const nextDamage = towerDef.damage * Math.pow(towerDef.damageMultiplier, tower.level);
     const sellValue = this.getSellValue(tower.type, tower.level);
 
     const canAfford = budget >= upgradeCost;
@@ -225,8 +225,8 @@ class TowerMenu {
     const budget = this.currentBudget;
 
     const upgradeCost = Math.floor(towerDef.cost * Math.pow(towerDef.upgradeMultiplier, tower.level));
-    const currentDamage = towerDef.damage * (1 + towerDef.damagePerLevel * (tower.level - 1));
-    const nextDamage = towerDef.damage * (1 + towerDef.damagePerLevel * tower.level);
+    const currentDamage = towerDef.damage * Math.pow(towerDef.damageMultiplier, tower.level - 1);
+    const nextDamage = towerDef.damage * Math.pow(towerDef.damageMultiplier, tower.level);
     const sellValue = this.getSellValue(tower.type, tower.level);
 
     const canAfford = budget >= upgradeCost;

@@ -4,19 +4,35 @@ function getEnemyStats(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
   if (!enemy) return null;
 
-  // Scale HP based on wave number (speed does not scale)
-  const healthMultiplier = 1 + (enemy.healthScaling * (waveNumber - 1));
+  // Calculate cycle-based scaling (50 waves per cycle)
+  const WAVES_PER_CYCLE = 50;
+  const cycleNumber = Math.floor((waveNumber - 1) / WAVES_PER_CYCLE);
+  const waveInCycle = ((waveNumber - 1) % WAVES_PER_CYCLE) + 1;
+
+  // Base linear scaling continues forever (+20% per wave)
+  const baseMultiplier = 1 + (enemy.healthScaling * (waveNumber - 1));
+
+  // Cycle bonus: 2× HP per complete cycle
+  const cycleBonus = Math.pow(2.0, cycleNumber);
+
+  // Accelerated scaling after first cycle: +10% more per wave per cycle
+  // Cycle 0: no acceleration, Cycle 1: +10% per wave, Cycle 2: +20% per wave
+  const acceleratedScaling = cycleNumber > 0
+    ? 1 + (0.10 * cycleNumber * waveInCycle)
+    : 1;
+
+  const finalHealth = Math.floor(enemy.health * baseMultiplier * cycleBonus * acceleratedScaling);
 
   return {
     ...enemy,
-    health: Math.floor(enemy.health * healthMultiplier),
-    maxHealth: Math.floor(enemy.health * healthMultiplier),
+    health: finalHealth,
+    maxHealth: finalHealth,
     speed: enemy.speed
   };
 }
 
 function getWaveComposition(waveNumber) {
-  // Waves cycle after 25 (wave 26 = wave 1, etc.)
+  // Waves cycle after 50 (wave 51 = wave 1, etc.)
   const waveIndex = (waveNumber - 1) % WAVE_COMPOSITION.length;
   const wave = WAVE_COMPOSITION[waveIndex];
 

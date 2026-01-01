@@ -392,6 +392,10 @@ html, body {
   max-height: 300px;
 }
 
+#chat-panel.lobby-mode {
+  left: 10px;
+}
+
 #chat-header {
   display: flex;
   justify-content: space-between;

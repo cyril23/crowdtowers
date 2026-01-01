@@ -16,8 +16,8 @@ function getTowerDamage(towerType, level = 1) {
   const tower = TOWERS[towerType];
   if (!tower) return 0;
 
-  // Damage formula: base * (1 + damagePerLevel * (level-1))
-  return tower.damage * (1 + tower.damagePerLevel * (level - 1));
+  // Damage formula: base * damageMultiplier^(level-1) (geometric scaling)
+  return tower.damage * Math.pow(tower.damageMultiplier, level - 1);
 }
 
 function calculateDamage(towerType, towerLevel, enemyType) {

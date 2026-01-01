@@ -131,6 +131,7 @@ class LobbyScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
         networkManager.leaveLobby();
+        this.chatPanel.setLobbyMode(false);
         this.chatPanel.hide();
         this.scene.start('MenuScene');
       });
@@ -148,6 +149,7 @@ class LobbyScene extends Phaser.Scene {
     }
     this.chatPanel.clear();
     this.chatPanel.show();
+    this.chatPanel.setLobbyMode(true);
 
     // Setup network listeners
     this.setupNetworkListeners();
@@ -156,12 +158,25 @@ class LobbyScene extends Phaser.Scene {
   updatePlayerList() {
     this.playerListContainer.removeAll(true);
 
+    const useColumns = this.players.length >= 3;
+    const columnWidth = 150;
+    const rowHeight = 30;
+
     this.players.forEach((player, index) => {
-      const y = index * 30;
+      let x = 0;
+      let y = index * rowHeight;
+
+      if (useColumns) {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        x = (col - 0.5) * columnWidth;
+        y = row * rowHeight;
+      }
+
       const hostBadge = player.isHost ? ' (Host)' : '';
       const isMe = player.nickname === networkManager.nickname;
 
-      const text = this.add.text(0, y, `${player.nickname}${hostBadge}`, {
+      const text = this.add.text(x, y, `${player.nickname}${hostBadge}`, {
         fontSize: '16px',
         color: isMe ? '#44ff44' : '#ffffff',
         fontFamily: 'Arial'
@@ -192,6 +207,7 @@ class LobbyScene extends Phaser.Scene {
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_STARTED, (data) => {
+      this.chatPanel.setLobbyMode(false);
       this.chatPanel.hide();
       this.scene.start('GameScene', {
         sessionCode: this.sessionCode,
@@ -201,6 +217,7 @@ class LobbyScene extends Phaser.Scene {
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.LOBBY_CLOSED, (data) => {
+      this.chatPanel.setLobbyMode(false);
       this.chatPanel.hide();
       this.scene.start('MenuScene', { toast: data.reason || 'Lobby was closed', toastDuration: 4000 });
     });
