@@ -89,3 +89,15 @@ const target = this.enemyData.find(e => e.id === p.targetId);
 p.x += (dx / dist) * speed;  // Move toward CURRENT target position
 ```
 **Do NOT** pre-calculate trajectory at fire time - enemies move, so projectiles will miss.
+
+## Deployment
+
+**Live:** https://crowdtowers.wochenentwicklung.com
+
+**Infrastructure:** Hetzner Cloud VPS (CPX32, Ubuntu 24)
+- Nginx reverse proxy with Let's Encrypt SSL
+- PM2 process management
+- MongoDB 8.0 with authentication
+- GitHub Actions auto-deploy on push to main
+
+**Docs:** See [deploy/README.md](deploy/README.md) for setup and troubleshooting.

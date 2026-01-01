@@ -2,9 +2,14 @@
 
 A real-time multiplayer cooperative tower defense game where players work together to defend humanity against alien invaders.
 
-See [CLAUDE.md](CLAUDE.md) for game mechanics and technical documentation.
+**Play now:** https://crowdtowers.wochenentwicklung.com
 
-## Quick Start
+## Documentation
+
+- [CLAUDE.md](CLAUDE.md) - Game mechanics and technical documentation
+- [deploy/README.md](deploy/README.md) - Deployment and server setup guide
+
+## Quick Start (Local Development)
 
 ```bash
 npm install
