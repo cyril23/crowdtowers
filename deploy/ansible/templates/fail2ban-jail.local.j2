@@ -1,0 +1,34 @@
+# Fail2ban configuration
+# Managed by Ansible - do not edit manually
+
+[DEFAULT]
+# Ban for 1 hour by default
+bantime = 3600
+# 10 minute window for counting failures
+findtime = 600
+# 5 failures before ban
+maxretry = 5
+# Use systemd backend
+backend = systemd
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+# Stricter for SSH: 3 failures = 24 hour ban
+maxretry = 3
+bantime = 86400
+
+[nginx-http-auth]
+enabled = true
+filter = nginx-http-auth
+port = http,https
+logpath = /var/log/nginx/{{ app_name }}_error.log
+
+[nginx-botsearch]
+enabled = true
+filter = nginx-botsearch
+port = http,https
+logpath = /var/log/nginx/{{ app_name }}_access.log
+maxretry = 2

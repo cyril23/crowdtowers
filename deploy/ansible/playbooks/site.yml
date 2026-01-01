@@ -1,0 +1,65 @@
+---
+# Main orchestration playbook for CrowdTowers
+# Run with: ansible-playbook playbooks/site.yml --ask-vault-pass
+#
+# For initial setup (as root):
+#   ansible-playbook playbooks/site.yml --ask-vault-pass -u root
+#
+# For subsequent runs (as deploy user):
+#   ansible-playbook playbooks/site.yml --ask-vault-pass
+#
+# Run specific tasks with tags:
+#   ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
+
+- name: CrowdTowers Server Provisioning
+  hosts: crowdtowers
+  become: yes
+
+  vars_files:
+    - ../inventory/group_vars/all/vault.yml
+
+  handlers:
+    - name: Restart fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+
+    - name: Restart sshd
+      systemd:
+        name: sshd
+        state: restarted
+
+    - name: Restart MongoDB
+      systemd:
+        name: mongod
+        state: restarted
+
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded
+
+  tasks:
+    - name: Include initial setup
+      ansible.builtin.include_tasks: initial-setup.yml
+      tags: [setup, initial]
+
+    - name: Include security hardening
+      ansible.builtin.include_tasks: security.yml
+      tags: [setup, security]
+
+    - name: Include MongoDB setup
+      ansible.builtin.include_tasks: mongodb.yml
+      tags: [setup, mongodb]
+
+    - name: Include Node.js setup
+      ansible.builtin.include_tasks: nodejs.yml
+      tags: [setup, nodejs]
+
+    - name: Include Nginx setup
+      ansible.builtin.include_tasks: nginx.yml
+      tags: [setup, nginx]
+
+    - name: Include application deployment
+      ansible.builtin.include_tasks: deploy-app.yml
+      tags: [deploy]

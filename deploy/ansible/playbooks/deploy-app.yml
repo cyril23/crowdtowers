@@ -1,0 +1,79 @@
+---
+# Application deployment tasks
+# This playbook can be run independently for updates:
+#   ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
+
+- name: Synchronize application code
+  synchronize:
+    src: "{{ playbook_dir }}/../../../"
+    dest: "{{ app_path }}/"
+    delete: yes
+    rsync_opts:
+      - "--exclude=.git"
+      - "--exclude=node_modules"
+      - "--exclude=.env*"
+      - "--exclude=*.log"
+      - "--exclude=deploy/ansible/inventory/group_vars/all/vault.yml"
+      - "--exclude=.claude"
+  become_user: deploy
+
+- name: Deploy production environment file
+  template:
+    src: ../templates/.env.prod.j2
+    dest: "{{ app_path }}/.env.prod"
+    owner: deploy
+    group: deploy
+    mode: '0600'
+
+- name: Copy PM2 ecosystem config
+  copy:
+    src: "{{ playbook_dir }}/../../pm2/ecosystem.config.js"
+    dest: "{{ app_path }}/ecosystem.config.js"
+    owner: deploy
+    group: deploy
+    mode: '0644'
+
+- name: Install npm dependencies
+  become_user: deploy
+  npm:
+    path: "{{ app_path }}"
+    production: yes
+
+- name: Check if PM2 process exists
+  become_user: deploy
+  shell: pm2 list | grep -q crowdtowers
+  register: pm2_process
+  ignore_errors: yes
+  changed_when: false
+
+- name: Start application with PM2 (first time)
+  become_user: deploy
+  shell: cd {{ app_path }} && pm2 start ecosystem.config.js
+  when: pm2_process.rc != 0
+
+- name: Reload application with PM2 (updates)
+  become_user: deploy
+  shell: cd {{ app_path }} && pm2 reload ecosystem.config.js --update-env
+  when: pm2_process.rc == 0
+
+- name: Save PM2 process list
+  become_user: deploy
+  command: pm2 save
+
+- name: Wait for application to start
+  wait_for:
+    port: "{{ app_port }}"
+    delay: 2
+    timeout: 30
+
+- name: Health check
+  uri:
+    url: "http://localhost:{{ app_port }}/api/health"
+    return_content: yes
+  register: health_check
+  retries: 3
+  delay: 5
+
+- name: Display health check result
+  debug:
+    msg: "Health check: {{ health_check.json }}"

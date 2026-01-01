@@ -1,0 +1,21 @@
+# Ansible Vault secrets template
+# Create your vault with: ansible-vault create vault.yml
+# Edit with: ansible-vault edit vault.yml
+#
+# DO NOT commit the actual vault.yml without encryption!
+# This .example file shows the required structure.
+
+# MongoDB admin user password
+vault_mongo_admin_password: "your-secure-admin-password-here"
+
+# MongoDB application user password
+vault_mongo_app_password: "your-secure-app-password-here"
+
+# Session secret for Express
+vault_session_secret: "your-secure-session-secret-here"
+
+# Let's Encrypt email for SSL certificate notifications
+vault_certbot_email: "your-email@example.com"
+
+# Deploy user password (for sudo)
+vault_deploy_user_password: "your-deploy-user-password-here"

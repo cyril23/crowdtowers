@@ -35,3 +35,16 @@ temp/
 
 # Claude Code
 .claude/
+
+# Deployment secrets - SSH keys
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+deploy/ssh/
+
+# Ansible
+.vault_pass
+vault_password.txt
+*.retry
+deploy/ansible/inventory/group_vars/all/vault.yml

@@ -1,0 +1,99 @@
+---
+# Nginx installation and SSL setup with Let's Encrypt
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Install Certbot and Nginx plugin
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+
+- name: Remove default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
+
+- name: Check if SSL certificate exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+  register: ssl_cert
+
+# Deploy HTTP-only config first if no cert exists
+- name: Deploy temporary HTTP-only Nginx config
+  copy:
+    content: |
+      server {
+          listen 80;
+          listen [::]:80;
+          server_name {{ app_domain }};
+
+          location /.well-known/acme-challenge/ {
+              root /var/www/html;
+          }
+
+          location / {
+              proxy_pass http://127.0.0.1:{{ app_port }};
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+          }
+      }
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+  when: not ssl_cert.stat.exists
+  notify: Reload Nginx
+
+- name: Enable Nginx site
+  file:
+    src: "/etc/nginx/sites-available/{{ app_name }}"
+    dest: "/etc/nginx/sites-enabled/{{ app_name }}"
+    state: link
+  notify: Reload Nginx
+
+- name: Ensure Nginx is running for certbot
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+
+- name: Force reload Nginx before certbot
+  systemd:
+    name: nginx
+    state: reloaded
+  when: not ssl_cert.stat.exists
+
+- name: Obtain SSL certificate
+  command: >
+    certbot certonly --nginx -d {{ app_domain }}
+    --non-interactive --agree-tos
+    --email {{ vault_certbot_email }}
+  when: not ssl_cert.stat.exists
+
+- name: Deploy full Nginx site configuration with SSL
+  template:
+    src: ../templates/nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload Nginx
+
+- name: Test Nginx configuration
+  command: nginx -t
+  changed_when: false
+
+- name: Setup Certbot auto-renewal cron
+  cron:
+    name: "Certbot renewal"
+    minute: "30"
+    hour: "2"
+    weekday: "1"
+    job: "/usr/bin/certbot renew --quiet --post-hook 'systemctl reload nginx'"
+    user: root

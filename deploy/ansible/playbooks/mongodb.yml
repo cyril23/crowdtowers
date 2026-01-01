@@ -1,0 +1,79 @@
+---
+# MongoDB 8.0 installation and configuration
+
+- name: Install gnupg for key management
+  apt:
+    name: gnupg
+    state: present
+
+- name: Import MongoDB GPG key
+  apt_key:
+    url: https://www.mongodb.org/static/pgp/server-{{ mongodb_version }}.asc
+    state: present
+
+- name: Add MongoDB repository
+  apt_repository:
+    repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/{{ mongodb_version }} multiverse"
+    state: present
+    filename: mongodb-org-{{ mongodb_version }}
+
+- name: Install MongoDB
+  apt:
+    name: mongodb-org
+    state: present
+    update_cache: yes
+
+- name: Create MongoDB data directory
+  file:
+    path: /var/lib/mongodb
+    state: directory
+    owner: mongodb
+    group: mongodb
+    mode: '0755'
+
+- name: Deploy MongoDB configuration (without auth initially)
+  template:
+    src: ../templates/mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart MongoDB
+
+- name: Enable and start MongoDB
+  systemd:
+    name: mongod
+    enabled: yes
+    state: started
+
+- name: Wait for MongoDB to start
+  wait_for:
+    port: 27017
+    delay: 5
+    timeout: 60
+
+- name: Create MongoDB admin user via shell
+  shell: |
+    mongosh admin --eval '
+      db.createUser({
+        user: "admin",
+        pwd: "{{ vault_mongo_admin_password }}",
+        roles: [{ role: "root", db: "admin" }]
+      })
+    '
+  register: mongo_admin_result
+  failed_when: false
+  changed_when: "'already exists' not in mongo_admin_result.stderr"
+
+- name: Create MongoDB application user via shell
+  shell: |
+    mongosh admin -u admin -p '{{ vault_mongo_admin_password }}' --eval '
+      db.createUser({
+        user: "towerdefence",
+        pwd: "{{ vault_mongo_app_password }}",
+        roles: [{ role: "readWrite", db: "towerdefence" }]
+      })
+    '
+  register: mongo_app_result
+  failed_when: false
+  changed_when: "'already exists' not in mongo_app_result.stderr"
