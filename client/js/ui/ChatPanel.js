@@ -17,6 +17,8 @@ class ChatPanel {
     };
 
     this.isVisible = false;
+    this.unreadCount = 0;
+    this.onUnreadChange = null; // Callback for when unread count changes
     this.setupEventListeners();
     this.setupNetworkListeners();
 
@@ -64,6 +66,7 @@ class ChatPanel {
   show() {
     this.elements.panel.classList.remove('hidden');
     this.isVisible = true;
+    this.clearUnread();
   }
 
   hide() {
@@ -107,6 +110,7 @@ class ChatPanel {
 
     this.elements.messages.appendChild(messageEl);
     this.scrollToBottom();
+    this.incrementUnread();
   }
 
   addSystemMessage(message) {
@@ -116,6 +120,7 @@ class ChatPanel {
 
     this.elements.messages.appendChild(messageEl);
     this.scrollToBottom();
+    this.incrementUnread();
   }
 
   scrollToBottom() {
@@ -138,5 +143,26 @@ class ChatPanel {
     } else {
       this.elements.panel.classList.remove('lobby-mode');
     }
+  }
+
+  incrementUnread() {
+    // Only increment if chat is hidden
+    if (!this.isVisible) {
+      this.unreadCount++;
+      if (this.onUnreadChange) {
+        this.onUnreadChange(this.unreadCount);
+      }
+    }
+  }
+
+  clearUnread() {
+    this.unreadCount = 0;
+    if (this.onUnreadChange) {
+      this.onUnreadChange(0);
+    }
+  }
+
+  getUnreadCount() {
+    return this.unreadCount;
   }
 }

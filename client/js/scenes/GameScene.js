@@ -191,9 +191,24 @@ class GameScene extends Phaser.Scene {
       this.inputManager.cancelSelection();
     };
 
-    // Chat panel
+    // Chat panel - hidden by default in game, with notification support
     this.chatPanel = new ChatPanel();
-    this.chatPanel.show();
+    this.chatPanel.hide(); // Hidden by default - use chat button to show
+
+    // Chat toggle button and badge
+    this.chatToggleBtn = document.getElementById('chat-toggle-btn');
+    this.chatBadge = document.getElementById('chat-badge');
+
+    // Wire up unread notification callback
+    this.chatPanel.onUnreadChange = (count) => {
+      this.updateChatBadge(count);
+    };
+
+    // Chat toggle button click handler
+    this.chatToggleBtn.onclick = () => {
+      this.chatPanel.toggle();
+      this.updateChatButtonText();
+    };
 
     // Pause overlay
     this.pauseOverlay = document.getElementById('pause-overlay');
@@ -324,6 +339,17 @@ class GameScene extends Phaser.Scene {
       this.menuChatBtn.textContent = 'Hide Chat';
     } else {
       this.menuChatBtn.textContent = 'Show Chat';
+    }
+  }
+
+  updateChatBadge(count) {
+    if (count > 0) {
+      this.chatBadge.textContent = count > 99 ? '99+' : count;
+      this.chatBadge.classList.remove('hidden');
+      this.chatToggleBtn.classList.add('has-unread');
+    } else {
+      this.chatBadge.classList.add('hidden');
+      this.chatToggleBtn.classList.remove('has-unread');
     }
   }
 

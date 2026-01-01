@@ -63,6 +63,61 @@ html, body {
 
 #hud-right {
   pointer-events: auto;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Chat Toggle Button */
+#chat-toggle-btn {
+  position: relative;
+  background: #4a4a8a;
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#chat-toggle-btn:hover {
+  background: #6a6aaa;
+}
+
+#chat-toggle-btn.has-unread {
+  animation: pulse-badge 1s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 136, 0, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 136, 0, 0); }
+}
+
+#chat-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff4444;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+#chat-badge.hidden {
+  display: none;
+}
+
+.chat-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 /* Game Menu Dropdown */
@@ -662,16 +717,8 @@ html, body {
   background: #aa3333;
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-  #hud-left {
-    padding: 8px 10px;
-  }
-
-  #hud-left div {
-    font-size: 14px;
-  }
-
+/* Responsiveness - Tower panel goes horizontal at 1024px */
+@media (max-width: 1024px) {
   #tower-panel {
     left: 5px;
     right: 5px;
@@ -701,18 +748,29 @@ html, body {
     display: none;
   }
 
-  #chat-panel {
-    width: 200px;
-    bottom: 130px;
-    left: 5px;
-  }
-
   #upgrade-panel,
   #enemy-panel {
     left: 50%;
     transform: translateX(-50%);
     right: auto;
-    bottom: 130px;
+    bottom: 100px;
+  }
+
+  /* Chat panel moves to left edge when tower panel is horizontal */
+  #chat-panel {
+    left: 10px;
+    bottom: 100px;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  #hud-left {
+    padding: 8px 10px;
+  }
+
+  #hud-left div {
+    font-size: 14px;
   }
 
   #pause-content {
