@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     scene: [
       BootScene,
+      BackgroundScene,
       MenuScene,
       CreateGameScene,
       BrowseScene,

@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "lint": "eslint server shared client --fix"
+    "lint": "eslint server shared client --fix",
+    "cleanup": "node server/index.js --cleanup",
+    "cleanup:orphaned": "node server/index.js --cleanup orphaned",
+    "cleanup:stale": "node server/index.js --cleanup stale",
+    "cleanup:all": "node server/index.js --cleanup all"
   },
   "keywords": [
     "tower-defense",

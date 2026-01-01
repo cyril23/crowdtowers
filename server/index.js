@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const connectDB = require('./config/db');
 const { setupSocketHandlers } = require('./socket/handlers');
+const Game = require('./models/Game');
 
 // Load environment variables
 require('dotenv').config({ path: path.join(__dirname, '../.env.prod') });
@@ -59,4 +60,84 @@ async function startServer() {
   }
 }
 
-startServer();
+// CLI cleanup command handler
+async function runCleanup(filter) {
+  try {
+    await connectDB();
+
+    let query = {};
+    let description = 'all games';
+
+    switch (filter) {
+      case 'orphaned':
+      case 'empty':
+        // Games with no players
+        query = { players: { $size: 0 } };
+        description = 'orphaned games (no players)';
+        break;
+      case 'lobby':
+        // Games stuck in lobby
+        query = { status: 'lobby' };
+        description = 'games in lobby status';
+        break;
+      case 'old':
+        // Games older than 24 hours
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        query = { updatedAt: { $lt: dayAgo } };
+        description = 'games older than 24 hours';
+        break;
+      case 'stale':
+        // Non-completed games older than 1 hour
+        const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        query = {
+          status: { $nin: ['completed', 'saved'] },
+          updatedAt: { $lt: hourAgo }
+        };
+        description = 'stale games (inactive >1 hour, not completed)';
+        break;
+      case 'all':
+        query = {};
+        description = 'ALL games';
+        break;
+      default:
+        console.log('Game Cleanup Tool');
+        console.log('=================');
+        console.log('Usage: node server/index.js --cleanup <filter>\n');
+        console.log('Available filters:');
+        console.log('  orphaned  - Delete games with no players');
+        console.log('  empty     - Same as orphaned');
+        console.log('  lobby     - Delete games stuck in lobby');
+        console.log('  old       - Delete games older than 24 hours');
+        console.log('  stale     - Delete inactive games (>1 hour, not completed)');
+        console.log('  all       - Delete ALL games (use with caution!)');
+        process.exit(1);
+    }
+
+    // Show what will be deleted
+    const count = await Game.countDocuments(query);
+    console.log(`Found ${count} ${description}`);
+
+    if (count > 0) {
+      const result = await Game.deleteMany(query);
+      console.log(`Deleted ${result.deletedCount} games`);
+    } else {
+      console.log('Nothing to delete');
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error('Cleanup error:', error);
+    process.exit(1);
+  }
+}
+
+// Check for CLI arguments
+const args = process.argv.slice(2);
+const cleanupIndex = args.indexOf('--cleanup');
+
+if (cleanupIndex !== -1) {
+  const filter = args[cleanupIndex + 1] || 'help';
+  runCleanup(filter);
+} else {
+  startServer();
+}

@@ -1,67 +1,22 @@
-class MenuScene extends Phaser.Scene {
+// ============================================
+// BACKGROUND SCENE - Persistent animated background for menu screens
+// ============================================
+class BackgroundScene extends Phaser.Scene {
   constructor() {
-    super({ key: 'MenuScene' });
+    super({ key: 'BackgroundScene' });
   }
 
   create() {
-    const centerX = this.cameras.main.centerX;
-    const centerY = this.cameras.main.centerY;
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
+    const centerX = this.cameras.main.centerX;
 
-    // Initialize effect containers
     this.stars = [];
     this.ufos = [];
 
-    // Create background effects (order matters for layering)
     this.createStarfield(width, height);
     this.createUfos(width, height);
     this.createMothership(centerX);
-
-    // Title
-    this.createTitle(centerX);
-
-    // Name input (centered layout)
-    const inputY = 180;
-    this.add.text(centerX - 110, inputY + 8, 'Your Name:', {
-      fontSize: '16px',
-      color: '#aaaaaa',
-      fontFamily: 'Arial'
-    }).setOrigin(1, 0.5);
-
-    this.nicknameInput = this.createInput(centerX - 100, inputY, 200, 'Enter name...');
-
-    // Create Game button
-    this.createButton(centerX, 260, 'Create New Game', () => {
-      this.showCreateGameMenu();
-    });
-
-    // Join by Code button
-    this.createButton(centerX, 320, 'Join by Code', () => {
-      this.showJoinMenu();
-    });
-
-    // Browse Games button
-    this.createButton(centerX, 380, 'Browse Open Games', () => {
-      this.showBrowseMenu();
-    });
-
-    // Error message area
-    this.errorText = this.add.text(centerX, 450, '', {
-      fontSize: '16px',
-      color: '#ff4444',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Setup network listeners
-    this.setupNetworkListeners();
-
-    // Check for pending join code
-    const pendingCode = this.registry.get('pendingJoinCode');
-    if (pendingCode) {
-      this.registry.remove('pendingJoinCode');
-      this.showJoinMenu(pendingCode);
-    }
   }
 
   // ============================================
@@ -227,35 +182,6 @@ class MenuScene extends Phaser.Scene {
   }
 
   // ============================================
-  // TITLE
-  // ============================================
-  createTitle(centerX) {
-    // Main title
-    this.add.text(centerX, 60, 'ALIEN INVASION', {
-      fontSize: '42px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5).setDepth(1);
-
-    // Subtitle with subtle pulse
-    const subtitle = this.add.text(centerX, 105, 'Tower Defense', {
-      fontSize: '24px',
-      color: '#8888aa',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setDepth(1);
-
-    this.tweens.add({
-      targets: subtitle,
-      alpha: 0.6,
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-  }
-
-  // ============================================
   // UPDATE LOOP - Animate moving elements
   // ============================================
   update(time, delta) {
@@ -299,7 +225,7 @@ class MenuScene extends Phaser.Scene {
       ufo.x = ufo.centerX + Math.cos(ufo.angle) * ufo.dist;
       ufo.y = ufo.centerY + Math.sin(ufo.angle) * ufo.dist;
 
-      // Scale and fade based on distance (mask hides the center)
+      // Scale and fade based on distance
       const progress = ufo.dist / ufo.maxDist;
       const scale = 0.1 + progress * 1.2;
       ufo.setScale(scale);
@@ -311,17 +237,125 @@ class MenuScene extends Phaser.Scene {
       }
     });
   }
+}
 
+// ============================================
+// MENU SCENE - Main menu UI (overlay on BackgroundScene)
+// ============================================
+class MenuScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'MenuScene' });
+  }
+
+  create() {
+    const centerX = this.cameras.main.centerX;
+
+    // Launch background scene if not already running
+    if (!this.scene.isActive('BackgroundScene')) {
+      this.scene.launch('BackgroundScene');
+      this.scene.sendToBack('BackgroundScene');
+    }
+
+    // Make this scene's background transparent
+    this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+
+    // Initialize HTML input tracking
+    this.htmlInputs = [];
+
+    // Title
+    this.createTitle(centerX);
+
+    // Name input (centered layout)
+    const inputY = 180;
+    this.add.text(centerX - 110, inputY + 8, 'Your Name:', {
+      fontSize: '16px',
+      color: '#aaaaaa',
+      fontFamily: 'Arial'
+    }).setOrigin(1, 0.5);
+
+    this.nicknameInput = this.createInput(centerX - 100, inputY, 200, 'Enter name...');
+
+    // Create Game button
+    this.createButton(centerX, 260, 'Create New Game', () => {
+      this.showCreateGameMenu();
+    });
+
+    // Join by Code button
+    this.createButton(centerX, 320, 'Join by Code', () => {
+      this.showJoinMenu();
+    });
+
+    // Browse Games button
+    this.createButton(centerX, 380, 'Browse Open Games', () => {
+      this.showBrowseMenu();
+    });
+
+    // Error message area
+    this.errorText = this.add.text(centerX, 450, '', {
+      fontSize: '16px',
+      color: '#ff4444',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    // Setup network listeners
+    this.setupNetworkListeners();
+
+    // Handle window resize for HTML inputs
+    this.scale.on('resize', this.repositionAllInputs, this);
+
+    // Check for pending join code
+    const pendingCode = this.registry.get('pendingJoinCode');
+    if (pendingCode) {
+      this.registry.remove('pendingJoinCode');
+      this.showJoinMenu(pendingCode);
+    }
+  }
+
+  // ============================================
+  // TITLE
+  // ============================================
+  createTitle(centerX) {
+    // Main title
+    this.add.text(centerX, 60, 'ALIEN INVASION', {
+      fontSize: '42px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(1);
+
+    // Subtitle with subtle pulse
+    const subtitle = this.add.text(centerX, 105, 'Tower Defense', {
+      fontSize: '24px',
+      color: '#8888aa',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(1);
+
+    this.tweens.add({
+      targets: subtitle,
+      alpha: 0.6,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+  }
+
+  // ============================================
+  // RESPONSIVE INPUT POSITIONING
+  // ============================================
   createInput(x, y, width, placeholder) {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = placeholder;
     input.maxLength = 20;
+
+    // Store original game coordinates for repositioning
+    input.dataset.gameX = x;
+    input.dataset.gameY = y;
+    input.dataset.gameWidth = width;
+
+    // Apply base styles
     input.style.cssText = `
-      position: absolute;
-      left: ${x}px;
-      top: ${y}px;
-      width: ${width}px;
       padding: 8px;
       font-size: 16px;
       border: 2px solid #4a4a8a;
@@ -330,8 +364,55 @@ class MenuScene extends Phaser.Scene {
       color: white;
       text-align: center;
     `;
+
+    // Position based on canvas scale
+    this.positionInput(input);
+
     document.getElementById('game-container').appendChild(input);
+
+    // Track for resize handling
+    this.htmlInputs.push(input);
+
     return input;
+  }
+
+  positionInput(input) {
+    const canvas = this.game.canvas;
+    const container = document.getElementById('game-container');
+
+    // Get canvas position within container
+    const canvasRect = canvas.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    // Calculate scale factor
+    const scaleX = canvas.clientWidth / this.game.config.width;
+    const scaleY = canvas.clientHeight / this.game.config.height;
+
+    // Calculate offset from container to canvas
+    const offsetX = canvasRect.left - containerRect.left;
+    const offsetY = canvasRect.top - containerRect.top;
+
+    // Get stored game coordinates
+    const gameX = parseFloat(input.dataset.gameX);
+    const gameY = parseFloat(input.dataset.gameY);
+    const gameWidth = parseFloat(input.dataset.gameWidth);
+
+    // Apply scaled position
+    input.style.position = 'absolute';
+    input.style.left = `${offsetX + (gameX * scaleX)}px`;
+    input.style.top = `${offsetY + (gameY * scaleY)}px`;
+    input.style.width = `${gameWidth * scaleX}px`;
+    input.style.fontSize = `${16 * Math.min(scaleX, scaleY)}px`;
+  }
+
+  repositionAllInputs() {
+    if (this.htmlInputs) {
+      this.htmlInputs.forEach(input => {
+        if (input.parentNode) {
+          this.positionInput(input);
+        }
+      });
+    }
   }
 
   createButton(x, y, text, callback) {
@@ -365,8 +446,10 @@ class MenuScene extends Phaser.Scene {
       return;
     }
 
-    // Clear scene and show create game options
-    this.scene.start('CreateGameScene', { nickname });
+    // Clean up and switch to CreateGameScene (overlay)
+    this.clearMenuUI();
+    this.scene.stop('MenuScene');
+    this.scene.launch('CreateGameScene', { nickname });
   }
 
   showJoinMenu(prefillCode = '') {
@@ -376,9 +459,17 @@ class MenuScene extends Phaser.Scene {
       return;
     }
 
-    // Clear and show join menu
-    this.clearMenu();
+    // Store nickname and clear UI
+    const savedNickname = nickname;
+    this.clearMenuUI();
 
+    // Clear only Phaser UI objects (not the background scene)
+    this.children.removeAll();
+
+    // Reset inputs array
+    this.htmlInputs = [];
+
+    // Rebuild join menu UI
     this.add.text(this.cameras.main.centerX, 160, 'Enter Session Code:', {
       fontSize: '18px',
       color: '#ffffff',
@@ -395,16 +486,24 @@ class MenuScene extends Phaser.Scene {
     this.codeInput.maxLength = 6;
     this.codeInput.style.textTransform = 'uppercase';
 
+    // Error text
+    this.errorText = this.add.text(this.cameras.main.centerX, 450, '', {
+      fontSize: '16px',
+      color: '#ff4444',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
     this.createButton(this.cameras.main.centerX, 260, 'Join Game', () => {
       const code = this.codeInput.value.trim().toUpperCase();
       if (code.length !== 6) {
         this.showError('Session code must be 6 characters');
         return;
       }
-      networkManager.joinGame(code, nickname);
+      networkManager.joinGame(code, savedNickname);
     });
 
     this.createButton(this.cameras.main.centerX, 320, 'Back', () => {
+      this.clearMenuUI();
       this.scene.restart();
     });
   }
@@ -417,25 +516,37 @@ class MenuScene extends Phaser.Scene {
     }
 
     this.registry.set('nickname', nickname);
-    this.scene.start('BrowseScene', { nickname });
+    this.clearMenuUI();
+    this.scene.stop('MenuScene');
+    this.scene.launch('BrowseScene', { nickname });
   }
 
-  clearMenu() {
-    // Remove HTML elements
+  clearMenuUI() {
+    // Remove HTML elements only
     if (this.nicknameInput) {
       this.nicknameInput.remove();
+      this.nicknameInput = null;
     }
     if (this.codeInput) {
       this.codeInput.remove();
+      this.codeInput = null;
     }
-
-    // Clear Phaser objects
-    this.children.removeAll();
+    // Clear the tracking array
+    if (this.htmlInputs) {
+      this.htmlInputs.forEach(input => {
+        if (input.parentNode) {
+          input.remove();
+        }
+      });
+      this.htmlInputs = [];
+    }
   }
 
   setupNetworkListeners() {
     networkManager.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
-      this.clearMenu();
+      this.clearMenuUI();
+      this.scene.stop('MenuScene');
+      this.scene.stop('BackgroundScene');
       this.scene.start('LobbyScene', {
         sessionCode: data.sessionCode,
         inviteLink: data.inviteLink,
@@ -446,7 +557,9 @@ class MenuScene extends Phaser.Scene {
     });
 
     networkManager.on(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
-      this.clearMenu();
+      this.clearMenuUI();
+      this.scene.stop('MenuScene');
+      this.scene.stop('BackgroundScene');
       if (data.status === GAME_STATUS.LOBBY) {
         this.scene.start('LobbyScene', {
           sessionCode: data.sessionCode,
@@ -471,18 +584,25 @@ class MenuScene extends Phaser.Scene {
   }
 
   showError(message) {
-    this.errorText.setText(message);
-    this.time.delayedCall(3000, () => {
-      this.errorText.setText('');
-    });
+    if (this.errorText) {
+      this.errorText.setText(message);
+      this.time.delayedCall(3000, () => {
+        if (this.errorText) {
+          this.errorText.setText('');
+        }
+      });
+    }
   }
 
   shutdown() {
-    this.clearMenu();
+    this.scale.off('resize', this.repositionAllInputs, this);
+    this.clearMenuUI();
   }
 }
 
-// Create Game Scene
+// ============================================
+// CREATE GAME SCENE (overlay on BackgroundScene)
+// ============================================
 class CreateGameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'CreateGameScene' });
@@ -493,6 +613,9 @@ class CreateGameScene extends Phaser.Scene {
   }
 
   create() {
+    // Make background transparent to show BackgroundScene
+    this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+
     const centerX = this.cameras.main.centerX;
 
     this.add.text(centerX, 60, 'Create New Game', {
@@ -588,11 +711,14 @@ class CreateGameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        this.scene.start('MenuScene');
+        this.scene.stop('CreateGameScene');
+        this.scene.launch('MenuScene');
       });
 
     // Setup network listeners
     networkManager.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
+      this.scene.stop('CreateGameScene');
+      this.scene.stop('BackgroundScene');
       this.scene.start('LobbyScene', {
         sessionCode: data.sessionCode,
         inviteLink: data.inviteLink,
@@ -621,7 +747,9 @@ class CreateGameScene extends Phaser.Scene {
   }
 }
 
-// Browse Games Scene
+// ============================================
+// BROWSE GAMES SCENE (overlay on BackgroundScene)
+// ============================================
 class BrowseScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BrowseScene' });
@@ -632,6 +760,9 @@ class BrowseScene extends Phaser.Scene {
   }
 
   create() {
+    // Make background transparent to show BackgroundScene
+    this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+
     const centerX = this.cameras.main.centerX;
 
     this.add.text(centerX, 40, 'Open Games', {
@@ -658,7 +789,8 @@ class BrowseScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        this.scene.start('MenuScene');
+        this.scene.stop('BrowseScene');
+        this.scene.launch('MenuScene');
       });
 
     // Refresh button
@@ -679,6 +811,8 @@ class BrowseScene extends Phaser.Scene {
     });
 
     networkManager.on(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
+      this.scene.stop('BrowseScene');
+      this.scene.stop('BackgroundScene');
       if (data.status === GAME_STATUS.LOBBY) {
         this.scene.start('LobbyScene', {
           sessionCode: data.sessionCode,

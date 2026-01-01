@@ -474,6 +474,10 @@ function setupSocketHandlers(io) {
                 activeGames.delete(currentSession);
               }
               log.event('GAME_EMPTY', {});
+
+              // Delete game from database
+              await Game.deleteOne({ sessionCode: currentSession });
+              log.event('GAME_DELETED', {});
             }
 
             socket.to(currentSession).emit(SOCKET_EVENTS.PLAYER_LEFT, {
