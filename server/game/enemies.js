@@ -54,9 +54,9 @@ function generateWaveEnemies(waveNumber) {
     const stats = getEnemyStats(enemyType, waveNumber);
 
     enemies.push({
-      id: `enemy_${waveNumber}_${i}`,
-      type: enemyType,
       ...stats,
+      id: `enemy_${waveNumber}_${i}`, // Must come AFTER ...stats to override the type-based id
+      type: enemyType,
       pathIndex: 0,
       x: 0,
       y: 0,

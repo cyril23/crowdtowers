@@ -5,6 +5,7 @@ class InputManager {
     this.selectedTowerType = null;
     this.selectedTower = null;
     this.selectedEnemy = null;
+    this.selectedEnemyId = null;
   }
 
   detectMobile() {
@@ -80,8 +81,34 @@ class InputManager {
     if (tower) {
       this.selectTower(tower);
     } else {
-      this.deselectTower();
+      // Check if clicking on an enemy (only when not in building mode)
+      const clickedEnemy = this.findEnemyAtPosition(pointer.x, pointer.y);
+      if (clickedEnemy) {
+        this.selectEnemy(clickedEnemy);
+      } else {
+        this.deselectTower();
+        this.deselectEnemy();
+      }
     }
+  }
+
+  findEnemyAtPosition(x, y) {
+    if (!this.scene.enemyData) return null;
+
+    for (const enemy of this.scene.enemyData) {
+      const enemyDef = ENEMIES[enemy.type];
+      if (!enemyDef) continue;
+
+      const size = enemyDef.size;
+      const clickBuffer = 4; // Extra pixels for easier clicking
+      const dist = Math.sqrt(Math.pow(x - enemy.x, 2) + Math.pow(y - enemy.y, 2));
+
+      if (dist <= size + clickBuffer) {
+        return enemy;
+      }
+    }
+
+    return null;
   }
 
   handlePointerMove(pointer) {
@@ -148,8 +175,13 @@ class InputManager {
 
   selectEnemy(enemy) {
     this.selectedEnemy = enemy;
+    this.selectedEnemyId = enemy.id;
     this.selectedTower = null;
     this.selectedTowerType = null;
+
+    if (this.scene.towerMenu) {
+      this.scene.towerMenu.clearHighlight();
+    }
 
     if (this.scene.showEnemyPanel) {
       this.scene.showEnemyPanel(enemy);
@@ -158,6 +190,7 @@ class InputManager {
 
   deselectEnemy() {
     this.selectedEnemy = null;
+    this.selectedEnemyId = null;
 
     if (this.scene.hideEnemyPanel) {
       this.scene.hideEnemyPanel();

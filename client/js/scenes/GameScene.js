@@ -505,6 +505,18 @@ class GameScene extends Phaser.Scene {
 
     // Store enemy data directly - will be rendered in update() loop
     this.enemyData = data.enemies;
+
+    // Update selected enemy panel if one is selected
+    if (this.inputManager.selectedEnemyId) {
+      const enemy = this.enemyData.find(e => e.id === this.inputManager.selectedEnemyId);
+      if (enemy) {
+        // Update with live health
+        this.towerMenu.updateEnemyPanel(enemy);
+      } else {
+        // Enemy died - show death state
+        this.towerMenu.showEnemyDeath();
+      }
+    }
   }
 
   // Phaser update loop - called every frame
@@ -516,10 +528,19 @@ class GameScene extends Phaser.Scene {
   drawEnemies() {
     this.enemyGraphics.clear();
 
+    const selectedId = this.inputManager.selectedEnemyId;
+
     for (const enemy of this.enemyData) {
       const visual = CLIENT_CONFIG.enemyVisuals[enemy.type];
       const enemyDef = ENEMIES[enemy.type];
       const size = enemyDef.size;
+
+      // Draw selection ring if this specific enemy is selected (exact ID match)
+      const isSelected = selectedId && enemy.id && String(selectedId) === String(enemy.id);
+      if (isSelected) {
+        this.enemyGraphics.lineStyle(2, 0xffff00, 0.9);
+        this.enemyGraphics.strokeCircle(enemy.x, enemy.y, size + 4);
+      }
 
       // Draw enemy body
       this.enemyGraphics.fillStyle(visual.color, 1);

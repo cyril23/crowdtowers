@@ -342,9 +342,9 @@ class GameManager {
     if (spawns) {
       for (let i = 0; i < spawns.count; i++) {
         const spawn = {
-          id: `spawn_${Date.now()}_${i}`,
-          type: spawns.type,
           ...require('./enemies').getEnemyStats(spawns.type, this.gameData.gameState.currentWave),
+          id: `spawn_${Date.now()}_${i}`, // Must come AFTER spread to override type-based id
+          type: spawns.type,
           pathIndex: enemy.pathIndex,
           x: enemy.x + (Math.random() - 0.5) * 24,
           y: enemy.y + (Math.random() - 0.5) * 24,

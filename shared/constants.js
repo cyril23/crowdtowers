@@ -157,7 +157,7 @@ const ENEMIES = {
     healthScaling: 0.20,
     speedScaling: 0.02,
     special: 'armor',
-    armorReduction: 0.25 // Takes 25% less damage
+    armorReduction: 0.50 // Takes 50% less damage (Machine Guns deal only 25% effective damage)
   },
   broodmother: {
     id: 'broodmother',

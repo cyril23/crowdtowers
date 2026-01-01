@@ -246,36 +246,39 @@ class TowerMenu {
 
   showEnemyPanel(enemy) {
     this.selectedEnemy = enemy;
+    this.lastEnemyData = { ...enemy }; // Store for death state display
     this.hideUpgradePanel(); // Hide tower panel if open
 
-    const enemyDef = ENEMIES[enemy.enemyType];
+    const enemyDef = ENEMIES[enemy.type];
+    if (!enemyDef) return;
+
     const healthPercent = Math.round((enemy.health / enemy.maxHealth) * 100);
 
     // Build special ability description
     let specialDesc = '';
     if (enemyDef.special === 'phase') {
-      specialDesc = `<p class="enemy-special">⚡ Phase: ${Math.round(enemyDef.phaseChance * 100)}% dodge chance</p>`;
+      specialDesc = `<p class="enemy-special">Phase: ${Math.round(enemyDef.phaseChance * 100)}% dodge chance</p>`;
     } else if (enemyDef.special === 'armor') {
-      specialDesc = `<p class="enemy-special">🛡️ Armor: ${Math.round(enemyDef.armorReduction * 100)}% damage reduction</p>`;
+      specialDesc = `<p class="enemy-special">Armor: ${Math.round(enemyDef.armorReduction * 100)}% damage reduction</p>`;
     } else if (enemyDef.special === 'spawn') {
-      specialDesc = `<p class="enemy-special">🥚 Spawns ${enemyDef.spawnCount} ${enemyDef.spawnType}s on death</p>`;
+      specialDesc = `<p class="enemy-special">Spawns ${enemyDef.spawnCount} ${enemyDef.spawnType}s on death</p>`;
     }
 
     // Find which towers are strong/weak against this enemy
     const strongTowers = [];
     const weakTowers = [];
-    Object.entries(TOWERS).forEach(([type, tower]) => {
-      if (tower.strongVs && tower.strongVs.includes(enemy.enemyType)) {
+    Object.entries(TOWERS).forEach(([towerType, tower]) => {
+      if (tower.strongVs && tower.strongVs.includes(enemy.type)) {
         strongTowers.push(tower.name);
       }
-      if (tower.weakVs && tower.weakVs.includes(enemy.enemyType)) {
+      if (tower.weakVs && tower.weakVs.includes(enemy.type)) {
         weakTowers.push(tower.name);
       }
     });
 
     this.elements.enemyInfo.innerHTML = `
       <h3>${enemyDef.name}</h3>
-      <p>Health: ${enemy.health}/${enemy.maxHealth} (${healthPercent}%)</p>
+      <p>Health: ${Math.round(enemy.health)}/${enemy.maxHealth} (${healthPercent}%)</p>
       <p>Speed: ${enemyDef.speed}</p>
       <p>Reward: $${enemyDef.reward}</p>
       ${specialDesc}
@@ -284,17 +287,47 @@ class TowerMenu {
     `;
 
     this.elements.enemyPanel.classList.remove('hidden');
+    this.elements.enemyPanel.classList.remove('killed');
   }
 
   hideEnemyPanel() {
     this.selectedEnemy = null;
+    this.lastEnemyData = null;
     this.elements.enemyPanel.classList.add('hidden');
+    this.elements.enemyPanel.classList.remove('killed');
   }
 
   updateEnemyPanel(enemy) {
     if (this.selectedEnemy && this.selectedEnemy.id === enemy.id) {
       this.selectedEnemy.health = enemy.health;
-      this.showEnemyPanel(this.selectedEnemy);
+      this.showEnemyPanel(enemy);
     }
+  }
+
+  showEnemyDeath() {
+    if (!this.lastEnemyData) return;
+
+    const enemy = this.lastEnemyData;
+    const enemyDef = ENEMIES[enemy.type];
+    if (!enemyDef) return;
+
+    // Find which towers are strong/weak against this enemy
+    const strongTowers = [];
+    Object.entries(TOWERS).forEach(([towerType, tower]) => {
+      if (tower.strongVs && tower.strongVs.includes(enemy.type)) {
+        strongTowers.push(tower.name);
+      }
+    });
+
+    this.elements.enemyInfo.innerHTML = `
+      <h3>${enemyDef.name}</h3>
+      <p class="enemy-killed">KILLED</p>
+      <p>Max Health: ${enemy.maxHealth}</p>
+      <p>Speed: ${enemyDef.speed}</p>
+      <p>Reward: $${enemyDef.reward}</p>
+      ${strongTowers.length ? `<p class="enemy-weak">Was weak to: ${strongTowers.join(', ')}</p>` : ''}
+    `;
+
+    this.elements.enemyPanel.classList.add('killed');
   }
 }

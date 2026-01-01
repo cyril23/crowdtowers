@@ -432,6 +432,18 @@ html, body {
   margin-top: 10px;
 }
 
+#enemy-panel.killed {
+  opacity: 0.8;
+  border: 1px solid #ff4444;
+}
+
+#enemy-info .enemy-killed {
+  color: #ff4444;
+  font-weight: bold;
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
 
 /* Chat Panel */
 #chat-panel {
