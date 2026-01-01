@@ -247,6 +247,19 @@ class MenuScene extends Phaser.Scene {
     super({ key: 'MenuScene' });
   }
 
+  init() {
+    // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
+    if (!this.networkHandlers) {
+      this.networkHandlers = [];
+    }
+  }
+
+  // Helper to register network handlers and track them for cleanup
+  registerNetworkHandler(event, handler) {
+    networkManager.on(event, handler);
+    this.networkHandlers.push({ event, handler });
+  }
+
   create() {
     const centerX = this.cameras.main.centerX;
 
@@ -274,6 +287,12 @@ class MenuScene extends Phaser.Scene {
     }).setOrigin(1, 0.5);
 
     this.nicknameInput = this.createInput(centerX - 100, inputY, 200, 'Enter name...');
+
+    // Load saved nickname from localStorage
+    const savedName = localStorage.getItem('playerNickname');
+    if (savedName) {
+      this.nicknameInput.value = savedName;
+    }
 
     // Create Game button
     this.createButton(centerX, 260, 'Create New Game', () => {
@@ -309,6 +328,30 @@ class MenuScene extends Phaser.Scene {
       this.registry.remove('pendingJoinCode');
       this.showJoinMenu(pendingCode);
     }
+
+    // Check for toast message (e.g., from lobby close)
+    const toastMsg = this.scene.settings.data?.toast;
+    if (toastMsg) {
+      this.showToast(toastMsg);
+    }
+  }
+
+  showToast(message) {
+    const toast = this.add.text(this.cameras.main.centerX, 500, message, {
+      fontSize: '16px',
+      color: '#ffffff',
+      backgroundColor: '#aa4444',
+      padding: { x: 15, y: 10 }
+    }).setOrigin(0.5).setDepth(1000);
+
+    this.tweens.add({
+      targets: toast,
+      alpha: 0,
+      y: 480,
+      delay: 2000,
+      duration: 500,
+      onComplete: () => toast.destroy()
+    });
   }
 
   // ============================================
@@ -446,6 +489,9 @@ class MenuScene extends Phaser.Scene {
       return;
     }
 
+    // Save nickname to localStorage
+    localStorage.setItem('playerNickname', nickname);
+
     // Clean up and switch to CreateGameScene (overlay)
     this.clearMenuUI();
     this.scene.stop('MenuScene');
@@ -458,6 +504,9 @@ class MenuScene extends Phaser.Scene {
       this.showError('Please enter a name');
       return;
     }
+
+    // Save nickname to localStorage
+    localStorage.setItem('playerNickname', nickname);
 
     // Store nickname and clear UI
     const savedNickname = nickname;
@@ -515,6 +564,9 @@ class MenuScene extends Phaser.Scene {
       return;
     }
 
+    // Save nickname to localStorage
+    localStorage.setItem('playerNickname', nickname);
+
     this.registry.set('nickname', nickname);
     this.clearMenuUI();
     this.scene.stop('MenuScene');
@@ -543,7 +595,15 @@ class MenuScene extends Phaser.Scene {
   }
 
   setupNetworkListeners() {
-    networkManager.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
+    // Clean up any existing handlers FIRST to prevent accumulation
+    if (this.networkHandlers && this.networkHandlers.length > 0) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_CREATED, (data) => {
       this.clearMenuUI();
       this.scene.stop('MenuScene');
       this.scene.stop('BackgroundScene');
@@ -556,7 +616,7 @@ class MenuScene extends Phaser.Scene {
       });
     });
 
-    networkManager.on(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
       this.clearMenuUI();
       this.scene.stop('MenuScene');
       this.scene.stop('BackgroundScene');
@@ -578,7 +638,7 @@ class MenuScene extends Phaser.Scene {
       }
     });
 
-    networkManager.on(SOCKET_EVENTS.JOIN_ERROR, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.JOIN_ERROR, (data) => {
       this.showError(data.message);
     });
   }
@@ -597,6 +657,14 @@ class MenuScene extends Phaser.Scene {
   shutdown() {
     this.scale.off('resize', this.repositionAllInputs, this);
     this.clearMenuUI();
+
+    // Clean up network handlers to prevent accumulation
+    if (this.networkHandlers) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
   }
 }
 
@@ -610,6 +678,16 @@ class CreateGameScene extends Phaser.Scene {
 
   init(data) {
     this.nickname = data.nickname;
+    // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
+    if (!this.networkHandlers) {
+      this.networkHandlers = [];
+    }
+  }
+
+  // Helper to register network handlers and track them for cleanup
+  registerNetworkHandler(event, handler) {
+    networkManager.on(event, handler);
+    this.networkHandlers.push({ event, handler });
   }
 
   create() {
@@ -715,8 +793,15 @@ class CreateGameScene extends Phaser.Scene {
         this.scene.launch('MenuScene');
       });
 
-    // Setup network listeners
-    networkManager.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
+    // Setup network listeners - clean up first to prevent accumulation
+    if (this.networkHandlers && this.networkHandlers.length > 0) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_CREATED, (data) => {
       this.scene.stop('CreateGameScene');
       this.scene.stop('BackgroundScene');
       this.scene.start('LobbyScene', {
@@ -727,6 +812,16 @@ class CreateGameScene extends Phaser.Scene {
         isHost: true
       });
     });
+  }
+
+  shutdown() {
+    // Clean up network handlers to prevent accumulation
+    if (this.networkHandlers) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
   }
 
   selectSize(size) {
@@ -757,6 +852,17 @@ class BrowseScene extends Phaser.Scene {
 
   init(data) {
     this.nickname = data.nickname;
+
+    // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
+    if (!this.networkHandlers) {
+      this.networkHandlers = [];
+    }
+  }
+
+  // Helper to register network handlers and track them for cleanup
+  registerNetworkHandler(event, handler) {
+    networkManager.on(event, handler);
+    this.networkHandlers.push({ event, handler });
   }
 
   create() {
@@ -789,6 +895,7 @@ class BrowseScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
+        networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
         this.scene.stop('BrowseScene');
         this.scene.launch('MenuScene');
       });
@@ -805,12 +912,19 @@ class BrowseScene extends Phaser.Scene {
         this.refreshList();
       });
 
-    // Setup listeners
-    networkManager.on(SOCKET_EVENTS.OPEN_GAMES_LIST, (games) => {
+    // Setup listeners - clean up first to prevent accumulation
+    if (this.networkHandlers && this.networkHandlers.length > 0) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
+    this.registerNetworkHandler(SOCKET_EVENTS.OPEN_GAMES_LIST, (games) => {
       this.displayGames(games);
     });
 
-    networkManager.on(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
       this.scene.stop('BrowseScene');
       this.scene.stop('BackgroundScene');
       if (data.status === GAME_STATUS.LOBBY) {
@@ -886,5 +1000,18 @@ class BrowseScene extends Phaser.Scene {
 
       this.gamesList.push(container);
     });
+  }
+
+  shutdown() {
+    // Leave the browsers room
+    networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
+
+    // Clean up network handlers to prevent accumulation
+    if (this.networkHandlers) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
   }
 }

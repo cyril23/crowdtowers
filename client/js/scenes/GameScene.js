@@ -12,6 +12,11 @@ class GameScene extends Phaser.Scene {
       currentWave: 0,
       towers: []
     };
+
+    // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
+    if (!this.networkHandlers) {
+      this.networkHandlers = [];
+    }
   }
 
   create() {
@@ -26,9 +31,6 @@ class GameScene extends Phaser.Scene {
     // Arrays to hold game objects
     this.towers = [];
     this.towerSprites = new Map();
-
-    // Store network handlers for cleanup on shutdown
-    this.networkHandlers = [];
 
     // Enemy data from server (rendered directly, no individual sprites)
     this.enemyData = [];
@@ -267,6 +269,24 @@ class GameScene extends Phaser.Scene {
       this.updateChatButtonText();
       this.menuDropdown.classList.add('hidden');
     };
+
+    // Leave game button in menu
+    this.menuLeaveBtn = document.getElementById('menu-leave-btn');
+    this.menuLeaveBtn.onclick = () => {
+      if (confirm('Are you sure you want to leave the game?')) {
+        networkManager.leaveGame();
+        this.cleanupAndReturn();
+      }
+      this.menuDropdown.classList.add('hidden');
+    };
+  }
+
+  cleanupAndReturn() {
+    this.shutdown();
+    this.hud.hide();
+    this.towerMenu.hide();
+    this.chatPanel.hide();
+    this.scene.start('MenuScene');
   }
 
   updateChatButtonText() {
@@ -284,6 +304,14 @@ class GameScene extends Phaser.Scene {
   }
 
   setupNetworkListeners() {
+    // Clean up any existing handlers FIRST to prevent accumulation
+    if (this.networkHandlers && this.networkHandlers.length > 0) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
     // Game state sync
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_STATE_SYNC, (data) => {
       this.updateGameState(data);

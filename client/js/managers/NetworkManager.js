@@ -116,6 +116,18 @@ class NetworkManager {
     this.emit(SOCKET_EVENTS.SAVE_GAME, {});
   }
 
+  leaveLobby() {
+    this.emit(SOCKET_EVENTS.LEAVE_LOBBY, {});
+    this.sessionCode = null;
+    this.isHost = false;
+  }
+
+  leaveGame() {
+    this.emit(SOCKET_EVENTS.LEAVE_GAME, {});
+    this.sessionCode = null;
+    this.isHost = false;
+  }
+
   sendChatMessage(message) {
     this.emit(SOCKET_EVENTS.CHAT_MESSAGE, { message });
   }

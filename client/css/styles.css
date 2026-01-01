@@ -131,7 +131,8 @@ html, body {
 }
 
 #menu-pause-btn,
-#menu-chat-btn {
+#menu-chat-btn,
+#menu-leave-btn {
   display: block;
   width: 100%;
   background: #3a3a6a;
@@ -151,8 +152,13 @@ html, body {
   background: #4a4a8a;
 }
 
-#menu-chat-btn:last-child {
+#menu-leave-btn {
+  background: #aa4444;
   margin-bottom: 0;
+}
+
+#menu-leave-btn:hover {
+  background: #cc5555;
 }
 
 #lives-value.warning {

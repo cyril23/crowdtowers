@@ -9,6 +9,19 @@ class LobbyScene extends Phaser.Scene {
     this.maze = data.maze;
     this.players = data.players || [];
     this.isHost = data.isHost;
+
+    // DON'T reset networkHandlers here! If we reset it, we lose the ability
+    // to clean up handlers from previous runs if shutdown() wasn't called.
+    // Only initialize if it doesn't exist yet.
+    if (!this.networkHandlers) {
+      this.networkHandlers = [];
+    }
+  }
+
+  // Helper to register network handlers and track them for cleanup
+  registerNetworkHandler(event, handler) {
+    networkManager.on(event, handler);
+    this.networkHandlers.push({ event, handler });
   }
 
   create() {
@@ -117,7 +130,9 @@ class LobbyScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        window.location.reload();
+        networkManager.leaveLobby();
+        this.chatPanel.hide();
+        this.scene.start('MenuScene');
       });
 
     // Notification area
@@ -127,10 +142,11 @@ class LobbyScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // Show chat panel
+    // Show chat panel - clear old messages when entering a new lobby
     if (!this.chatPanel) {
       this.chatPanel = new ChatPanel();
     }
+    this.chatPanel.clear();
     this.chatPanel.show();
 
     // Setup network listeners
@@ -156,23 +172,37 @@ class LobbyScene extends Phaser.Scene {
   }
 
   setupNetworkListeners() {
-    networkManager.on(SOCKET_EVENTS.PLAYER_JOINED, (data) => {
+    // Clean up any existing handlers FIRST to prevent accumulation
+    // This is defensive against create() being called multiple times
+    if (this.networkHandlers && this.networkHandlers.length > 0) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
+    this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_JOINED, (data) => {
       this.players.push({ nickname: data.nickname, isHost: false });
       this.updatePlayerList();
     });
 
-    networkManager.on(SOCKET_EVENTS.PLAYER_LEFT, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_LEFT, (data) => {
       this.players = this.players.filter(p => p.nickname !== data.nickname);
       this.updatePlayerList();
     });
 
-    networkManager.on(SOCKET_EVENTS.GAME_STARTED, (data) => {
+    this.registerNetworkHandler(SOCKET_EVENTS.GAME_STARTED, (data) => {
       this.chatPanel.hide();
       this.scene.start('GameScene', {
         sessionCode: this.sessionCode,
         maze: data.maze,
         gameState: data.gameState
       });
+    });
+
+    this.registerNetworkHandler(SOCKET_EVENTS.LOBBY_CLOSED, (data) => {
+      this.chatPanel.hide();
+      this.scene.start('MenuScene', { toast: data.reason || 'Lobby was closed' });
     });
   }
 
@@ -184,6 +214,12 @@ class LobbyScene extends Phaser.Scene {
   }
 
   shutdown() {
-    // Cleanup if needed
+    // Clean up network handlers to prevent accumulation
+    if (this.networkHandlers) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
   }
 }

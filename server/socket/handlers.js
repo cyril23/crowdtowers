@@ -17,6 +17,27 @@ function generateSessionCode() {
   return code;
 }
 
+// Helper to broadcast updated open games list to all browsers
+async function broadcastOpenGamesList(io) {
+  try {
+    const openGames = await Game.find({
+      isPrivate: false,
+      status: { $in: [GAME_STATUS.LOBBY, GAME_STATUS.PLAYING, GAME_STATUS.PAUSED] }
+    }).select('sessionCode hostNickname mazeSize players status').limit(50);
+
+    io.to('browsers').emit(SOCKET_EVENTS.OPEN_GAMES_LIST, openGames.map(g => ({
+      sessionCode: g.sessionCode,
+      hostNickname: g.hostNickname,
+      playerCount: g.players.length,
+      maxPlayers: GAME_CONFIG.MAX_PLAYERS,
+      mazeSize: g.mazeSize,
+      status: g.status
+    })));
+  } catch (error) {
+    serverLogger.error('Broadcast open games list error:', error);
+  }
+}
+
 function setupSocketHandlers(io) {
   io.on('connection', (socket) => {
     serverLogger.info(`Client connected: ${socket.id}`);
@@ -86,6 +107,11 @@ function setupSocketHandlers(io) {
           isPrivate,
           mazeSize
         });
+
+        // Broadcast to browsers if this is a public game
+        if (!isPrivate) {
+          broadcastOpenGamesList(io);
+        }
       } catch (error) {
         console.error('Create game error:', error);
         socket.emit(SOCKET_EVENTS.JOIN_ERROR, { message: 'Failed to create game' });
@@ -107,6 +133,19 @@ function setupSocketHandlers(io) {
         if (game.players.length >= GAME_CONFIG.MAX_PLAYERS) {
           socket.emit(SOCKET_EVENTS.JOIN_ERROR, { message: 'Game is full' });
           return;
+        }
+
+        // Clean up players with dead sockets (orphaned)
+        const alivePlayers = [];
+        for (const p of game.players) {
+          const sock = io.sockets.sockets.get(p.socketId);
+          if (sock && sock.connected) {
+            alivePlayers.push(p);
+          }
+        }
+        if (alivePlayers.length !== game.players.length) {
+          game.players = alivePlayers;
+          await game.save();
         }
 
         // Check for duplicate nickname
@@ -162,6 +201,9 @@ function setupSocketHandlers(io) {
     // Browse open games
     socket.on(SOCKET_EVENTS.BROWSE_GAMES, async () => {
       try {
+        // Join browsers room to receive real-time updates
+        socket.join('browsers');
+
         const openGames = await Game.find({
           isPrivate: false,
           status: { $in: [GAME_STATUS.LOBBY, GAME_STATUS.PLAYING, GAME_STATUS.PAUSED] }
@@ -179,6 +221,11 @@ function setupSocketHandlers(io) {
         console.error('Browse games error:', error);
         socket.emit(SOCKET_EVENTS.OPEN_GAMES_LIST, []);
       }
+    });
+
+    // Stop browsing - leave the browsers room
+    socket.on(SOCKET_EVENTS.STOP_BROWSING, () => {
+      socket.leave('browsers');
     });
 
     // Start game (host only)
@@ -212,6 +259,9 @@ function setupSocketHandlers(io) {
           maze: game.maze,
           gameState: game.gameState
         });
+
+        // Broadcast status change to browsers
+        broadcastOpenGamesList(io);
       } catch (error) {
         console.error('Start game error:', error);
       }
@@ -438,6 +488,94 @@ function setupSocketHandlers(io) {
       }
     });
 
+    // Leave lobby (graceful exit from lobby screen)
+    socket.on(SOCKET_EVENTS.LEAVE_LOBBY, async () => {
+      if (!currentSession) return;
+
+      try {
+        const game = await Game.findOne({ sessionCode: currentSession });
+        if (!game) return;
+
+        const player = game.players.find(p => p.socketId === socket.id);
+        const log = createGameLogger(game._id.toString());
+
+        if (player?.isHost && game.status === GAME_STATUS.LOBBY) {
+          // Host leaving lobby = delete game and notify others
+          socket.to(currentSession).emit(SOCKET_EVENTS.LOBBY_CLOSED, {
+            reason: 'Host left the lobby'
+          });
+          await Game.deleteOne({ sessionCode: currentSession });
+          log.event('LOBBY_CLOSED_BY_HOST', { host: currentNickname });
+          broadcastOpenGamesList(io);
+        } else {
+          // Non-host: remove player, keep game
+          game.players = game.players.filter(p => p.socketId !== socket.id);
+          if (game.players.length > 0) {
+            if (!game.players.some(p => p.isHost)) {
+              game.players[0].isHost = true;
+              log.event('HOST_TRANSFERRED', { newHost: game.players[0].nickname });
+            }
+            await game.save();
+            socket.to(currentSession).emit(SOCKET_EVENTS.PLAYER_LEFT, { nickname: currentNickname });
+          } else {
+            await Game.deleteOne({ sessionCode: currentSession });
+            log.event('GAME_DELETED', {});
+            broadcastOpenGamesList(io);
+          }
+        }
+
+        socket.leave(currentSession);
+        currentSession = null;
+        currentNickname = null;
+      } catch (error) {
+        console.error('Leave lobby error:', error);
+      }
+    });
+
+    // Leave game (graceful exit during gameplay)
+    socket.on(SOCKET_EVENTS.LEAVE_GAME, async () => {
+      if (!currentSession) return;
+
+      try {
+        const game = await Game.findOne({ sessionCode: currentSession });
+        if (!game) return;
+
+        const log = createGameLogger(game._id.toString());
+        game.players = game.players.filter(p => p.socketId !== socket.id);
+
+        if (game.players.length > 0) {
+          // Transfer host to random remaining player if needed
+          if (!game.players.some(p => p.isHost)) {
+            const randomIndex = Math.floor(Math.random() * game.players.length);
+            game.players[randomIndex].isHost = true;
+            socket.to(currentSession).emit(SOCKET_EVENTS.HOST_TRANSFERRED, {
+              newHost: game.players[randomIndex].nickname
+            });
+            log.event('HOST_TRANSFERRED', { newHost: game.players[randomIndex].nickname });
+          }
+          await game.save();
+          socket.to(currentSession).emit(SOCKET_EVENTS.PLAYER_LEFT, { nickname: currentNickname });
+          log.event('PLAYER_LEFT', { nickname: currentNickname, playersRemaining: game.players.length });
+        } else {
+          // Last player - delete game
+          const manager = activeGames.get(currentSession);
+          if (manager) {
+            manager.stop();
+            activeGames.delete(currentSession);
+          }
+          await Game.deleteOne({ sessionCode: currentSession });
+          log.event('GAME_DELETED', {});
+          broadcastOpenGamesList(io);
+        }
+
+        socket.leave(currentSession);
+        currentSession = null;
+        currentNickname = null;
+      } catch (error) {
+        console.error('Leave game error:', error);
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', async () => {
       serverLogger.info(`Client disconnected: ${socket.id}`);
@@ -478,6 +616,9 @@ function setupSocketHandlers(io) {
               // Delete game from database
               await Game.deleteOne({ sessionCode: currentSession });
               log.event('GAME_DELETED', {});
+
+              // Broadcast to browsers that a game was deleted
+              broadcastOpenGamesList(io);
             }
 
             socket.to(currentSession).emit(SOCKET_EVENTS.PLAYER_LEFT, {

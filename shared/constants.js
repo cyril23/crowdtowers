@@ -222,8 +222,13 @@ const SOCKET_EVENTS = {
   PLAYER_LEFT: 'player-left',
   BROWSE_GAMES: 'browse-games',
   OPEN_GAMES_LIST: 'open-games-list',
+  STOP_BROWSING: 'stop-browsing',
   START_GAME: 'start-game',
   GAME_STARTED: 'game-started',
+  LEAVE_LOBBY: 'leave-lobby',
+  LEAVE_GAME: 'leave-game',
+  LOBBY_CLOSED: 'lobby-closed',
+  HOST_TRANSFERRED: 'host-transferred',
 
   // Gameplay
   PLACE_TOWER: 'place-tower',
