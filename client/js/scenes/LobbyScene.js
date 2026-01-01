@@ -202,7 +202,7 @@ class LobbyScene extends Phaser.Scene {
 
     this.registerNetworkHandler(SOCKET_EVENTS.LOBBY_CLOSED, (data) => {
       this.chatPanel.hide();
-      this.scene.start('MenuScene', { toast: data.reason || 'Lobby was closed' });
+      this.scene.start('MenuScene', { toast: data.reason || 'Lobby was closed', toastDuration: 4000 });
     });
   }
 

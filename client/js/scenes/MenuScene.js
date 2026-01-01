@@ -332,11 +332,12 @@ class MenuScene extends Phaser.Scene {
     // Check for toast message (e.g., from lobby close)
     const toastMsg = this.scene.settings.data?.toast;
     if (toastMsg) {
-      this.showToast(toastMsg);
+      const duration = this.scene.settings.data?.toastDuration;
+      this.showToast(toastMsg, duration);
     }
   }
 
-  showToast(message) {
+  showToast(message, duration = 2000) {
     const toast = this.add.text(this.cameras.main.centerX, 500, message, {
       fontSize: '16px',
       color: '#ffffff',
@@ -348,7 +349,7 @@ class MenuScene extends Phaser.Scene {
       targets: toast,
       alpha: 0,
       y: 480,
-      delay: 2000,
+      delay: duration,
       duration: 500,
       onComplete: () => toast.destroy()
     });
@@ -740,7 +741,7 @@ class CreateGameScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    this.isPrivate = true;
+    this.isPrivate = false;
     this.privacyButtons = {};
 
     [
@@ -753,7 +754,7 @@ class CreateGameScene extends Phaser.Scene {
         fontSize: '18px',
         color: '#ffffff',
         fontFamily: 'Arial',
-        backgroundColor: option.key === 'private' ? '#6a6aaa' : '#4a4a8a',
+        backgroundColor: option.key === 'public' ? '#6a6aaa' : '#4a4a8a',
         padding: { x: 15, y: 8 }
       })
         .setOrigin(0.5)
@@ -812,6 +813,10 @@ class CreateGameScene extends Phaser.Scene {
         isHost: true
       });
     });
+
+    // Graphics for selection borders/glow
+    this.selectionGraphics = this.add.graphics();
+    this.updateSelectionVisuals();
   }
 
   shutdown() {
@@ -829,6 +834,7 @@ class CreateGameScene extends Phaser.Scene {
     Object.entries(this.sizeButtons).forEach(([key, btn]) => {
       btn.setStyle({ backgroundColor: key === size ? '#6a6aaa' : '#4a4a8a' });
     });
+    this.updateSelectionVisuals();
   }
 
   selectPrivacy(isPrivate) {
@@ -838,6 +844,39 @@ class CreateGameScene extends Phaser.Scene {
     });
     this.privacyButtons.public.setStyle({
       backgroundColor: !isPrivate ? '#6a6aaa' : '#4a4a8a'
+    });
+    this.updateSelectionVisuals();
+  }
+
+  updateSelectionVisuals() {
+    const g = this.selectionGraphics;
+    g.clear();
+
+    // Get the selected buttons
+    const sizeBtn = this.sizeButtons[this.selectedSize];
+    const privacyKey = this.isPrivate ? 'private' : 'public';
+    const privacyBtn = this.privacyButtons[privacyKey];
+
+    // Draw border + glow around selected buttons
+    [sizeBtn, privacyBtn].forEach(btn => {
+      const bounds = btn.getBounds();
+      const padding = 4;
+      const x = bounds.x - padding;
+      const y = bounds.y - padding;
+      const w = bounds.width + padding * 2;
+      const h = bounds.height + padding * 2;
+
+      // Outer glow (subtle)
+      g.lineStyle(6, 0x00ffff, 0.15);
+      g.strokeRoundedRect(x - 2, y - 2, w + 4, h + 4, 6);
+
+      // Middle glow
+      g.lineStyle(4, 0x00ffff, 0.3);
+      g.strokeRoundedRect(x - 1, y - 1, w + 2, h + 2, 5);
+
+      // Main border (bright cyan)
+      g.lineStyle(2, 0x00ffff, 1);
+      g.strokeRoundedRect(x, y, w, h, 4);
     });
   }
 }
