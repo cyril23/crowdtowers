@@ -273,12 +273,42 @@ class GameScene extends Phaser.Scene {
     // Leave game button in menu
     this.menuLeaveBtn = document.getElementById('menu-leave-btn');
     this.menuLeaveBtn.onclick = () => {
-      if (confirm('Are you sure you want to leave the game?')) {
+      this.menuDropdown.classList.add('hidden');
+      this.showConfirmDialog('Leave Game', 'Are you sure you want to leave the game?', () => {
         networkManager.leaveGame();
         this.cleanupAndReturn();
-      }
-      this.menuDropdown.classList.add('hidden');
+      });
     };
+
+    // Confirm modal elements
+    this.confirmModal = document.getElementById('confirm-modal');
+    this.confirmTitle = document.getElementById('confirm-title');
+    this.confirmMessage = document.getElementById('confirm-message');
+    this.confirmYesBtn = document.getElementById('confirm-yes');
+    this.confirmNoBtn = document.getElementById('confirm-no');
+  }
+
+  showConfirmDialog(title, message, onConfirm) {
+    this.confirmTitle.textContent = title;
+    this.confirmMessage.textContent = message;
+    this.confirmModal.classList.remove('hidden');
+
+    // Store callback and set up one-time handlers
+    const handleYes = () => {
+      this.confirmModal.classList.add('hidden');
+      this.confirmYesBtn.removeEventListener('click', handleYes);
+      this.confirmNoBtn.removeEventListener('click', handleNo);
+      onConfirm();
+    };
+
+    const handleNo = () => {
+      this.confirmModal.classList.add('hidden');
+      this.confirmYesBtn.removeEventListener('click', handleYes);
+      this.confirmNoBtn.removeEventListener('click', handleNo);
+    };
+
+    this.confirmYesBtn.addEventListener('click', handleYes);
+    this.confirmNoBtn.addEventListener('click', handleNo);
   }
 
   cleanupAndReturn() {
@@ -779,7 +809,6 @@ class GameScene extends Phaser.Scene {
     this.hud.hide();
     this.towerMenu.hide();
     this.towerMenu.hideEnemyPanel();
-    this.sessionCodeDisplay.classList.add('hidden');
     this.inputManager.destroy();
   }
 }
