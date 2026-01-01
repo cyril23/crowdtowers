@@ -6,30 +6,30 @@ class MenuScene extends Phaser.Scene {
   create() {
     const centerX = this.cameras.main.centerX;
     const centerY = this.cameras.main.centerY;
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Initialize effect containers
+    this.stars = [];
+    this.ufos = [];
+
+    // Create background effects (order matters for layering)
+    this.createStarfield(width, height);
+    this.createUfos(width, height);
+    this.createMothership(centerX);
 
     // Title
-    this.add.text(centerX, 60, 'ALIEN INVASION', {
-      fontSize: '42px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
+    this.createTitle(centerX);
 
-    this.add.text(centerX, 100, 'Tower Defense', {
-      fontSize: '24px',
+    // Name input (centered layout)
+    const inputY = 180;
+    this.add.text(centerX - 110, inputY + 8, 'Your Name:', {
+      fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial'
-    }).setOrigin(0.5);
+    }).setOrigin(1, 0.5);
 
-    // Nickname input
-    this.add.text(centerX, 160, 'Your Nickname:', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Create HTML input for nickname
-    this.nicknameInput = this.createInput(centerX - 100, 180, 200, 'Enter nickname...');
+    this.nicknameInput = this.createInput(centerX - 100, inputY, 200, 'Enter name...');
 
     // Create Game button
     this.createButton(centerX, 260, 'Create New Game', () => {
@@ -62,6 +62,254 @@ class MenuScene extends Phaser.Scene {
       this.registry.remove('pendingJoinCode');
       this.showJoinMenu(pendingCode);
     }
+  }
+
+  // ============================================
+  // STARFIELD - Warp speed effect (stars fly toward viewer)
+  // ============================================
+  createStarfield(width, height) {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const starCount = 100;
+
+    for (let i = 0; i < starCount; i++) {
+      const star = this.add.circle(0, 0, 1, 0xffffff, 0.8);
+      star.setDepth(-10);
+
+      // Store star properties for warp effect
+      star.angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      star.dist = Phaser.Math.FloatBetween(0, Math.max(width, height) * 0.6);
+      star.speed = Phaser.Math.FloatBetween(0.15, 0.5);
+      star.centerX = centerX;
+      star.centerY = centerY;
+
+      // Position star based on angle and distance
+      star.x = centerX + Math.cos(star.angle) * star.dist;
+      star.y = centerY + Math.sin(star.angle) * star.dist;
+
+      this.stars.push(star);
+    }
+  }
+
+  resetStar(star, width, height) {
+    // Reset to center
+    star.angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    star.dist = 0;
+    star.speed = Phaser.Math.FloatBetween(0.15, 0.5);
+    star.x = star.centerX;
+    star.y = star.centerY;
+
+    // Immediately set scale/alpha to prevent flash at center
+    star.setScale(0.2);
+    star.setAlpha(0.3);
+  }
+
+  // ============================================
+  // UFOS - Flying toward viewer (incoming invasion)
+  // ============================================
+  createUfos(width, height) {
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Create 3 UFOs with staggered spawn times
+    for (let i = 0; i < 3; i++) {
+      const ufo = this.createUfoGraphic();
+      ufo.setDepth(-5);
+      ufo.centerX = centerX;
+      ufo.centerY = centerY;
+
+      // Initialize UFO position (will be set by resetUfo)
+      this.resetUfo(ufo, width, height, i * 2000); // Stagger initial distances
+
+      this.ufos.push(ufo);
+    }
+  }
+
+  resetUfo(ufo, width, height, initialDist = null) {
+    const maxDist = Math.max(width, height) * 0.7;
+
+    // Random angle, start from center
+    ufo.angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    ufo.dist = initialDist !== null ? initialDist : 0;
+    ufo.speed = Phaser.Math.FloatBetween(0.3, 0.6);
+    ufo.maxDist = maxDist;
+
+    // Update position
+    ufo.x = ufo.centerX + Math.cos(ufo.angle) * ufo.dist;
+    ufo.y = ufo.centerY + Math.sin(ufo.angle) * ufo.dist;
+
+    // Immediately set scale/alpha to prevent flash at center
+    const progress = ufo.dist / ufo.maxDist;
+    ufo.setScale(0.1 + progress * 1.2);
+    ufo.setAlpha(Math.min(0.7, 0.1 + progress * 1.2));
+  }
+
+  createUfoGraphic() {
+    const graphics = this.add.graphics();
+
+    // Draw at base size (will be scaled dynamically)
+    // UFO body (ellipse)
+    graphics.fillStyle(0x2a2a5e, 1);
+    graphics.fillEllipse(0, 0, 50, 18);
+
+    // UFO dome
+    graphics.fillStyle(0x3a3a7e, 1);
+    graphics.fillEllipse(0, -7, 25, 10);
+
+    // Lights
+    graphics.fillStyle(0x66ff66, 0.8);
+    for (let i = 0; i < 5; i++) {
+      const lx = (i - 2) * 10;
+      graphics.fillCircle(lx, 4, 2.5);
+    }
+
+    // Engine glow
+    graphics.fillStyle(0x44ffaa, 0.4);
+    graphics.fillEllipse(0, 10, 30, 6);
+
+    return graphics;
+  }
+
+  // ============================================
+  // MOTHERSHIP - Large hovering ship behind title
+  // ============================================
+  createMothership(centerX) {
+    this.mothership = this.add.graphics();
+    const shipWidth = 200;
+    const shipHeight = 40;
+    const shipY = 60;
+
+    // Glow effect (outer)
+    this.mothership.fillStyle(0x4444aa, 0.15);
+    this.mothership.fillEllipse(centerX, shipY, shipWidth + 60, shipHeight + 40);
+
+    // Main body
+    this.mothership.fillStyle(0x1a1a3e, 0.8);
+    this.mothership.fillEllipse(centerX, shipY, shipWidth, shipHeight);
+
+    // Upper dome
+    this.mothership.fillStyle(0x2a2a5e, 0.9);
+    this.mothership.fillEllipse(centerX, shipY - 15, shipWidth * 0.4, shipHeight * 0.5);
+
+    // Lights strip
+    this.mothership.fillStyle(0x44ff88, 0.5);
+    for (let i = 0; i < 7; i++) {
+      const lx = centerX + (i - 3) * 25;
+      this.mothership.fillCircle(lx, shipY + 5, 4);
+    }
+
+    this.mothership.setDepth(-8);
+
+    // Hover animation
+    this.tweens.add({
+      targets: this.mothership,
+      y: 8,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Pulsing glow (redraw with varying alpha)
+    this.mothershipGlow = this.add.ellipse(centerX, shipY, shipWidth + 80, shipHeight + 50, 0x4444ff, 0.1);
+    this.mothershipGlow.setDepth(-9);
+
+    this.tweens.add({
+      targets: this.mothershipGlow,
+      alpha: 0.25,
+      scaleX: 1.1,
+      scaleY: 1.1,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+  }
+
+  // ============================================
+  // TITLE
+  // ============================================
+  createTitle(centerX) {
+    // Main title
+    this.add.text(centerX, 60, 'ALIEN INVASION', {
+      fontSize: '42px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(1);
+
+    // Subtitle with subtle pulse
+    const subtitle = this.add.text(centerX, 105, 'Tower Defense', {
+      fontSize: '24px',
+      color: '#8888aa',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(1);
+
+    this.tweens.add({
+      targets: subtitle,
+      alpha: 0.6,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+  }
+
+  // ============================================
+  // UPDATE LOOP - Animate moving elements
+  // ============================================
+  update(time, delta) {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Update stars (warp speed - fly outward from center)
+    const maxDist = Math.max(width, height) * 0.8;
+
+    this.stars.forEach(star => {
+      // Gentler acceleration to match UFO pacing
+      const acceleration = 1 + (star.dist / maxDist) * 1.5;
+      star.dist += star.speed * acceleration;
+
+      // Update position based on angle and new distance
+      star.x = star.centerX + Math.cos(star.angle) * star.dist;
+      star.y = star.centerY + Math.sin(star.angle) * star.dist;
+
+      // Scale size based on distance (stars get bigger as they approach)
+      const progress = star.dist / maxDist;
+      const scale = 0.2 + progress * 2.5;
+      star.setScale(scale);
+
+      // Brightness increases with distance
+      const alpha = Math.min(1, 0.3 + progress * 0.7);
+      star.setAlpha(alpha);
+
+      // Reset star when it exits screen bounds
+      if (star.x < -20 || star.x > width + 20 || star.y < -20 || star.y > height + 20) {
+        this.resetStar(star, width, height);
+      }
+    });
+
+    // Update UFOs (fly toward viewer - incoming invasion)
+    this.ufos.forEach(ufo => {
+      // Accelerate as UFO gets closer (like stars)
+      const acceleration = 1 + (ufo.dist / ufo.maxDist) * 2;
+      ufo.dist += ufo.speed * acceleration;
+
+      // Update position
+      ufo.x = ufo.centerX + Math.cos(ufo.angle) * ufo.dist;
+      ufo.y = ufo.centerY + Math.sin(ufo.angle) * ufo.dist;
+
+      // Scale and fade based on distance (mask hides the center)
+      const progress = ufo.dist / ufo.maxDist;
+      const scale = 0.1 + progress * 1.2;
+      ufo.setScale(scale);
+      ufo.setAlpha(Math.min(0.7, 0.1 + progress * 1.2));
+
+      // Reset when off screen
+      if (ufo.x < -60 || ufo.x > width + 60 || ufo.y < -60 || ufo.y > height + 60) {
+        this.resetUfo(ufo, width, height);
+      }
+    });
   }
 
   createInput(x, y, width, placeholder) {
@@ -113,7 +361,7 @@ class MenuScene extends Phaser.Scene {
   showCreateGameMenu() {
     const nickname = this.nicknameInput.value.trim();
     if (!nickname) {
-      this.showError('Please enter a nickname');
+      this.showError('Please enter a name');
       return;
     }
 
@@ -124,7 +372,7 @@ class MenuScene extends Phaser.Scene {
   showJoinMenu(prefillCode = '') {
     const nickname = this.nicknameInput.value.trim();
     if (!nickname) {
-      this.showError('Please enter a nickname');
+      this.showError('Please enter a name');
       return;
     }
 
@@ -164,7 +412,7 @@ class MenuScene extends Phaser.Scene {
   showBrowseMenu() {
     const nickname = this.nicknameInput.value.trim();
     if (!nickname) {
-      this.showError('Please enter a nickname');
+      this.showError('Please enter a name');
       return;
     }
 
