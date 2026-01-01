@@ -69,48 +69,50 @@ async function runCleanup(filter) {
     let description = 'all games';
 
     switch (filter) {
-      case 'orphaned':
-      case 'empty':
-        // Games with no players
-        query = { players: { $size: 0 } };
-        description = 'orphaned games (no players)';
-        break;
-      case 'lobby':
-        // Games stuck in lobby
-        query = { status: 'lobby' };
-        description = 'games in lobby status';
-        break;
-      case 'old':
-        // Games older than 24 hours
-        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        query = { updatedAt: { $lt: dayAgo } };
-        description = 'games older than 24 hours';
-        break;
-      case 'stale':
-        // Non-completed games older than 1 hour
-        const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        query = {
-          status: { $nin: ['completed', 'saved'] },
-          updatedAt: { $lt: hourAgo }
-        };
-        description = 'stale games (inactive >1 hour, not completed)';
-        break;
-      case 'all':
-        query = {};
-        description = 'ALL games';
-        break;
-      default:
-        console.log('Game Cleanup Tool');
-        console.log('=================');
-        console.log('Usage: node server/index.js --cleanup <filter>\n');
-        console.log('Available filters:');
-        console.log('  orphaned  - Delete games with no players');
-        console.log('  empty     - Same as orphaned');
-        console.log('  lobby     - Delete games stuck in lobby');
-        console.log('  old       - Delete games older than 24 hours');
-        console.log('  stale     - Delete inactive games (>1 hour, not completed)');
-        console.log('  all       - Delete ALL games (use with caution!)');
-        process.exit(1);
+    case 'orphaned':
+    case 'empty':
+      // Games with no players
+      query = { players: { $size: 0 } };
+      description = 'orphaned games (no players)';
+      break;
+    case 'lobby':
+      // Games stuck in lobby
+      query = { status: 'lobby' };
+      description = 'games in lobby status';
+      break;
+    case 'old': {
+      // Games older than 24 hours
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      query = { updatedAt: { $lt: dayAgo } };
+      description = 'games older than 24 hours';
+      break;
+    }
+    case 'stale': {
+      // Non-completed games older than 1 hour
+      const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      query = {
+        status: { $nin: ['completed', 'saved'] },
+        updatedAt: { $lt: hourAgo }
+      };
+      description = 'stale games (inactive >1 hour, not completed)';
+      break;
+    }
+    case 'all':
+      query = {};
+      description = 'ALL games';
+      break;
+    default:
+      console.log('Game Cleanup Tool');
+      console.log('=================');
+      console.log('Usage: node server/index.js --cleanup <filter>\n');
+      console.log('Available filters:');
+      console.log('  orphaned  - Delete games with no players');
+      console.log('  empty     - Same as orphaned');
+      console.log('  lobby     - Delete games stuck in lobby');
+      console.log('  old       - Delete games older than 24 hours');
+      console.log('  stale     - Delete inactive games (>1 hour, not completed)');
+      console.log('  all       - Delete ALL games (use with caution!)');
+      process.exit(1);
     }
 
     // Show what will be deleted

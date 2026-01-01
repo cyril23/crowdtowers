@@ -7,6 +7,7 @@ Multiplayer cooperative tower defense: humans defend against alien invaders. Up 
 - **Server:** Node.js + Express 5 + Socket.IO + MongoDB
 - **Client:** Phaser.js 3 (canvas-based)
 - **Run:** `npm start` (requires local MongoDB on default port)
+- **Lint:** Run `npm run lint` after making changes to check for errors
 
 ## Core Mechanics
 
