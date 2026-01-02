@@ -1,3 +1,6 @@
+import { ENEMIES } from '../../../shared/constants.js';
+import { CLIENT_CONFIG } from '../config.js';
+
 class EnemySprite extends Phaser.GameObjects.Container {
   constructor(scene, enemy, tileSize) {
     super(scene, enemy.x, enemy.y);
@@ -172,3 +175,6 @@ class EnemySprite extends Phaser.GameObjects.Container {
     });
   }
 }
+
+// ES module export
+export { EnemySprite };

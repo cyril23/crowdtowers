@@ -1,3 +1,6 @@
+import { SOCKET_EVENTS } from '../../../shared/constants.js';
+import { networkManager } from '../managers/NetworkManager.js';
+
 // Singleton instance
 let chatPanelInstance = null;
 
@@ -166,3 +169,6 @@ class ChatPanel {
     return this.unreadCount;
   }
 }
+
+// ES module export
+export { ChatPanel };

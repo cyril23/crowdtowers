@@ -1,3 +1,6 @@
+import { SOCKET_EVENTS, GAME_STATUS, MAZE_SIZES } from '../../../shared/constants.js';
+import { networkManager } from '../managers/NetworkManager.js';
+
 // ============================================
 // BACKGROUND SCENE - Persistent animated background for menu screens
 // ============================================
@@ -1054,3 +1057,6 @@ class BrowseScene extends Phaser.Scene {
     }
   }
 }
+
+// ES module exports
+export { BackgroundScene, MenuScene, CreateGameScene, BrowseScene };

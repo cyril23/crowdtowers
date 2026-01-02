@@ -1,3 +1,5 @@
+// HUD class - displays lives, budget, wave info
+
 class HUD {
   constructor() {
     this.elements = {
@@ -47,3 +49,6 @@ class HUD {
     }
   }
 }
+
+// ES module export
+export { HUD };

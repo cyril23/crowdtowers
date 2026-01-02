@@ -1,3 +1,6 @@
+import { TOWERS } from '../../../shared/constants.js';
+import { CLIENT_CONFIG } from '../config.js';
+
 class TowerSprite extends Phaser.GameObjects.Container {
   constructor(scene, tower, tileSize) {
     const x = tower.gridX * tileSize + tileSize / 2;
@@ -166,3 +169,6 @@ class TowerSprite extends Phaser.GameObjects.Container {
     super.destroy(true);
   }
 }
+
+// ES module export
+export { TowerSprite };

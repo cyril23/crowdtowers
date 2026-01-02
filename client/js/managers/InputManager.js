@@ -1,3 +1,7 @@
+import { TILE_TYPES, ENEMIES } from '../../../shared/constants.js';
+import { DeviceUtils } from '../config.js';
+import { networkManager } from './NetworkManager.js';
+
 class InputManager {
   constructor(scene) {
     this.scene = scene;
@@ -198,3 +202,6 @@ class InputManager {
     this.scene.input.off('pointerup', this.handlePointerUp, this);
   }
 }
+
+// ES module export
+export { InputManager };

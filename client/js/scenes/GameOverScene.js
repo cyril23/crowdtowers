@@ -1,3 +1,5 @@
+// GameOverScene - displays victory or defeat screen
+
 class GameOverScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameOverScene' });
@@ -108,3 +110,6 @@ class GameOverScene extends Phaser.Scene {
     document.getElementById('pause-overlay').classList.add('hidden');
   }
 }
+
+// ES module export
+export { GameOverScene };

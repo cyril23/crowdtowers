@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
+    "build": "node scripts/build.js",
     "lint": "eslint server shared client --fix",
     "cleanup": "node server/index.js --cleanup",
     "cleanup:orphaned": "node server/index.js --cleanup orphaned",
@@ -29,6 +30,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
     "nodemon": "^3.1.11"
   }

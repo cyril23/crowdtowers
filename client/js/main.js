@@ -1,4 +1,11 @@
-// Main game initialization
+// Main entry point - imports all modules and creates the Phaser game
+
+import { CLIENT_CONFIG, DeviceUtils } from './config.js';
+import { BootScene } from './scenes/BootScene.js';
+import { BackgroundScene, MenuScene, CreateGameScene, BrowseScene } from './scenes/MenuScene.js';
+import { LobbyScene } from './scenes/LobbyScene.js';
+import { GameScene } from './scenes/GameScene.js';
+import { GameOverScene } from './scenes/GameOverScene.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Determine canvas size based on screen

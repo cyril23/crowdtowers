@@ -1,3 +1,8 @@
+import { SOCKET_EVENTS } from '../../../shared/constants.js';
+import { DeviceUtils } from '../config.js';
+import { networkManager } from '../managers/NetworkManager.js';
+import { ChatPanel } from '../ui/ChatPanel.js';
+
 class LobbyScene extends Phaser.Scene {
   constructor() {
     super({ key: 'LobbyScene' });
@@ -280,3 +285,6 @@ class LobbyScene extends Phaser.Scene {
     }
   }
 }
+
+// ES module export
+export { LobbyScene };

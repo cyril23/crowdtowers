@@ -1,3 +1,12 @@
+import { GAME_CONFIG, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
+import { CLIENT_CONFIG } from '../config.js';
+import { networkManager } from '../managers/NetworkManager.js';
+import { InputManager } from '../managers/InputManager.js';
+import { HUD } from '../ui/HUD.js';
+import { ChatPanel } from '../ui/ChatPanel.js';
+import { TowerMenu } from '../ui/TowerMenu.js';
+import { TowerSprite } from '../entities/Tower.js';
+
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
@@ -859,3 +868,6 @@ class GameScene extends Phaser.Scene {
     this.inputManager.destroy();
   }
 }
+
+// ES module export
+export { GameScene };

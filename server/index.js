@@ -22,8 +22,11 @@ const io = new Server(httpServer, {
   }
 });
 
+const isProduction = process.env.NODE_ENV === 'production';
+const clientDir = path.join(__dirname, '../client');
+
 // Serve static files from client directory
-app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(clientDir));
 
 // Serve shared constants
 app.get('/shared/constants.js', (req, res) => {
@@ -36,8 +39,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // Catch-all route for SPA (Express 5 syntax)
+// In production, serve the bundled index.html
 app.get('/{*splat}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/index.html'));
+  const indexPath = isProduction
+    ? path.join(clientDir, 'dist/index.html')
+    : path.join(clientDir, 'index.html');
+  res.sendFile(indexPath);
 });
 
 // Setup socket handlers

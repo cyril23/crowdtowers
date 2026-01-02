@@ -3,10 +3,10 @@ import js from '@eslint/js';
 export default [
   js.configs.recommended,
   {
-    ignores: ['node_modules/**']
+    ignores: ['node_modules/**', 'client/dist/**']
   },
   {
-    files: ['server/**/*.js', 'shared/**/*.js'],
+    files: ['server/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',
@@ -47,10 +47,32 @@ export default [
     }
   },
   {
-    files: ['client/**/*.js'],
+    // Shared constants - CommonJS for server, ES module exports for client bundler
+    files: ['shared/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
+      globals: {
+        module: 'readonly',
+        console: 'readonly'
+      }
+    },
+    rules: {
+      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      'no-console': 'off',
+      'semi': ['error', 'always'],
+      'quotes': ['error', 'single', { 'avoidEscape': true }],
+      'indent': ['error', 2],
+      'no-trailing-spaces': 'error',
+      'eol-last': ['error', 'always']
+    }
+  },
+  {
+    // Client files - ES modules
+    files: ['client/js/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
       globals: {
         // Browser globals
         window: 'readonly',
@@ -76,43 +98,14 @@ export default [
         Boolean: 'readonly',
         Error: 'readonly',
         URLSearchParams: 'readonly',
-        // External libraries
+        // External libraries (loaded via CDN, accessed as globals)
         io: 'readonly',
-        Phaser: 'readonly',
-        // Shared constants (from constants.js)
-        GAME_CONFIG: 'readonly',
-        MAZE_SIZES: 'readonly',
-        GAME_STATUS: 'readonly',
-        TILE_TYPES: 'readonly',
-        TOWERS: 'readonly',
-        ENEMIES: 'readonly',
-        WAVE_COMPOSITION: 'readonly',
-        SOCKET_EVENTS: 'readonly',
-        // Client-side classes and globals
-        CLIENT_CONFIG: 'writable',
-        DeviceUtils: 'writable',
-        networkManager: 'writable',
-        NetworkManager: 'writable',
-        InputManager: 'writable',
-        HUD: 'writable',
-        ChatPanel: 'writable',
-        TowerMenu: 'writable',
-        TowerSprite: 'writable',
-        EnemySprite: 'writable',
-        BackgroundScene: 'writable',
-        BootScene: 'writable',
-        MenuScene: 'writable',
-        CreateGameScene: 'writable',
-        BrowseScene: 'writable',
-        LobbyScene: 'writable',
-        GameScene: 'writable',
-        GameOverScene: 'writable'
+        Phaser: 'readonly'
       }
     },
     rules: {
-      'no-unused-vars': 'off', // Many classes defined for use in other files
-      'no-redeclare': 'off', // Classes share names intentionally
-      'no-case-declarations': 'off', // Allow const in switch cases
+      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      'no-case-declarations': 'off',
       'no-console': 'off',
       'semi': ['error', 'always'],
       'quotes': ['error', 'single', { 'avoidEscape': true }],

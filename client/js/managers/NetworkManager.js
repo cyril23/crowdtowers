@@ -1,3 +1,5 @@
+import { SOCKET_EVENTS } from '../../../shared/constants.js';
+
 class NetworkManager {
   constructor() {
     this.socket = null;
@@ -143,3 +145,11 @@ class NetworkManager {
 
 // Global instance
 const networkManager = new NetworkManager();
+
+// Make available globally (for dev script tag usage)
+if (typeof window !== 'undefined') {
+  window.networkManager = networkManager;
+}
+
+// ES module export
+export { networkManager };

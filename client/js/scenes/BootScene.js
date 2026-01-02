@@ -1,3 +1,5 @@
+import { networkManager } from '../managers/NetworkManager.js';
+
 class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BootScene' });
@@ -44,3 +46,6 @@ class BootScene extends Phaser.Scene {
     document.getElementById('loading').style.display = 'none';
   }
 }
+
+// ES module export
+export { BootScene };

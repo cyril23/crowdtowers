@@ -86,8 +86,11 @@ const DeviceUtils = {
   }
 };
 
-// Make available globally
+// Make available globally (for dev script tag usage)
 if (typeof window !== 'undefined') {
   window.CLIENT_CONFIG = CLIENT_CONFIG;
   window.DeviceUtils = DeviceUtils;
 }
+
+// ES module exports
+export { CLIENT_CONFIG, DeviceUtils };

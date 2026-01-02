@@ -1,3 +1,6 @@
+import { TOWERS, ENEMIES } from '../../../shared/constants.js';
+import { networkManager } from '../managers/NetworkManager.js';
+
 class TowerMenu {
   constructor() {
     this.elements = {
@@ -331,3 +334,6 @@ class TowerMenu {
     this.elements.enemyPanel.classList.add('killed');
   }
 }
+
+// ES module export
+export { TowerMenu };
