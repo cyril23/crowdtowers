@@ -8,8 +8,9 @@
 # MongoDB admin user password
 vault_mongo_admin_password: "your-secure-admin-password-here"
 
-# MongoDB application user password
-vault_mongo_app_password: "your-secure-app-password-here"
+# MongoDB application user passwords
+vault_mongo_prod_app_password: "your-secure-prod-password-here"
+vault_mongo_staging_app_password: "your-secure-staging-password-here"
 
 # Session secret for Express
 vault_session_secret: "your-secure-session-secret-here"

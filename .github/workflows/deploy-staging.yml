@@ -1,13 +1,19 @@
-name: Deploy to Production
+name: Deploy to Staging
 
 on:
-  workflow_dispatch:  # Manual trigger only - staging auto-deploys on push to main
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  workflow_dispatch:  # Allow manual triggers
 
 env:
   NODE_VERSION: '24'
   DEPLOY_HOST: crowdtowers.wochenentwicklung.com
   DEPLOY_USER: deploy
-  DEPLOY_PATH: /var/www/crowdtowers
+  DEPLOY_PATH: /var/www/crowdtowers-staging
 
 jobs:
   lint:
@@ -34,7 +40,7 @@ jobs:
         run: npm audit
 
   deploy:
-    name: Deploy to Production
+    name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: lint
     if: github.ref == 'refs/heads/main'
@@ -76,17 +82,17 @@ jobs:
       - name: Install dependencies and restart
         run: |
           ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
-            cd /var/www/crowdtowers
+            cd /var/www/crowdtowers-staging
             npm ci --omit=dev
-            cp deploy/pm2/ecosystem.config.js ecosystem.config.js
-            pm2 reload ecosystem.config.js --update-env
+            cp deploy/pm2/ecosystem-staging.config.js ecosystem.config.js
+            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
             pm2 save
           ENDSSH
 
       - name: Health check
         run: |
           sleep 5
-          curl -f https://${{ env.DEPLOY_HOST }}/api/health || exit 1
+          curl -f https://staging.crowdtowers.wochenentwicklung.com/api/health || exit 1
 
       - name: Deployment successful
-        run: echo "Deployment completed successfully!"
+        run: echo "Staging deployment completed successfully!"

@@ -1,8 +1,8 @@
 module.exports = {
   apps: [{
-    name: 'crowdtowers-prod',
+    name: 'crowdtowers-staging',
     script: 'server/index.js',
-    cwd: '/var/www/crowdtowers',
+    cwd: '/var/www/crowdtowers-staging',
     instances: 1,  // Single instance for Socket.IO state
     exec_mode: 'fork',
     watch: false,
@@ -10,8 +10,8 @@ module.exports = {
     env: {
       NODE_ENV: 'production'
     },
-    error_file: '/var/log/pm2/crowdtowers-error.log',
-    out_file: '/var/log/pm2/crowdtowers-out.log',
+    error_file: '/var/log/pm2/crowdtowers-staging-error.log',
+    out_file: '/var/log/pm2/crowdtowers-staging-out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     merge_logs: true,
     // Graceful restart

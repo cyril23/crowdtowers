@@ -1,19 +1,26 @@
 ---
 # Main orchestration playbook for CrowdTowers
-# Run with: ansible-playbook playbooks/site.yml --ask-vault-pass
 #
 # For initial setup (as root):
-#   ansible-playbook playbooks/site.yml --ask-vault-pass -u root
+#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass
 #
 # For subsequent runs (as deploy user):
 #   ansible-playbook playbooks/site.yml --ask-vault-pass
 #
+# Deploy specific environment:
+#   ansible-playbook playbooks/site.yml --ask-vault-pass -l crowdtowers-prod
+#   ansible-playbook playbooks/site.yml --ask-vault-pass -l crowdtowers-staging
+#
 # Run specific tasks with tags:
 #   ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
 
-- name: CrowdTowers Server Provisioning
-  hosts: crowdtowers
+# =============================================================================
+# Play 1: Infrastructure setup (runs ONCE on the server)
+# =============================================================================
+- name: Server Infrastructure Setup
+  hosts: all
   become: yes
+  run_once: true
 
   vars_files:
     - ../inventory/group_vars/all/vault.yml
@@ -34,11 +41,6 @@
         name: mongod
         state: restarted
 
-    - name: Reload Nginx
-      systemd:
-        name: nginx
-        state: reloaded
-
   tasks:
     - name: Include initial setup
       ansible.builtin.include_tasks: initial-setup.yml
@@ -56,6 +58,24 @@
       ansible.builtin.include_tasks: nodejs.yml
       tags: [setup, nodejs]
 
+# =============================================================================
+# Play 2: Per-app deployment (runs for EACH environment)
+# =============================================================================
+- name: Application Deployment
+  hosts: all
+  become: yes
+  serial: 1  # Run one at a time to avoid conflicts
+
+  vars_files:
+    - ../inventory/group_vars/all/vault.yml
+
+  handlers:
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded
+
+  tasks:
     - name: Include Nginx setup
       ansible.builtin.include_tasks: nginx.yml
       tags: [setup, nginx]

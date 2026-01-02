@@ -3,6 +3,24 @@
 # This playbook can be run independently for updates:
 #   ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
 
+- name: Set MongoDB password for production
+  set_fact:
+    mongo_app_password: "{{ vault_mongo_prod_app_password }}"
+  when: "'production' in group_names"
+
+- name: Set MongoDB password for staging
+  set_fact:
+    mongo_app_password: "{{ vault_mongo_staging_app_password }}"
+  when: "'staging' in group_names"
+
+- name: Create application directory
+  file:
+    path: "{{ app_path }}"
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+
 - name: Synchronize application code
   synchronize:
     src: "{{ playbook_dir }}/../../../"
@@ -27,7 +45,7 @@
 
 - name: Copy PM2 ecosystem config
   copy:
-    src: "{{ playbook_dir }}/../../pm2/ecosystem.config.js"
+    src: "{{ playbook_dir }}/../../pm2/ecosystem{{ '-staging' if 'staging' in group_names else '' }}.config.js"
     dest: "{{ app_path }}/ecosystem.config.js"
     owner: deploy
     group: deploy
@@ -41,7 +59,7 @@
 
 - name: Check if PM2 process exists
   become_user: deploy
-  shell: pm2 list | grep -q crowdtowers
+  shell: pm2 id {{ app_name }} 2>/dev/null
   register: pm2_process
   ignore_errors: yes
   changed_when: false

@@ -50,6 +50,17 @@
   when: not ssl_cert.stat.exists
   notify: Reload Nginx
 
+# Deploy full SSL config (always, after cert check)
+- name: Deploy full Nginx site configuration with SSL
+  template:
+    src: ../templates/nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+  when: ssl_cert.stat.exists
+  notify: Reload Nginx
+
 - name: Enable Nginx site
   file:
     src: "/etc/nginx/sites-available/{{ app_name }}"
@@ -76,13 +87,15 @@
     --email {{ vault_certbot_email }}
   when: not ssl_cert.stat.exists
 
-- name: Deploy full Nginx site configuration with SSL
+# Deploy full config after obtaining cert (for new installs)
+- name: Deploy full Nginx config after SSL setup
   template:
     src: ../templates/nginx-site.conf.j2
     dest: "/etc/nginx/sites-available/{{ app_name }}"
     owner: root
     group: root
     mode: '0644'
+  when: not ssl_cert.stat.exists
   notify: Reload Nginx
 
 - name: Test Nginx configuration

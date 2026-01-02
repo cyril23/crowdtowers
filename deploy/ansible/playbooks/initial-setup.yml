@@ -68,14 +68,6 @@
     mode: '0440'
     validate: 'visudo -cf %s'
 
-- name: Create application directory
-  file:
-    path: "{{ app_path }}"
-    state: directory
-    owner: deploy
-    group: deploy
-    mode: '0755'
-
 - name: Create PM2 log directory
   file:
     path: /var/log/pm2

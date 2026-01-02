@@ -55,18 +55,6 @@ Optional accounts for persistent stats.
 
 ## Infrastructure
 
-### Staging Environment
-Test changes before production.
-
-**Options:**
-- **Separate Hetzner VPS** - Full isolation, ~€8/month
-- **Docker on same server** - Different port, less isolation
-- **Subdomain** - staging.crowdtowers.wochenentwicklung.com
-
-**GitHub Actions integration:**
-- Push to `main` → deploy to production
-- Push to `staging` branch → deploy to staging
-
 ### Horizontal Scaling
 If the game grows beyond single-server capacity.
 

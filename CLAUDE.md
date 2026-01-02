@@ -1,7 +1,7 @@
-# Tower Defense Game - Key Information
+# Crowd Towers - Key Information
 
 ## Game Concept
-Multiplayer cooperative tower defense: humans defend against alien invaders. Up to 32 players share a single budget and place towers anonymously.
+Crowd Towers is a multiplayer cooperative tower defense game: humans defend against alien invaders. Up to 32 players share a single budget and place towers anonymously.
 
 ## Tech Stack
 - **Server:** Node.js + Express 5 + Socket.IO + MongoDB
@@ -99,12 +99,16 @@ p.x += (dx / dist) * speed;  // Move toward CURRENT target position
 
 ## Deployment
 
-**Live:** https://crowdtowers.wochenentwicklung.com
+**Production:** https://crowdtowers.wochenentwicklung.com
+**Staging:** https://staging.crowdtowers.wochenentwicklung.com
 
 **Infrastructure:** Hetzner Cloud VPS (CPX32, Ubuntu 24)
 - Nginx reverse proxy with Let's Encrypt SSL
-- PM2 process management
-- MongoDB 8.0 with authentication
-- GitHub Actions auto-deploy on push to main
+- PM2 process management (crowdtowers-prod, crowdtowers-staging)
+- MongoDB 8.0 with authentication (crowdtowers, crowdtowers-staging databases)
+
+**GitHub Actions Workflow:**
+- Push to `main` → auto-deploy to **staging**
+- Manual trigger (workflow_dispatch) → deploy to **production**
 
 **Docs:** See [deploy/README.md](deploy/README.md) for setup and troubleshooting.

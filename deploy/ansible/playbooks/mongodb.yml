@@ -65,15 +65,30 @@
   failed_when: false
   changed_when: "'already exists' not in mongo_admin_result.stderr"
 
-- name: Create MongoDB application user via shell
+- name: Create MongoDB production application user
   shell: |
     mongosh admin -u admin -p '{{ vault_mongo_admin_password }}' --eval '
       db.createUser({
-        user: "towerdefence",
-        pwd: "{{ vault_mongo_app_password }}",
-        roles: [{ role: "readWrite", db: "towerdefence" }]
+        user: "crowdtowers",
+        pwd: "{{ vault_mongo_prod_app_password }}",
+        roles: [{ role: "readWrite", db: "crowdtowers" }]
       })
     '
-  register: mongo_app_result
+  register: mongo_prod_result
   failed_when: false
-  changed_when: "'already exists' not in mongo_app_result.stderr"
+  changed_when: "'already exists' not in mongo_prod_result.stderr"
+  no_log: true
+
+- name: Create MongoDB staging application user
+  shell: |
+    mongosh admin -u admin -p '{{ vault_mongo_admin_password }}' --eval '
+      db.createUser({
+        user: "crowdtowers-staging",
+        pwd: "{{ vault_mongo_staging_app_password }}",
+        roles: [{ role: "readWrite", db: "crowdtowers-staging" }]
+      })
+    '
+  register: mongo_staging_result
+  failed_when: false
+  changed_when: "'already exists' not in mongo_staging_result.stderr"
+  no_log: true
