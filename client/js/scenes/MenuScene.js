@@ -575,12 +575,17 @@ class MenuScene extends Phaser.Scene {
 
   // Handle Phaser scale manager resize event
   onGameResize() {
+    // CRITICAL: Remove listener before restart to prevent handler accumulation
+    this.scale.off('resize', this.onGameResize, this);
+
+    // Safety check: only restart if this scene is actually active
+    if (!this.scene.isActive()) {
+      return;
+    }
+
     // Save current input values before restart
     const savedNickname = this.nicknameInput?.value || localStorage.getItem('playerNickname') || '';
     const savedCode = this.codeInput?.value || '';
-
-    // CRITICAL: Remove listener before restart to prevent handler accumulation
-    this.scale.off('resize', this.onGameResize, this);
 
     // Clean up and restart scene to rebuild with new dimensions
     this.clearMenuUI();
@@ -866,6 +871,13 @@ class CreateGameScene extends Phaser.Scene {
   onResize() {
     // CRITICAL: Remove listener before restart to prevent handler accumulation
     this.scale.off('resize', this.onResize, this);
+
+    // Safety check: only restart if this scene is actually active
+    // Prevents stopped scenes from accidentally restarting via lingering handlers
+    if (!this.scene.isActive()) {
+      return;
+    }
+
     // Rebuild layout on resize
     this.scene.restart({ nickname: this.nickname });
   }
@@ -1260,6 +1272,12 @@ class BrowseScene extends Phaser.Scene {
   onResize() {
     // CRITICAL: Remove listener before restart to prevent handler accumulation
     this.scale.off('resize', this.onResize, this);
+
+    // Safety check: only restart if this scene is actually active
+    if (!this.scene.isActive()) {
+      return;
+    }
+
     this.scene.restart({ nickname: this.nickname });
   }
 
