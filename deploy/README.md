@@ -30,7 +30,9 @@ Production deployment for Hetzner Cloud VPS (CPX32, Ubuntu 24).
 
 ### 2. Configure DNS
 
-Create an A record: `crowdtowers.wochenentwicklung.com` → `YOUR_SERVER_IP`
+Create A records pointing to your server IP:
+- `crowdtowers.wochenentwicklung.com` → `YOUR_SERVER_IP` (production)
+- `staging.crowdtowers.wochenentwicklung.com` → `YOUR_SERVER_IP` (staging)
 
 Wait for propagation: `dig crowdtowers.wochenentwicklung.com`
 
@@ -41,15 +43,7 @@ cd deploy/ansible
 ansible-vault create inventory/group_vars/all/vault.yml
 ```
 
-Add these secrets (use plain ASCII quotes, no special characters):
-
-```yaml
-vault_mongo_admin_password: "your-secure-admin-password"
-vault_mongo_app_password: "your-secure-app-password"
-vault_session_secret: "your-secure-session-secret"
-vault_certbot_email: "your-email@example.com"
-vault_deploy_user_password: "your-deploy-user-password"
-```
+See [vault.yml.example](ansible/inventory/group_vars/all/vault.yml.example) for required secrets.
 
 **Important**: Use plain ASCII quotes `"` not German quotes `„"`.
 
@@ -79,8 +73,9 @@ ssh -i ~/.ssh/crowdtowers_deploy deploy@crowdtowers.wochenentwicklung.com
 pm2 status
 sudo systemctl status mongod nginx
 
-# Test the app
-curl https://crowdtowers.wochenentwicklung.com/api/health
+# Test the apps
+curl https://crowdtowers.wochenentwicklung.com/api/health           # Production
+curl https://staging.crowdtowers.wochenentwicklung.com/api/health   # Staging
 ```
 
 ### 6. Configure GitHub Actions
@@ -90,7 +85,8 @@ curl https://crowdtowers.wochenentwicklung.com/api/health
 
 ## Ongoing Deployments
 
-After initial setup, deployments are automatic on push to `main` via GitHub Actions.
+**Staging:** Auto-deploys on push to `main` via GitHub Actions.
+**Production:** Manual trigger only (workflow_dispatch) from GitHub Actions.
 
 ### Manual Ansible Commands
 
@@ -153,7 +149,10 @@ apt:
 ## Architecture
 
 ```
-Internet → Nginx (SSL/443) → Node.js (:3000) → MongoDB (:27017 localhost)
+Internet → Nginx (SSL/443) → Node.js Production (:3000)  → MongoDB (crowdtowers)
+                           → Node.js Staging    (:3001)  → MongoDB (crowdtowers-staging)
+                                                                   ↓
+                                                           :27017 localhost
                 ↓
          Let's Encrypt
 ```
