@@ -1,4 +1,4 @@
-const { TOWERS } = require('../../shared/constants');
+import { TOWERS } from '../../shared/constants.js';
 
 function getTowerCost(towerType, level = 1) {
   const tower = TOWERS[towerType];
@@ -66,7 +66,7 @@ function getSellValue(towerType, currentLevel) {
   return Math.floor(getTotalTowerCost(towerType, currentLevel) * 0.5);
 }
 
-module.exports = {
+export {
   getTowerCost,
   getTowerDamage,
   calculateDamage,

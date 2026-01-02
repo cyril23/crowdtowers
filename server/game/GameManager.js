@@ -1,8 +1,8 @@
-const { v4: uuidv4 } = require('uuid');
-const { GAME_CONFIG, GAME_STATUS, TILE_TYPES, MAZE_SIZES, SOCKET_EVENTS } = require('../../shared/constants');
-const { getTowerCost, getTowerRange, getTowerFireRate, calculateDamage, getSellValue, TOWERS } = require('./towers');
-const { generateWaveEnemies, applyDamageToEnemy, getWaveComposition } = require('./enemies');
-const { createGameLogger } = require('../utils/logger');
+import { v4 as uuidv4 } from 'uuid';
+import { GAME_CONFIG, GAME_STATUS, TILE_TYPES, MAZE_SIZES, SOCKET_EVENTS } from '../../shared/constants.js';
+import { getTowerCost, getTowerRange, getTowerFireRate, calculateDamage, getSellValue, TOWERS } from './towers.js';
+import { generateWaveEnemies, applyDamageToEnemy, getWaveComposition, getEnemyStats } from './enemies.js';
+import { createGameLogger } from '../utils/logger.js';
 
 class GameManager {
   constructor(io, sessionCode, gameData) {
@@ -342,7 +342,7 @@ class GameManager {
     if (spawns) {
       for (let i = 0; i < spawns.count; i++) {
         const spawn = {
-          ...require('./enemies').getEnemyStats(spawns.type, this.gameData.gameState.currentWave),
+          ...getEnemyStats(spawns.type, this.gameData.gameState.currentWave),
           id: `spawn_${Date.now()}_${i}`, // Must come AFTER spread to override type-based id
           type: spawns.type,
           pathIndex: enemy.pathIndex,
@@ -602,4 +602,4 @@ class GameManager {
   }
 }
 
-module.exports = GameManager;
+export default GameManager;

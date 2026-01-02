@@ -1,6 +1,12 @@
-const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
+import mongoose from 'mongoose';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+// ES module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function connectDB() {
   // Try to load from .env.prod first
@@ -9,7 +15,7 @@ async function connectDB() {
   let mongoUri = process.env.MONGODB_URI;
 
   if (fs.existsSync(envProdPath)) {
-    const envConfig = require('dotenv').config({ path: envProdPath });
+    const envConfig = dotenv.config({ path: envProdPath });
     if (envConfig.parsed && envConfig.parsed.MONGODB_URI) {
       mongoUri = envConfig.parsed.MONGODB_URI;
     }
@@ -37,4 +43,4 @@ async function connectDB() {
   });
 }
 
-module.exports = connectDB;
+export default connectDB;

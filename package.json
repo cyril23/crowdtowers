@@ -1,12 +1,13 @@
 {
   "name": "alien-invasion-tower-defense",
   "version": "1.0.0",
+  "type": "module",
   "description": "Multiplayer cooperative tower defense game",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "build": "node scripts/build.js",
+    "build": "node scripts/build.cjs",
     "lint": "eslint server shared client --fix",
     "cleanup": "node server/index.js --cleanup",
     "cleanup:orphaned": "node server/index.js --cleanup orphaned",

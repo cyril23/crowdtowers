@@ -9,13 +9,10 @@ export default [
     files: ['server/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'commonjs',
+      sourceType: 'module',
       globals: {
         console: 'readonly',
         process: 'readonly',
-        require: 'readonly',
-        module: 'readonly',
-        __dirname: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         setInterval: 'readonly',
@@ -47,13 +44,12 @@ export default [
     }
   },
   {
-    // Shared constants - CommonJS for server, ES module exports for client bundler
+    // Shared constants - ES modules
     files: ['shared/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
-        module: 'readonly',
         console: 'readonly'
       }
     },

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const towerSchema = new mongoose.Schema({
   id: String,
@@ -70,4 +70,4 @@ gameSchema.pre('save', function() {
 // Index for browsing open games
 gameSchema.index({ isPrivate: 1, status: 1 });
 
-module.exports = mongoose.model('Game', gameSchema);
+export default mongoose.model('Game', gameSchema);

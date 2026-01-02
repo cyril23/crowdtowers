@@ -1,9 +1,9 @@
-const { v4: uuidv4 } = require('uuid');
-const Game = require('../models/Game');
-const MazeGenerator = require('../game/MazeGenerator');
-const GameManager = require('../game/GameManager');
-const { GAME_CONFIG, SOCKET_EVENTS, GAME_STATUS } = require('../../shared/constants');
-const { createGameLogger, serverLogger } = require('../utils/logger');
+import { v4 as uuidv4 } from 'uuid';
+import Game from '../models/Game.js';
+import MazeGenerator from '../game/MazeGenerator.js';
+import GameManager from '../game/GameManager.js';
+import { GAME_CONFIG, SOCKET_EVENTS, GAME_STATUS } from '../../shared/constants.js';
+import { createGameLogger, serverLogger } from '../utils/logger.js';
 
 // Store active game managers
 const activeGames = new Map();
@@ -633,4 +633,4 @@ function setupSocketHandlers(io) {
   });
 }
 
-module.exports = { setupSocketHandlers, activeGames };
+export { setupSocketHandlers, activeGames };

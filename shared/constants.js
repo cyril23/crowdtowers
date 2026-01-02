@@ -296,21 +296,7 @@ const SOCKET_EVENTS = {
   KICK_VOTE_FAILED: 'kick-vote-failed'
 };
 
-// Export for Node.js (CommonJS)
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    GAME_CONFIG,
-    MAZE_SIZES,
-    GAME_STATUS,
-    TILE_TYPES,
-    TOWERS,
-    ENEMIES,
-    WAVE_COMPOSITION,
-    SOCKET_EVENTS
-  };
-}
-
-// Export for ES modules (client bundling)
+// Export for ES modules
 export {
   GAME_CONFIG,
   MAZE_SIZES,

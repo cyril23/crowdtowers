@@ -38,4 +38,4 @@ const serverLogger = {
   }
 };
 
-module.exports = { createGameLogger, serverLogger };
+export { createGameLogger, serverLogger };

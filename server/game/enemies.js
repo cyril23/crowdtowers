@@ -1,4 +1,4 @@
-const { ENEMIES, WAVE_COMPOSITION } = require('../../shared/constants');
+import { ENEMIES, WAVE_COMPOSITION } from '../../shared/constants.js';
 
 function getEnemyStats(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
@@ -94,7 +94,7 @@ function applyDamageToEnemy(enemy, damage, _towerType) {
   };
 }
 
-module.exports = {
+export {
   getEnemyStats,
   getWaveComposition,
   generateWaveEnemies,

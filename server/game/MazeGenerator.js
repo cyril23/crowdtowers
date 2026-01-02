@@ -1,4 +1,4 @@
-const { TILE_TYPES, MAZE_SIZES } = require('../../shared/constants');
+import { TILE_TYPES, MAZE_SIZES } from '../../shared/constants.js';
 
 class MazeGenerator {
   constructor(size) {
@@ -245,4 +245,4 @@ class MazeGenerator {
   }
 }
 
-module.exports = MazeGenerator;
+export default MazeGenerator;

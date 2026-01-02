@@ -1,13 +1,19 @@
-const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-const connectDB = require('./config/db');
-const { setupSocketHandlers } = require('./socket/handlers');
-const Game = require('./models/Game');
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import { setupSocketHandlers } from './socket/handlers.js';
+import Game from './models/Game.js';
+
+// ES module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
-require('dotenv').config({ path: path.join(__dirname, '../.env.prod') });
+dotenv.config({ path: path.join(__dirname, '../.env.prod') });
 
 const app = express();
 const httpServer = createServer(app);
