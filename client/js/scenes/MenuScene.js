@@ -271,6 +271,11 @@ class BackgroundScene extends Phaser.Scene {
       }
     });
   }
+
+  shutdown() {
+    // Clean up resize listener to prevent handler accumulation
+    this.scale.off('resize', this.handleResize, this);
+  }
 }
 
 // ============================================
@@ -286,8 +291,10 @@ class MenuScene extends Phaser.Scene {
     if (!this.networkHandlers) {
       this.networkHandlers = [];
     }
-    // Preserve nickname across scene restarts (from resize)
+    // Preserve state across scene restarts (from resize)
     this.preservedNickname = data?.preservedNickname || null;
+    this.currentView = data?.currentView || 'main';  // 'main' or 'join'
+    this.preservedJoinCode = data?.preservedJoinCode || '';
   }
 
   // Helper to register network handlers and track them for cleanup
@@ -364,11 +371,15 @@ class MenuScene extends Phaser.Scene {
     // Setup network listeners
     this.setupNetworkListeners();
 
-    // Check for pending join code
+    // Check for pending join code (from deep link)
     const pendingCode = this.registry.get('pendingJoinCode');
     if (pendingCode) {
       this.registry.remove('pendingJoinCode');
       this.showJoinMenu(pendingCode);
+    }
+    // Restore previous view if restarting (e.g., from resize)
+    else if (this.currentView === 'join') {
+      this.showJoinMenu(this.preservedJoinCode);
     }
 
     // Check for toast message (e.g., from lobby close)
@@ -564,12 +575,20 @@ class MenuScene extends Phaser.Scene {
 
   // Handle Phaser scale manager resize event
   onGameResize() {
-    // Save current input value before restart
-    const savedValue = this.nicknameInput?.value || localStorage.getItem('playerNickname') || '';
+    // Save current input values before restart
+    const savedNickname = this.nicknameInput?.value || localStorage.getItem('playerNickname') || '';
+    const savedCode = this.codeInput?.value || '';
+
+    // CRITICAL: Remove listener before restart to prevent handler accumulation
+    this.scale.off('resize', this.onGameResize, this);
 
     // Clean up and restart scene to rebuild with new dimensions
     this.clearMenuUI();
-    this.scene.restart({ preservedNickname: savedValue });
+    this.scene.restart({
+      preservedNickname: savedNickname,
+      currentView: this.currentView,
+      preservedJoinCode: savedCode
+    });
   }
 
   createButton(x, y, text, callback) {
@@ -613,9 +632,13 @@ class MenuScene extends Phaser.Scene {
   }
 
   showJoinMenu(prefillCode = '') {
-    const nickname = this.nicknameInput.value.trim();
+    // Set current view state (for state preservation across resize)
+    this.currentView = 'join';
+
+    const nickname = this.nicknameInput?.value?.trim() || localStorage.getItem('playerNickname') || '';
     if (!nickname) {
       this.showError('Please enter a name');
+      this.currentView = 'main';  // Reset view if validation fails
       return;
     }
 
@@ -841,6 +864,8 @@ class CreateGameScene extends Phaser.Scene {
   }
 
   onResize() {
+    // CRITICAL: Remove listener before restart to prevent handler accumulation
+    this.scale.off('resize', this.onResize, this);
     // Rebuild layout on resize
     this.scene.restart({ nickname: this.nickname });
   }
@@ -1104,14 +1129,19 @@ class CreateGameScene extends Phaser.Scene {
 
 // ============================================
 // BROWSE GAMES SCENE (overlay on BackgroundScene)
+// Responsive layout with camera zoom/centering
 // ============================================
 class BrowseScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BrowseScene' });
   }
 
+  // Design space for BrowseScene
+  static DESIGN_WIDTH = 400;
+  static DESIGN_HEIGHT = 550;
+
   init(data) {
-    this.nickname = data.nickname;
+    this.nickname = data.nickname || this.registry.get('nickname');
 
     // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
     if (!this.networkHandlers) {
@@ -1125,14 +1155,31 @@ class BrowseScene extends Phaser.Scene {
     this.networkHandlers.push({ event, handler });
   }
 
+  // Setup camera to zoom/center the design space within the canvas
+  setupMenuCamera() {
+    const canvasWidth = this.cameras.main.width;
+    const canvasHeight = this.cameras.main.height;
+
+    const scaleX = canvasWidth / BrowseScene.DESIGN_WIDTH;
+    const scaleY = canvasHeight / BrowseScene.DESIGN_HEIGHT;
+    const zoom = Math.min(scaleX, scaleY, 1.5);
+
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(BrowseScene.DESIGN_WIDTH / 2, BrowseScene.DESIGN_HEIGHT / 2);
+  }
+
   create() {
     // Make background transparent to show BackgroundScene
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
-    const centerX = this.cameras.main.centerX;
+    // Setup camera for responsive layout
+    this.setupMenuCamera();
+
+    // All positions are in DESIGN coordinates (400x550)
+    const centerX = BrowseScene.DESIGN_WIDTH / 2;
 
     this.add.text(centerX, 40, 'Open Games', {
-      fontSize: '32px',
+      fontSize: '28px',
       color: '#ffffff',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
@@ -1144,10 +1191,9 @@ class BrowseScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.gamesList = [];
-    this.listY = 100;
 
     // Back button
-    this.add.text(centerX, 550, 'Back', {
+    this.add.text(centerX, 510, 'Back', {
       fontSize: '18px',
       color: '#aaaaaa',
       fontFamily: 'Arial'
@@ -1162,7 +1208,7 @@ class BrowseScene extends Phaser.Scene {
 
     // Refresh button
     this.add.text(centerX + 100, 40, 'Refresh', {
-      fontSize: '16px',
+      fontSize: '14px',
       color: '#4a4a8a',
       fontFamily: 'Arial'
     })
@@ -1204,8 +1250,17 @@ class BrowseScene extends Phaser.Scene {
       }
     });
 
+    // Listen for resize
+    this.scale.on('resize', this.onResize, this);
+
     // Request games list
     this.refreshList();
+  }
+
+  onResize() {
+    // CRITICAL: Remove listener before restart to prevent handler accumulation
+    this.scale.off('resize', this.onResize, this);
+    this.scene.restart({ nickname: this.nickname });
   }
 
   refreshList() {
@@ -1218,6 +1273,9 @@ class BrowseScene extends Phaser.Scene {
   displayGames(games) {
     this.loadingText.setVisible(false);
 
+    // All positions in DESIGN coordinates
+    const centerX = BrowseScene.DESIGN_WIDTH / 2;
+
     if (games.length === 0) {
       this.loadingText.setText('No open games available');
       this.loadingText.setVisible(true);
@@ -1227,24 +1285,24 @@ class BrowseScene extends Phaser.Scene {
     games.forEach((game, index) => {
       const y = 100 + index * 60;
 
-      const container = this.add.container(this.cameras.main.centerX, y);
+      const container = this.add.container(centerX, y);
 
-      const bg = this.add.rectangle(0, 0, 400, 50, 0x2a2a4e)
+      const bg = this.add.rectangle(0, 0, 360, 50, 0x2a2a4e)
         .setInteractive({ useHandCursor: true });
 
-      const text = this.add.text(-180, -15, `${game.hostNickname}'s Game`, {
+      const text = this.add.text(-160, -15, `${game.hostNickname}'s Game`, {
         fontSize: '16px',
         color: '#ffffff',
         fontFamily: 'Arial'
       });
 
-      const info = this.add.text(-180, 5, `${game.mazeSize} | ${game.playerCount}/${game.maxPlayers} players | ${game.status}`, {
+      const info = this.add.text(-160, 5, `${game.mazeSize} | ${game.playerCount}/${game.maxPlayers} players | ${game.status}`, {
         fontSize: '12px',
         color: '#aaaaaa',
         fontFamily: 'Arial'
       });
 
-      const joinBtn = this.add.text(150, 0, 'JOIN', {
+      const joinBtn = this.add.text(140, 0, 'JOIN', {
         fontSize: '14px',
         color: '#ffffff',
         fontFamily: 'Arial',
@@ -1263,6 +1321,9 @@ class BrowseScene extends Phaser.Scene {
   }
 
   shutdown() {
+    // Clean up resize listener
+    this.scale.off('resize', this.onResize, this);
+
     // Leave the browsers room
     networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
 
