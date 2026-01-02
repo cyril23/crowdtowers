@@ -263,8 +263,18 @@ class MenuScene extends Phaser.Scene {
     this.networkHandlers.push({ event, handler });
   }
 
+  // Calculate Y position scaled proportionally to canvas height
+  // Design basis is 672px height
+  getScaledY(designY) {
+    const height = this.cameras.main.height;
+    const scale = height / 672;
+    return designY * scale;
+  }
+
   create() {
     const centerX = this.cameras.main.centerX;
+    const height = this.cameras.main.height;
+    const scale = height / 672;
 
     // Launch background scene if not already running
     if (!this.scene.isActive('BackgroundScene')) {
@@ -275,21 +285,23 @@ class MenuScene extends Phaser.Scene {
     // Make this scene's background transparent
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
-    // Initialize HTML input tracking
-    this.htmlInputs = [];
-
     // Title
     this.createTitle(centerX);
 
-    // Name input (centered layout)
-    const inputY = 180;
-    this.add.text(centerX - 110, inputY + 8, 'Your Name:', {
-      fontSize: '16px',
+    // Name input - label positioned with clear gap above input
+    this.add.text(centerX, this.getScaledY(165), 'Your Name:', {
+      fontSize: `${16 * scale}px`,
       color: '#aaaaaa',
       fontFamily: 'Arial'
-    }).setOrigin(1, 0.5);
+    }).setOrigin(0.5);
 
-    this.nicknameInput = this.createInput(centerX - 100, inputY, 200, 'Enter name...');
+    // Create HTML input - manually positioned to work around Phaser DOM element bugs
+    // Using DESIGN coordinates (672px basis) - the positioning function handles scaling
+    // Y=205 places it nicely between label (165) and button (260)
+    this.nicknameInput = this.createHtmlInput(336, 205, 200, 'Enter name...');
+
+    // Listen to Phaser's scale manager for reliable resize handling
+    this.scale.on('resize', this.onGameResize, this);
 
     // Load saved nickname from localStorage
     const savedName = localStorage.getItem('playerNickname');
@@ -298,32 +310,29 @@ class MenuScene extends Phaser.Scene {
     }
 
     // Create Game button
-    this.createButton(centerX, 260, 'Create New Game', () => {
+    this.createButton(centerX, this.getScaledY(260), 'Create New Game', () => {
       this.showCreateGameMenu();
-    });
+    }, scale);
 
     // Join by Code button
-    this.createButton(centerX, 320, 'Join by Code', () => {
+    this.createButton(centerX, this.getScaledY(320), 'Join by Code', () => {
       this.showJoinMenu();
-    });
+    }, scale);
 
     // Browse Games button
-    this.createButton(centerX, 380, 'Browse Open Games', () => {
+    this.createButton(centerX, this.getScaledY(380), 'Browse Open Games', () => {
       this.showBrowseMenu();
-    });
+    }, scale);
 
     // Error message area
-    this.errorText = this.add.text(centerX, 450, '', {
-      fontSize: '16px',
+    this.errorText = this.add.text(centerX, this.getScaledY(450), '', {
+      fontSize: `${16 * scale}px`,
       color: '#ff4444',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
     // Setup network listeners
     this.setupNetworkListeners();
-
-    // Handle window resize for HTML inputs
-    this.scale.on('resize', this.repositionAllInputs, this);
 
     // Check for pending join code
     const pendingCode = this.registry.get('pendingJoinCode');
@@ -341,17 +350,18 @@ class MenuScene extends Phaser.Scene {
   }
 
   showToast(message, duration = 2000) {
-    const toast = this.add.text(this.cameras.main.centerX, 500, message, {
-      fontSize: '16px',
+    const scale = this.cameras.main.height / 672;
+    const toast = this.add.text(this.cameras.main.centerX, this.getScaledY(500), message, {
+      fontSize: `${16 * scale}px`,
       color: '#ffffff',
       backgroundColor: '#aa4444',
-      padding: { x: 15, y: 10 }
+      padding: { x: 15 * scale, y: 10 * scale }
     }).setOrigin(0.5).setDepth(1000);
 
     this.tweens.add({
       targets: toast,
       alpha: 0,
-      y: 480,
+      y: this.getScaledY(480),
       delay: duration,
       duration: 500,
       onComplete: () => toast.destroy()
@@ -362,17 +372,19 @@ class MenuScene extends Phaser.Scene {
   // TITLE
   // ============================================
   createTitle(centerX) {
+    const scale = this.cameras.main.height / 672;
+
     // Main title
-    this.add.text(centerX, 60, 'CROWD TOWERS', {
-      fontSize: '42px',
+    this.add.text(centerX, this.getScaledY(60), 'CROWD TOWERS', {
+      fontSize: `${42 * scale}px`,
       color: '#ffffff',
       fontFamily: 'Arial',
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(1);
 
     // Subtitle with subtle pulse
-    const subtitle = this.add.text(centerX, 105, 'Cooperative Tower Defense', {
-      fontSize: '24px',
+    const subtitle = this.add.text(centerX, this.getScaledY(105), 'Cooperative Tower Defense', {
+      fontSize: `${24 * scale}px`,
       color: '#8888aa',
       fontFamily: 'Arial'
     }).setOrigin(0.5).setDepth(1);
@@ -388,21 +400,21 @@ class MenuScene extends Phaser.Scene {
   }
 
   // ============================================
-  // RESPONSIVE INPUT POSITIONING
+  // HTML INPUT - Manually positioned relative to canvas
+  // (Phaser's DOM element system has bugs with Scale.FIT mode)
   // ============================================
-  createInput(x, y, width, placeholder) {
+  createHtmlInput(gameX, gameY, width, placeholder) {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = placeholder;
     input.maxLength = 20;
+    input.className = 'game-input';
 
-    // Store original game coordinates for repositioning
-    input.dataset.gameX = x;
-    input.dataset.gameY = y;
-    input.dataset.gameWidth = width;
-
-    // Apply base styles
+    // Base styles (will be scaled via transform)
+    // Using position:fixed since we calculate viewport coordinates
     input.style.cssText = `
+      position: fixed;
+      width: ${width}px;
       padding: 8px;
       font-size: 16px;
       border: 2px solid #4a4a8a;
@@ -410,65 +422,107 @@ class MenuScene extends Phaser.Scene {
       background: #1a1a2e;
       color: white;
       text-align: center;
+      outline: none;
+      transform-origin: center center;
+      box-sizing: border-box;
+      z-index: 10;
     `;
 
-    // Position based on canvas scale
-    this.positionInput(input);
+    // Add focus style
+    input.addEventListener('focus', () => {
+      input.style.borderColor = '#6a6aaa';
+    });
+    input.addEventListener('blur', () => {
+      input.style.borderColor = '#4a4a8a';
+    });
 
-    document.getElementById('game-container').appendChild(input);
+    // Add to game container
+    const container = document.getElementById('game-container');
+    container.appendChild(input);
 
-    // Track for resize handling
-    this.htmlInputs.push(input);
+    // Convert design coordinates to game coordinates NOW (like getScaledY does)
+    // These are fixed once created, matching Phaser object behavior
+    const DESIGN_SIZE = 672;
+    const gameWidth = this.cameras.main.width;
+    const gameHeight = this.cameras.main.height;
+
+    input._gameX = gameX * (gameWidth / DESIGN_SIZE);  // Converted to current game coords
+    input._gameY = gameY * (gameHeight / DESIGN_SIZE);
+    input._baseWidth = width;
+
+    // Position it correctly (immediate + delayed to handle initial layout)
+    this.positionHtmlInput(input);
+    setTimeout(() => this.positionHtmlInput(input), 100);
 
     return input;
   }
 
-  positionInput(input) {
+  // Position HTML input based on actual canvas bounds
+  // _gameX/_gameY are already in game coordinates (converted at creation time)
+  positionHtmlInput(input) {
+    if (!input) return;
+
     const canvas = this.game.canvas;
-    const container = document.getElementById('game-container');
-
-    // Get canvas position within container
     const canvasRect = canvas.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
+    const DESIGN_SIZE = 672;
 
-    // Calculate scale factor
-    const scaleX = canvas.clientWidth / this.game.config.width;
-    const scaleY = canvas.clientHeight / this.game.config.height;
+    // Get current game dimensions from scale manager (more reliable than camera)
+    const gameWidth = this.scale.gameSize.width;
+    const gameHeight = this.scale.gameSize.height;
 
-    // Calculate offset from container to canvas
-    const offsetX = canvasRect.left - containerRect.left;
-    const offsetY = canvasRect.top - containerRect.top;
+    // Calculate display scale (canvas display size vs game size)
+    const displayScaleX = canvasRect.width / gameWidth;
+    const displayScaleY = canvasRect.height / gameHeight;
 
-    // Get stored game coordinates
-    const gameX = parseFloat(input.dataset.gameX);
-    const gameY = parseFloat(input.dataset.gameY);
-    const gameWidth = parseFloat(input.dataset.gameWidth);
+    // Convert game coordinates to screen coordinates
+    // _gameX/_gameY are already in game coords from creation time
+    const screenX = canvasRect.left + input._gameX * displayScaleX;
+    const screenY = canvasRect.top + input._gameY * displayScaleY;
 
-    // Apply scaled position
-    input.style.position = 'absolute';
-    input.style.left = `${offsetX + (gameX * scaleX)}px`;
-    input.style.top = `${offsetY + (gameY * scaleY)}px`;
-    input.style.width = `${gameWidth * scaleX}px`;
-    input.style.fontSize = `${16 * Math.min(scaleX, scaleY)}px`;
+    // Scale the input width based on canvas display size
+    const displayScale = canvasRect.width / DESIGN_SIZE;
+    const scaledWidth = input._baseWidth * displayScale;
+
+    input.style.left = `${screenX}px`;
+    input.style.top = `${screenY}px`;
+    input.style.width = `${scaledWidth}px`;
+    input.style.transform = 'translate(-50%, -50%)';
+    input.style.fontSize = `${Math.max(12, 16 * displayScale)}px`;
   }
 
+  // Reposition all tracked inputs (call on resize)
   repositionAllInputs() {
-    if (this.htmlInputs) {
-      this.htmlInputs.forEach(input => {
-        if (input.parentNode) {
-          this.positionInput(input);
-        }
-      });
+    if (this.nicknameInput) {
+      this.positionHtmlInput(this.nicknameInput);
+    }
+    if (this.codeInput) {
+      this.positionHtmlInput(this.codeInput);
     }
   }
 
-  createButton(x, y, text, callback) {
+  // Handle Phaser scale manager resize event
+  onGameResize() {
+    // Small delay to ensure canvas has finished resizing
+    setTimeout(() => {
+      this.repositionAllInputs();
+    }, 50);
+    // Additional delayed repositions for orientation changes which can be slow
+    setTimeout(() => {
+      this.repositionAllInputs();
+    }, 200);
+  }
+
+  createButton(x, y, text, callback, scale = 1) {
+    const fontSize = Math.max(14, 20 * scale); // Minimum 14px for readability
+    const paddingX = Math.max(12, 20 * scale);
+    const paddingY = Math.max(6, 10 * scale);
+
     const button = this.add.text(x, y, text, {
-      fontSize: '20px',
+      fontSize: `${fontSize}px`,
       color: '#ffffff',
       fontFamily: 'Arial',
       backgroundColor: '#4a4a8a',
-      padding: { x: 20, y: 10 }
+      padding: { x: paddingX, y: paddingY }
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -519,46 +573,46 @@ class MenuScene extends Phaser.Scene {
     // Clear only Phaser UI objects (not the background scene)
     this.children.removeAll();
 
-    // Reset inputs array
-    this.htmlInputs = [];
+    const centerX = this.cameras.main.centerX;
+    const scale = this.cameras.main.height / 672;
 
     // Rebuild join menu UI
-    this.add.text(this.cameras.main.centerX, 160, 'Enter Session Code:', {
-      fontSize: '18px',
+    this.add.text(centerX, this.getScaledY(160), 'Enter Session Code:', {
+      fontSize: `${18 * scale}px`,
       color: '#ffffff',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    this.codeInput = this.createInput(
-      this.cameras.main.centerX - 75,
-      180,
-      150,
-      'ABC123'
-    );
+    // Create code input using HTML input (manually positioned)
+    // Using DESIGN coordinates (672px basis) - centered at x=336, y=195
+    this.codeInput = this.createHtmlInput(336, 195, 150, 'ABC123');
     this.codeInput.value = prefillCode;
     this.codeInput.maxLength = 6;
     this.codeInput.style.textTransform = 'uppercase';
 
+    // Re-register scale listener for this view
+    this.scale.on('resize', this.onGameResize, this);
+
     // Error text
-    this.errorText = this.add.text(this.cameras.main.centerX, 450, '', {
-      fontSize: '16px',
+    this.errorText = this.add.text(centerX, this.getScaledY(450), '', {
+      fontSize: `${16 * scale}px`,
       color: '#ff4444',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    this.createButton(this.cameras.main.centerX, 260, 'Join Game', () => {
+    this.createButton(centerX, this.getScaledY(260), 'Join Game', () => {
       const code = this.codeInput.value.trim().toUpperCase();
       if (code.length !== 6) {
         this.showError('Session code must be 6 characters');
         return;
       }
       networkManager.joinGame(code, savedNickname);
-    });
+    }, scale);
 
-    this.createButton(this.cameras.main.centerX, 320, 'Back', () => {
+    this.createButton(centerX, this.getScaledY(320), 'Back', () => {
       this.clearMenuUI();
       this.scene.restart();
-    });
+    }, scale);
   }
 
   showBrowseMenu() {
@@ -578,24 +632,18 @@ class MenuScene extends Phaser.Scene {
   }
 
   clearMenuUI() {
-    // Remove HTML elements only
-    if (this.nicknameInput) {
-      this.nicknameInput.remove();
+    // Remove HTML input elements
+    if (this.nicknameInput && this.nicknameInput.parentNode) {
+      this.nicknameInput.parentNode.removeChild(this.nicknameInput);
       this.nicknameInput = null;
     }
-    if (this.codeInput) {
-      this.codeInput.remove();
+    if (this.codeInput && this.codeInput.parentNode) {
+      this.codeInput.parentNode.removeChild(this.codeInput);
       this.codeInput = null;
     }
-    // Clear the tracking array
-    if (this.htmlInputs) {
-      this.htmlInputs.forEach(input => {
-        if (input.parentNode) {
-          input.remove();
-        }
-      });
-      this.htmlInputs = [];
-    }
+
+    // Remove scale listener
+    this.scale.off('resize', this.onGameResize, this);
   }
 
   setupNetworkListeners() {
@@ -659,7 +707,6 @@ class MenuScene extends Phaser.Scene {
   }
 
   shutdown() {
-    this.scale.off('resize', this.repositionAllInputs, this);
     this.clearMenuUI();
 
     // Clean up network handlers to prevent accumulation
