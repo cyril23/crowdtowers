@@ -98,10 +98,11 @@ server {
         access_log off;
     }
 
-    # Static file caching
+    # Static file caching with mandatory revalidation
+    # no-cache = always check ETag/Last-Modified before using cached copy
+    # If unchanged: 304 Not Modified (fast), if changed: full response
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         proxy_pass http://{{ app_name }}_backend;
-        expires 7d;
-        add_header Cache-Control "public, immutable";
+        add_header Cache-Control "no-cache";
     }
 }
