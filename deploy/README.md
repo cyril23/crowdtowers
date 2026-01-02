@@ -90,14 +90,18 @@ curl https://crowdtowers.wochenentwicklung.com/api/health
 
 ## Ongoing Deployments
 
-After initial setup, deployments are automatic on push to `main`.
+After initial setup, deployments are automatic on push to `main` via GitHub Actions.
 
-### Manual Deployment via Ansible
+### Manual Ansible Commands
 
-```bash
-cd deploy/ansible
-ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
-```
+The `deploy` user has limited passwordless sudo (only pm2, npm, nginx reload). Use the appropriate command based on what you're changing:
+
+| Task | Command |
+|------|---------|
+| **App-only deploy** (code, npm, pm2) | `ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy` |
+| **Infrastructure changes** (nginx, packages, security) | `ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass` |
+
+**Why?** Infrastructure tasks need full sudo access. The deploy user intentionally has limited privileges for security - this is the same reason the GitHub Action (which uses deploy) only does app deployments.
 
 ### SSH to Server
 
@@ -121,6 +125,17 @@ Add `--ask-vault-pass` to the command.
 ### "Permission denied" when connecting
 
 Use `--extra-vars "ansible_user=root"` for initial setup (before deploy user exists).
+
+### "Missing sudo password"
+
+The `deploy` user has limited sudo. For infrastructure changes, use root:
+```bash
+ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass
+```
+For app-only deploys, use the deploy tag which doesn't need full sudo:
+```bash
+ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
+```
 
 ### Python/pip issues on Ubuntu 24
 
