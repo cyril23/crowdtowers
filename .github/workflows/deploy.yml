@@ -78,8 +78,8 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
             cd /var/www/crowdtowers
             npm ci --omit=dev
-            cp deploy/pm2/ecosystem.config.js ecosystem.config.js
-            pm2 reload ecosystem.config.js --update-env
+            cp deploy/pm2/ecosystem.config.cjs ecosystem.config.cjs
+            pm2 reload ecosystem.config.cjs --update-env
             pm2 save
           ENDSSH
 

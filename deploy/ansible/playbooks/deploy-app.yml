@@ -45,8 +45,8 @@
 
 - name: Copy PM2 ecosystem config
   copy:
-    src: "{{ playbook_dir }}/../../pm2/ecosystem{{ '-staging' if 'staging' in group_names else '' }}.config.js"
-    dest: "{{ app_path }}/ecosystem.config.js"
+    src: "{{ playbook_dir }}/../../pm2/ecosystem{{ '-staging' if 'staging' in group_names else '' }}.config.cjs"
+    dest: "{{ app_path }}/ecosystem.config.cjs"
     owner: deploy
     group: deploy
     mode: '0644'
@@ -66,12 +66,12 @@
 
 - name: Start application with PM2 (first time)
   become_user: deploy
-  shell: cd {{ app_path }} && pm2 start ecosystem.config.js
+  shell: cd {{ app_path }} && pm2 start ecosystem.config.cjs
   when: pm2_process.rc != 0
 
 - name: Reload application with PM2 (updates)
   become_user: deploy
-  shell: cd {{ app_path }} && pm2 reload ecosystem.config.js --update-env
+  shell: cd {{ app_path }} && pm2 reload ecosystem.config.cjs --update-env
   when: pm2_process.rc == 0
 
 - name: Save PM2 process list
