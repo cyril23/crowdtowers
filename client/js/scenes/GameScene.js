@@ -37,6 +37,15 @@ class GameScene extends Phaser.Scene {
     this.gridSize = this.maze.grid.length;
     this.tileSize = this.mazeConfig.tileSize;
 
+    // Calculate maze pixel size
+    this.mazePixelSize = this.gridSize * this.tileSize;
+
+    // Configure camera to center the game board within the full-screen canvas
+    this.setupCamera();
+
+    // Draw letterbox background (areas outside the maze)
+    this.drawLetterboxBackground();
+
     // Arrays to hold game objects
     this.towers = [];
     this.towerSprites = new Map();
@@ -81,6 +90,50 @@ class GameScene extends Phaser.Scene {
       budget: this.gameState.budget,
       wave: this.gameState.currentWave
     });
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
+  }
+
+  setupCamera() {
+    const canvasWidth = this.cameras.main.width;
+    const canvasHeight = this.cameras.main.height;
+
+    // Calculate zoom to fit maze in available space (never zoom in past 1:1)
+    const scaleX = canvasWidth / this.mazePixelSize;
+    const scaleY = canvasHeight / this.mazePixelSize;
+    const zoom = Math.min(scaleX, scaleY, 1);
+
+    // Center camera on maze center
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(this.mazePixelSize / 2, this.mazePixelSize / 2);
+  }
+
+  drawLetterboxBackground() {
+    // Remove old letterbox if it exists
+    if (this.letterboxGraphics) {
+      this.letterboxGraphics.destroy();
+    }
+
+    // Create new letterbox graphics
+    this.letterboxGraphics = this.add.graphics();
+    this.letterboxGraphics.setDepth(-100);
+    this.letterboxGraphics.setScrollFactor(0); // Fixed to screen, not world
+
+    // Fill the entire screen with background color
+    const canvasWidth = this.cameras.main.width;
+    const canvasHeight = this.cameras.main.height;
+
+    this.letterboxGraphics.fillStyle(0x0a0a1a, 1);
+    this.letterboxGraphics.fillRect(0, 0, canvasWidth, canvasHeight);
+  }
+
+  handleResize(_gameSize) {
+    // Reconfigure camera for new size
+    this.setupCamera();
+
+    // Redraw letterbox background
+    this.drawLetterboxBackground();
   }
 
   drawMaze() {
@@ -857,6 +910,9 @@ class GameScene extends Phaser.Scene {
       });
       this.networkHandlers = [];
     }
+
+    // Remove resize listener
+    this.scale.off('resize', this.handleResize, this);
 
     if (this.projectileUpdateEvent) {
       this.projectileUpdateEvent.remove();

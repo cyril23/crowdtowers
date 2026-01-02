@@ -20,6 +20,37 @@ class BackgroundScene extends Phaser.Scene {
     this.createStarfield(width, height);
     this.createUfos(width, height);
     this.createMothership(centerX);
+
+    // Listen for resize to update animation centers
+    this.scale.on('resize', this.handleResize, this);
+  }
+
+  handleResize() {
+    // Update star and UFO centers for new canvas size
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Update all stars to use new center
+    this.stars.forEach(star => {
+      star.centerX = centerX;
+      star.centerY = centerY;
+    });
+
+    // Update all UFOs to use new center
+    this.ufos.forEach(ufo => {
+      ufo.centerX = centerX;
+      ufo.centerY = centerY;
+    });
+
+    // Reposition mothership
+    if (this.mothership) {
+      // Mothership was drawn at fixed positions, need to redraw
+      this.mothership.destroy();
+      if (this.mothershipGlow) this.mothershipGlow.destroy();
+      this.createMothership(centerX);
+    }
   }
 
   // ============================================
@@ -250,11 +281,13 @@ class MenuScene extends Phaser.Scene {
     super({ key: 'MenuScene' });
   }
 
-  init() {
+  init(data) {
     // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
     if (!this.networkHandlers) {
       this.networkHandlers = [];
     }
+    // Preserve nickname across scene restarts (from resize)
+    this.preservedNickname = data?.preservedNickname || null;
   }
 
   // Helper to register network handlers and track them for cleanup
@@ -263,18 +296,17 @@ class MenuScene extends Phaser.Scene {
     this.networkHandlers.push({ event, handler });
   }
 
-  // Calculate Y position scaled proportionally to canvas height
-  // Design basis is 672px height
-  getScaledY(designY) {
-    const height = this.cameras.main.height;
-    const scale = height / 672;
-    return designY * scale;
-  }
+  // Design size for menu UI - all positions are relative to this
+  // Using a compact design that fits well on mobile
+  static DESIGN_WIDTH = 400;
+  static DESIGN_HEIGHT = 500;
 
   create() {
-    const centerX = this.cameras.main.centerX;
-    const height = this.cameras.main.height;
-    const scale = height / 672;
+    // Setup camera to zoom/center the design space within the canvas
+    this.setupMenuCamera();
+
+    // All positions below are in DESIGN coordinates (400x500)
+    const centerX = MenuScene.DESIGN_WIDTH / 2;  // 200
 
     // Launch background scene if not already running
     if (!this.scene.isActive('BackgroundScene')) {
@@ -289,44 +321,42 @@ class MenuScene extends Phaser.Scene {
     this.createTitle(centerX);
 
     // Name input - label positioned with clear gap above input
-    this.add.text(centerX, this.getScaledY(165), 'Your Name:', {
-      fontSize: `${16 * scale}px`,
+    this.add.text(centerX, 165, 'Your Name:', {
+      fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
     // Create HTML input - manually positioned to work around Phaser DOM element bugs
-    // Using DESIGN coordinates (672px basis) - the positioning function handles scaling
-    // Y=205 places it nicely between label (165) and button (260)
-    this.nicknameInput = this.createHtmlInput(336, 205, 200, 'Enter name...');
+    this.nicknameInput = this.createHtmlInput(centerX, 200, 180, 'Enter name...');
 
     // Listen to Phaser's scale manager for reliable resize handling
     this.scale.on('resize', this.onGameResize, this);
 
-    // Load saved nickname from localStorage
-    const savedName = localStorage.getItem('playerNickname');
+    // Load nickname - prefer preserved value from resize, then localStorage
+    const savedName = this.preservedNickname || localStorage.getItem('playerNickname');
     if (savedName) {
       this.nicknameInput.value = savedName;
     }
 
     // Create Game button
-    this.createButton(centerX, this.getScaledY(260), 'Create New Game', () => {
+    this.createButton(centerX, 255, 'Create New Game', () => {
       this.showCreateGameMenu();
-    }, scale);
+    });
 
     // Join by Code button
-    this.createButton(centerX, this.getScaledY(320), 'Join by Code', () => {
+    this.createButton(centerX, 310, 'Join by Code', () => {
       this.showJoinMenu();
-    }, scale);
+    });
 
     // Browse Games button
-    this.createButton(centerX, this.getScaledY(380), 'Browse Open Games', () => {
+    this.createButton(centerX, 365, 'Browse Open Games', () => {
       this.showBrowseMenu();
-    }, scale);
+    });
 
     // Error message area
-    this.errorText = this.add.text(centerX, this.getScaledY(450), '', {
-      fontSize: `${16 * scale}px`,
+    this.errorText = this.add.text(centerX, 430, '', {
+      fontSize: '16px',
       color: '#ff4444',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
@@ -350,18 +380,18 @@ class MenuScene extends Phaser.Scene {
   }
 
   showToast(message, duration = 2000) {
-    const scale = this.cameras.main.height / 672;
-    const toast = this.add.text(this.cameras.main.centerX, this.getScaledY(500), message, {
-      fontSize: `${16 * scale}px`,
+    const centerX = MenuScene.DESIGN_WIDTH / 2;
+    const toast = this.add.text(centerX, 460, message, {
+      fontSize: '16px',
       color: '#ffffff',
       backgroundColor: '#aa4444',
-      padding: { x: 15 * scale, y: 10 * scale }
+      padding: { x: 15, y: 10 }
     }).setOrigin(0.5).setDepth(1000);
 
     this.tweens.add({
       targets: toast,
       alpha: 0,
-      y: this.getScaledY(480),
+      y: 440,
       delay: duration,
       duration: 500,
       onComplete: () => toast.destroy()
@@ -369,22 +399,37 @@ class MenuScene extends Phaser.Scene {
   }
 
   // ============================================
+  // CAMERA SETUP - Zoom and center design space within canvas
+  // ============================================
+  setupMenuCamera() {
+    const canvasWidth = this.cameras.main.width;
+    const canvasHeight = this.cameras.main.height;
+
+    // Calculate zoom to fit design space in canvas
+    const scaleX = canvasWidth / MenuScene.DESIGN_WIDTH;
+    const scaleY = canvasHeight / MenuScene.DESIGN_HEIGHT;
+    const zoom = Math.min(scaleX, scaleY, 1.5);  // Cap at 1.5x to avoid huge UI on large screens
+
+    // Center camera on design space center
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(MenuScene.DESIGN_WIDTH / 2, MenuScene.DESIGN_HEIGHT / 2);
+  }
+
+  // ============================================
   // TITLE
   // ============================================
   createTitle(centerX) {
-    const scale = this.cameras.main.height / 672;
-
-    // Main title
-    this.add.text(centerX, this.getScaledY(60), 'CROWD TOWERS', {
-      fontSize: `${42 * scale}px`,
+    // Main title - fixed size in design coordinates
+    this.add.text(centerX, 60, 'CROWD TOWERS', {
+      fontSize: '36px',
       color: '#ffffff',
       fontFamily: 'Arial',
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(1);
 
     // Subtitle with subtle pulse
-    const subtitle = this.add.text(centerX, this.getScaledY(105), 'Cooperative Tower Defense', {
-      fontSize: `${24 * scale}px`,
+    const subtitle = this.add.text(centerX, 100, 'Cooperative Tower Defense', {
+      fontSize: '18px',
       color: '#8888aa',
       fontFamily: 'Arial'
     }).setOrigin(0.5).setDepth(1);
@@ -400,21 +445,39 @@ class MenuScene extends Phaser.Scene {
   }
 
   // ============================================
-  // HTML INPUT - Manually positioned relative to canvas
-  // (Phaser's DOM element system has bugs with Scale.FIT mode)
+  // HTML INPUT - Using wrapper container to fix iOS keyboard issues
+  // iOS Safari repositions position:fixed elements when keyboard appears
+  // Using position:absolute within a fixed wrapper works more reliably
   // ============================================
-  createHtmlInput(gameX, gameY, width, placeholder) {
+  ensureInputWrapper() {
+    // Create wrapper once if it doesn't exist
+    if (!document.getElementById('input-wrapper')) {
+      const wrapper = document.createElement('div');
+      wrapper.id = 'input-wrapper';
+      wrapper.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+      `;
+      document.body.appendChild(wrapper);
+    }
+    return document.getElementById('input-wrapper');
+  }
+
+  createHtmlInput(designX, designY, width, placeholder) {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = placeholder;
     input.maxLength = 20;
     input.className = 'game-input';
 
-    // Base styles (will be scaled via transform)
-    // Using position:fixed since we calculate viewport coordinates
+    // Use position:absolute within the fixed wrapper (fixes iOS keyboard jumping)
     input.style.cssText = `
-      position: fixed;
-      width: ${width}px;
+      position: absolute;
       padding: 8px;
       font-size: 16px;
       border: 2px solid #4a4a8a;
@@ -425,7 +488,7 @@ class MenuScene extends Phaser.Scene {
       outline: none;
       transform-origin: center center;
       box-sizing: border-box;
-      z-index: 10;
+      pointer-events: auto;
     `;
 
     // Add focus style
@@ -436,19 +499,14 @@ class MenuScene extends Phaser.Scene {
       input.style.borderColor = '#4a4a8a';
     });
 
-    // Add to game container
-    const container = document.getElementById('game-container');
-    container.appendChild(input);
+    // Add to input wrapper (not game-container)
+    const wrapper = this.ensureInputWrapper();
+    wrapper.appendChild(input);
 
-    // Convert design coordinates to game coordinates NOW (like getScaledY does)
-    // These are fixed once created, matching Phaser object behavior
-    const DESIGN_SIZE = 672;
-    const gameWidth = this.cameras.main.width;
-    const gameHeight = this.cameras.main.height;
-
-    input._gameX = gameX * (gameWidth / DESIGN_SIZE);  // Converted to current game coords
-    input._gameY = gameY * (gameHeight / DESIGN_SIZE);
-    input._baseWidth = width;
+    // Store design coordinates for positioning
+    input._designX = designX;
+    input._designY = designY;
+    input._designWidth = width;
 
     // Position it correctly (immediate + delayed to handle initial layout)
     this.positionHtmlInput(input);
@@ -457,37 +515,41 @@ class MenuScene extends Phaser.Scene {
     return input;
   }
 
-  // Position HTML input based on actual canvas bounds
-  // _gameX/_gameY are already in game coordinates (converted at creation time)
+  // Position HTML input based on camera zoom and design coordinates
   positionHtmlInput(input) {
     if (!input) return;
 
     const canvas = this.game.canvas;
     const canvasRect = canvas.getBoundingClientRect();
-    const DESIGN_SIZE = 672;
 
-    // Get current game dimensions from scale manager (more reliable than camera)
-    const gameWidth = this.scale.gameSize.width;
-    const gameHeight = this.scale.gameSize.height;
+    // Get camera zoom and scroll position
+    const camera = this.cameras.main;
+    const zoom = camera.zoom;
 
-    // Calculate display scale (canvas display size vs game size)
-    const displayScaleX = canvasRect.width / gameWidth;
-    const displayScaleY = canvasRect.height / gameHeight;
+    // Calculate where the design coordinate maps to on screen
+    // Camera is centered on DESIGN_WIDTH/2, DESIGN_HEIGHT/2
+    const designCenterX = MenuScene.DESIGN_WIDTH / 2;
+    const designCenterY = MenuScene.DESIGN_HEIGHT / 2;
 
-    // Convert game coordinates to screen coordinates
-    // _gameX/_gameY are already in game coords from creation time
-    const screenX = canvasRect.left + input._gameX * displayScaleX;
-    const screenY = canvasRect.top + input._gameY * displayScaleY;
+    // Screen center
+    const screenCenterX = canvasRect.left + canvasRect.width / 2;
+    const screenCenterY = canvasRect.top + canvasRect.height / 2;
 
-    // Scale the input width based on canvas display size
-    const displayScale = canvasRect.width / DESIGN_SIZE;
-    const scaledWidth = input._baseWidth * displayScale;
+    // Offset from design center, scaled by zoom
+    const offsetX = (input._designX - designCenterX) * zoom;
+    const offsetY = (input._designY - designCenterY) * zoom;
+
+    const screenX = screenCenterX + offsetX;
+    const screenY = screenCenterY + offsetY;
+
+    // Scale width by zoom, but cap max width
+    const scaledWidth = Math.min(input._designWidth * zoom, 250);
 
     input.style.left = `${screenX}px`;
     input.style.top = `${screenY}px`;
     input.style.width = `${scaledWidth}px`;
     input.style.transform = 'translate(-50%, -50%)';
-    input.style.fontSize = `${Math.max(12, 16 * displayScale)}px`;
+    input.style.fontSize = `${Math.max(12, Math.min(16 * zoom, 20))}px`;
   }
 
   // Reposition all tracked inputs (call on resize)
@@ -502,27 +564,21 @@ class MenuScene extends Phaser.Scene {
 
   // Handle Phaser scale manager resize event
   onGameResize() {
-    // Small delay to ensure canvas has finished resizing
-    setTimeout(() => {
-      this.repositionAllInputs();
-    }, 50);
-    // Additional delayed repositions for orientation changes which can be slow
-    setTimeout(() => {
-      this.repositionAllInputs();
-    }, 200);
+    // Save current input value before restart
+    const savedValue = this.nicknameInput?.value || localStorage.getItem('playerNickname') || '';
+
+    // Clean up and restart scene to rebuild with new dimensions
+    this.clearMenuUI();
+    this.scene.restart({ preservedNickname: savedValue });
   }
 
-  createButton(x, y, text, callback, scale = 1) {
-    const fontSize = Math.max(14, 20 * scale); // Minimum 14px for readability
-    const paddingX = Math.max(12, 20 * scale);
-    const paddingY = Math.max(6, 10 * scale);
-
+  createButton(x, y, text, callback) {
     const button = this.add.text(x, y, text, {
-      fontSize: `${fontSize}px`,
+      fontSize: '18px',
       color: '#ffffff',
       fontFamily: 'Arial',
       backgroundColor: '#4a4a8a',
-      padding: { x: paddingX, y: paddingY }
+      padding: { x: 15, y: 8 }
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -573,19 +629,20 @@ class MenuScene extends Phaser.Scene {
     // Clear only Phaser UI objects (not the background scene)
     this.children.removeAll();
 
-    const centerX = this.cameras.main.centerX;
-    const scale = this.cameras.main.height / 672;
+    // Re-setup camera for new view
+    this.setupMenuCamera();
+
+    const centerX = MenuScene.DESIGN_WIDTH / 2;
 
     // Rebuild join menu UI
-    this.add.text(centerX, this.getScaledY(160), 'Enter Session Code:', {
-      fontSize: `${18 * scale}px`,
+    this.add.text(centerX, 160, 'Enter Session Code:', {
+      fontSize: '18px',
       color: '#ffffff',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // Create code input using HTML input (manually positioned)
-    // Using DESIGN coordinates (672px basis) - centered at x=336, y=195
-    this.codeInput = this.createHtmlInput(336, 195, 150, 'ABC123');
+    // Create code input using design coordinates
+    this.codeInput = this.createHtmlInput(centerX, 200, 140, 'ABC123');
     this.codeInput.value = prefillCode;
     this.codeInput.maxLength = 6;
     this.codeInput.style.textTransform = 'uppercase';
@@ -594,25 +651,25 @@ class MenuScene extends Phaser.Scene {
     this.scale.on('resize', this.onGameResize, this);
 
     // Error text
-    this.errorText = this.add.text(centerX, this.getScaledY(450), '', {
-      fontSize: `${16 * scale}px`,
+    this.errorText = this.add.text(centerX, 430, '', {
+      fontSize: '16px',
       color: '#ff4444',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    this.createButton(centerX, this.getScaledY(260), 'Join Game', () => {
+    this.createButton(centerX, 260, 'Join Game', () => {
       const code = this.codeInput.value.trim().toUpperCase();
       if (code.length !== 6) {
         this.showError('Session code must be 6 characters');
         return;
       }
       networkManager.joinGame(code, savedNickname);
-    }, scale);
+    });
 
-    this.createButton(centerX, this.getScaledY(320), 'Back', () => {
+    this.createButton(centerX, 320, 'Back', () => {
       this.clearMenuUI();
       this.scene.restart();
-    }, scale);
+    });
   }
 
   showBrowseMenu() {
@@ -721,6 +778,7 @@ class MenuScene extends Phaser.Scene {
 
 // ============================================
 // CREATE GAME SCENE (overlay on BackgroundScene)
+// Responsive layout: two columns in landscape, single column in portrait
 // ============================================
 class CreateGameScene extends Phaser.Scene {
   constructor() {
@@ -741,108 +799,22 @@ class CreateGameScene extends Phaser.Scene {
     this.networkHandlers.push({ event, handler });
   }
 
+  // Check if we should use landscape (two-column) layout
+  isLandscape() {
+    return this.cameras.main.width > this.cameras.main.height;
+  }
+
   create() {
     // Make background transparent to show BackgroundScene
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
-    const centerX = this.cameras.main.centerX;
-
-    this.add.text(centerX, 60, 'Create New Game', {
-      fontSize: '32px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Maze Size selection
-    this.add.text(centerX, 130, 'Select Maze Size:', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
     this.selectedSize = 'medium';
-    this.sizeButtons = {};
-
-    ['small', 'medium', 'large'].forEach((size, index) => {
-      const config = MAZE_SIZES[size];
-      const y = 170 + index * 50;
-
-      const btn = this.add.text(centerX, y, `${size.toUpperCase()} (${config.grid}x${config.grid})`, {
-        fontSize: '18px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        backgroundColor: size === 'medium' ? '#6a6aaa' : '#4a4a8a',
-        padding: { x: 15, y: 8 }
-      })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-
-      btn.on('pointerdown', () => {
-        this.selectSize(size);
-      });
-
-      this.sizeButtons[size] = btn;
-    });
-
-    // Privacy selection
-    this.add.text(centerX, 340, 'Game Privacy:', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
     this.isPrivate = false;
+    this.sizeButtons = {};
     this.privacyButtons = {};
 
-    [
-      { key: 'private', label: 'Private (Code Only)' },
-      { key: 'public', label: 'Open (Browsable)' }
-    ].forEach((option, index) => {
-      const y = 380 + index * 50;
-
-      const btn = this.add.text(centerX, y, option.label, {
-        fontSize: '18px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        backgroundColor: option.key === 'public' ? '#6a6aaa' : '#4a4a8a',
-        padding: { x: 15, y: 8 }
-      })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-
-      btn.on('pointerdown', () => {
-        this.selectPrivacy(option.key === 'private');
-      });
-
-      this.privacyButtons[option.key] = btn;
-    });
-
-    // Create button
-    this.add.text(centerX, 500, 'CREATE GAME', {
-      fontSize: '24px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      backgroundColor: '#228822',
-      padding: { x: 30, y: 15 }
-    })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-        networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
-      });
-
-    // Back button
-    this.add.text(centerX, 560, 'Back', {
-      fontSize: '18px',
-      color: '#aaaaaa',
-      fontFamily: 'Arial'
-    })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-        this.scene.stop('CreateGameScene');
-        this.scene.launch('MenuScene');
-      });
+    // Build layout based on orientation
+    this.buildLayout();
 
     // Setup network listeners - clean up first to prevent accumulation
     if (this.networkHandlers && this.networkHandlers.length > 0) {
@@ -864,12 +836,211 @@ class CreateGameScene extends Phaser.Scene {
       });
     });
 
+    // Listen for resize to rebuild layout
+    this.scale.on('resize', this.onResize, this);
+  }
+
+  onResize() {
+    // Rebuild layout on resize
+    this.scene.restart({ nickname: this.nickname });
+  }
+
+  buildLayout() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const centerX = width / 2;
+    const isLandscape = this.isLandscape();
+
+    if (isLandscape) {
+      this.buildLandscapeLayout(width, height, centerX);
+    } else {
+      this.buildPortraitLayout(width, height, centerX);
+    }
+
     // Graphics for selection borders/glow
     this.selectionGraphics = this.add.graphics();
     this.updateSelectionVisuals();
   }
 
+  buildPortraitLayout(width, height, _centerX) {
+    // Portrait: single column, vertically stacked
+    // Use camera zoom to fit content
+    const DESIGN_WIDTH = 400;
+    const DESIGN_HEIGHT = 480;
+
+    const scaleX = width / DESIGN_WIDTH;
+    const scaleY = height / DESIGN_HEIGHT;
+    const zoom = Math.min(scaleX, scaleY, 1.5);
+
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2);
+
+    const cx = DESIGN_WIDTH / 2;
+
+    // Title
+    this.add.text(cx, 40, 'Create New Game', {
+      fontSize: '28px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    // Maze Size section
+    this.add.text(cx, 90, 'Select Maze Size:', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    ['small', 'medium', 'large'].forEach((size, index) => {
+      const config = MAZE_SIZES[size];
+      const y = 125 + index * 40;
+      this.createSizeButton(cx, y, size, config);
+    });
+
+    // Privacy section
+    this.add.text(cx, 260, 'Game Privacy:', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    this.createPrivacyButton(cx, 295, 'private', 'Private (Code Only)');
+    this.createPrivacyButton(cx, 335, 'public', 'Open (Browsable)');
+
+    // Action buttons
+    this.createActionButton(cx, 400, 'CREATE GAME', '#228822', () => {
+      networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
+    });
+
+    this.add.text(cx, 450, 'Back', {
+      fontSize: '16px',
+      color: '#aaaaaa',
+      fontFamily: 'Arial'
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.scene.stop('CreateGameScene');
+        this.scene.launch('MenuScene');
+      });
+  }
+
+  buildLandscapeLayout(width, height, _centerX) {
+    // Landscape: two columns side by side
+    const DESIGN_WIDTH = 550;
+    const DESIGN_HEIGHT = 320;
+
+    const scaleX = width / DESIGN_WIDTH;
+    const scaleY = height / DESIGN_HEIGHT;
+    const zoom = Math.min(scaleX, scaleY, 1.5);
+
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2);
+
+    const cx = DESIGN_WIDTH / 2;
+    const leftCol = DESIGN_WIDTH * 0.28;  // ~154
+    const rightCol = DESIGN_WIDTH * 0.72; // ~396
+
+    // Title (centered)
+    this.add.text(cx, 35, 'Create New Game', {
+      fontSize: '26px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    // LEFT COLUMN: Maze Size
+    this.add.text(leftCol, 70, 'Maze Size:', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    ['small', 'medium', 'large'].forEach((size, index) => {
+      const config = MAZE_SIZES[size];
+      const y = 100 + index * 35;
+      this.createSizeButton(leftCol, y, size, config, true);
+    });
+
+    // RIGHT COLUMN: Privacy
+    this.add.text(rightCol, 70, 'Privacy:', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    this.createPrivacyButton(rightCol, 105, 'private', 'Private', true);
+    this.createPrivacyButton(rightCol, 145, 'public', 'Open', true);
+
+    // BOTTOM: Action buttons (centered)
+    this.createActionButton(cx - 70, 260, 'CREATE', '#228822', () => {
+      networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
+    }, true);
+
+    this.add.text(cx + 70, 260, 'Back', {
+      fontSize: '14px',
+      color: '#aaaaaa',
+      fontFamily: 'Arial',
+      backgroundColor: '#333333',
+      padding: { x: 15, y: 8 }
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.scene.stop('CreateGameScene');
+        this.scene.launch('MenuScene');
+      });
+  }
+
+  createSizeButton(x, y, size, config, compact = false) {
+    const label = compact
+      ? `${size.charAt(0).toUpperCase()}${size.slice(1)} (${config.grid}x${config.grid})`
+      : `${size.toUpperCase()} (${config.grid}x${config.grid})`;
+
+    const btn = this.add.text(x, y, label, {
+      fontSize: compact ? '14px' : '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: size === 'medium' ? '#6a6aaa' : '#4a4a8a',
+      padding: compact ? { x: 10, y: 6 } : { x: 12, y: 7 }
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    btn.on('pointerdown', () => this.selectSize(size));
+    this.sizeButtons[size] = btn;
+  }
+
+  createPrivacyButton(x, y, key, label, compact = false) {
+    const btn = this.add.text(x, y, label, {
+      fontSize: compact ? '14px' : '16px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: key === 'public' ? '#6a6aaa' : '#4a4a8a',
+      padding: compact ? { x: 10, y: 6 } : { x: 12, y: 7 }
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    btn.on('pointerdown', () => this.selectPrivacy(key === 'private'));
+    this.privacyButtons[key] = btn;
+  }
+
+  createActionButton(x, y, text, bgColor, callback, compact = false) {
+    this.add.text(x, y, text, {
+      fontSize: compact ? '18px' : '20px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: bgColor,
+      padding: compact ? { x: 20, y: 10 } : { x: 25, y: 12 }
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', callback);
+  }
+
   shutdown() {
+    // Clean up resize listener
+    this.scale.off('resize', this.onResize, this);
     // Clean up network handlers to prevent accumulation
     if (this.networkHandlers) {
       this.networkHandlers.forEach(({ event, handler }) => {

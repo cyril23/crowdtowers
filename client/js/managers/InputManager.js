@@ -48,8 +48,9 @@ class InputManager {
   handlePointerDown(pointer) {
     if (!this.scene.maze || !this.scene.tileSize) return;
 
-    const gridX = Math.floor(pointer.x / this.scene.tileSize);
-    const gridY = Math.floor(pointer.y / this.scene.tileSize);
+    // Use worldX/worldY to account for camera zoom/scroll
+    const gridX = Math.floor(pointer.worldX / this.scene.tileSize);
+    const gridY = Math.floor(pointer.worldY / this.scene.tileSize);
 
     // Check bounds
     if (gridX < 0 || gridX >= this.scene.gridSize ||
@@ -81,7 +82,7 @@ class InputManager {
       this.selectTower(tower);
     } else {
       // Check if clicking on an enemy (only when not in building mode)
-      const clickedEnemy = this.findEnemyAtPosition(pointer.x, pointer.y);
+      const clickedEnemy = this.findEnemyAtPosition(pointer.worldX, pointer.worldY);
       if (clickedEnemy) {
         this.selectEnemy(clickedEnemy);
       } else {
@@ -113,8 +114,9 @@ class InputManager {
   handlePointerMove(pointer) {
     if (!this.scene.maze || !this.selectedTowerType) return;
 
-    const gridX = Math.floor(pointer.x / this.scene.tileSize);
-    const gridY = Math.floor(pointer.y / this.scene.tileSize);
+    // Use worldX/worldY to account for camera zoom/scroll
+    const gridX = Math.floor(pointer.worldX / this.scene.tileSize);
+    const gridY = Math.floor(pointer.worldY / this.scene.tileSize);
 
     // Update placement preview
     if (this.scene.updatePlacementPreview) {

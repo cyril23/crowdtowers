@@ -81,5 +81,8 @@
       tags: [setup, nginx]
 
     - name: Include application deployment
-      ansible.builtin.include_tasks: deploy-app.yml
+      ansible.builtin.include_tasks:
+        file: deploy-app.yml
+        apply:
+          tags: [deploy]
       tags: [deploy]

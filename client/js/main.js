@@ -8,17 +8,13 @@ import { GameScene } from './scenes/GameScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Calculate square canvas size with min/max bounds
-  // Min 400px ensures UI elements fit, max 672px is the design size
-  const calculateSize = () => Math.max(400, Math.min(
-    window.innerWidth,
-    window.innerHeight - 100,  // Account for mobile browser chrome
-    672                         // Max game size
-  ));
+  // Full viewport canvas - game board will be centered within using camera
+  const calculateSize = () => ({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
 
-  const size = calculateSize();
-  const width = size;
-  const height = size;
+  const { width, height } = calculateSize();
 
   // Phaser game configuration
   const config = {
@@ -28,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     parent: 'game-container',
     backgroundColor: CLIENT_CONFIG.colors.background,
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH
     },
     dom: {
@@ -55,16 +51,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Create game instance
   const game = new Phaser.Game(config);
 
-  // Handle window resize - maintain square aspect ratio with min/max bounds
+  // Handle window resize - update to full viewport
   window.addEventListener('resize', () => {
-    game.scale.resize(calculateSize(), calculateSize());
+    const { width, height } = calculateSize();
+    game.scale.resize(width, height);
   });
 
   // Handle device orientation changes (mobile)
   window.addEventListener('orientationchange', () => {
     // Short delay to let browser complete orientation change
     setTimeout(() => {
-      game.scale.resize(calculateSize(), calculateSize());
+      const { width, height } = calculateSize();
+      game.scale.resize(width, height);
     }, 100);
   });
 
