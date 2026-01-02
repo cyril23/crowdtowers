@@ -26,7 +26,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 const clientDir = path.join(__dirname, '../client');
 
 // Serve static files from client directory
-app.use(express.static(clientDir));
+// Disable automatic index.html serving so the catch-all route handles it
+app.use(express.static(clientDir, { index: false }));
 
 // Serve shared constants
 app.get('/shared/constants.js', (req, res) => {
