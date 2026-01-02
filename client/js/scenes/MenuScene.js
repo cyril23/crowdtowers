@@ -360,7 +360,7 @@ class MenuScene extends Phaser.Scene {
   // ============================================
   createTitle(centerX) {
     // Main title
-    this.add.text(centerX, 60, 'ALIEN INVASION', {
+    this.add.text(centerX, 60, 'CROWD TOWERS', {
       fontSize: '42px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -368,7 +368,7 @@ class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(1);
 
     // Subtitle with subtle pulse
-    const subtitle = this.add.text(centerX, 105, 'Tower Defense', {
+    const subtitle = this.add.text(centerX, 105, 'Cooperative Tower Defense', {
       fontSize: '24px',
       color: '#8888aa',
       fontFamily: 'Arial'

@@ -1,4 +1,4 @@
-# Alien Invasion - Multiplayer Cooperative Tower Defense
+# Crowd Towers - Multiplayer Cooperative Tower Defense
 
 A real-time multiplayer cooperative tower defense game where players work together to defend humanity against alien invaders.
 
