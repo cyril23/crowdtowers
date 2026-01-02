@@ -1,16 +1,11 @@
 class InputManager {
   constructor(scene) {
     this.scene = scene;
-    this.isMobile = this.detectMobile();
+    this.isMobile = DeviceUtils.isMobile();
     this.selectedTowerType = null;
     this.selectedTower = null;
     this.selectedEnemy = null;
     this.selectedEnemyId = null;
-  }
-
-  detectMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           (window.innerWidth <= 768);
   }
 
   setup() {

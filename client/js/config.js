@@ -78,7 +78,16 @@ const CLIENT_CONFIG = {
   }
 };
 
+// Device detection utilities
+const DeviceUtils = {
+  isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.innerWidth <= 768);
+  }
+};
+
 // Make available globally
 if (typeof window !== 'undefined') {
   window.CLIENT_CONFIG = CLIENT_CONFIG;
+  window.DeviceUtils = DeviceUtils;
 }

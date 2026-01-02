@@ -2,11 +2,9 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Determine canvas size based on screen
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
   let width, height;
 
-  if (isMobile) {
+  if (DeviceUtils.isMobile()) {
     width = Math.min(window.innerWidth, 672);
     height = Math.min(window.innerHeight - 100, 672);
   } else {
@@ -24,6 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    input: {
+      touch: {
+        capture: true
+      },
+      activePointers: 3
     },
     scene: [
       BootScene,

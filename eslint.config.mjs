@@ -90,6 +90,7 @@ export default [
         SOCKET_EVENTS: 'readonly',
         // Client-side classes and globals
         CLIENT_CONFIG: 'writable',
+        DeviceUtils: 'writable',
         networkManager: 'writable',
         NetworkManager: 'writable',
         InputManager: 'writable',
