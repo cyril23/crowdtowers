@@ -98,11 +98,9 @@ server {
         access_log off;
     }
 
-    # Static file caching with mandatory revalidation
-    # no-cache = always check ETag/Last-Modified before using cached copy
-    # If unchanged: 304 Not Modified (fast), if changed: full response
+    # Static files - Express sets Cache-Control: public, max-age=0
+    # which forces revalidation via ETag/Last-Modified (304 if unchanged)
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         proxy_pass http://{{ app_name }}_backend;
-        add_header Cache-Control "no-cache";
     }
 }
