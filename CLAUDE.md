@@ -7,7 +7,14 @@ Multiplayer cooperative tower defense: humans defend against alien invaders. Up 
 - **Server:** Node.js + Express 5 + Socket.IO + MongoDB
 - **Client:** Phaser.js 3 (canvas-based)
 - **Run:** `npm start` (requires local MongoDB on default port)
+- **Build:** `npm run build` (bundles client for production)
 - **Lint:** Run `npm run lint` after making changes to check for errors
+
+## Client Bundling
+- **Development:** ES modules loaded directly (`client/js/main.js`)
+- **Production:** esbuild bundles to `client/dist/bundle.min.js` (~63KB minified)
+- Server auto-selects based on `NODE_ENV`: development serves `client/index.html`, production serves `client/dist/index.html`
+- Build runs automatically in GitHub Actions before deploy
 
 ## Core Mechanics
 

@@ -2,23 +2,6 @@
 
 Planned features and improvements for CrowdTowers.
 
-## Performance
-
-### Asset Bundling
-Bundle and minify JavaScript/CSS for faster page loads.
-
-**Options:**
-- **esbuild** - Extremely fast, minimal config
-- **Vite** - Modern dev server + production bundler
-- **Rollup** - Flexible, good for libraries
-
-**Benefits:**
-- Reduced HTTP requests (fewer files)
-- Smaller file sizes (minification + tree-shaking)
-- Faster initial page load
-
-**Current state:** Plain JavaScript files served directly. Works fine for small games but doesn't scale.
-
 ## Observability
 
 ### Error Tracking
