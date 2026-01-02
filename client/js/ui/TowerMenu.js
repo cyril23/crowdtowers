@@ -270,7 +270,7 @@ class TowerMenu {
     // Find which towers are strong/weak against this enemy
     const strongTowers = [];
     const weakTowers = [];
-    Object.entries(TOWERS).forEach(([towerType, tower]) => {
+    Object.values(TOWERS).forEach(tower => {
       if (tower.strongVs && tower.strongVs.includes(enemy.type)) {
         strongTowers.push(tower.name);
       }
@@ -316,7 +316,7 @@ class TowerMenu {
 
     // Find which towers are strong/weak against this enemy
     const strongTowers = [];
-    Object.entries(TOWERS).forEach(([towerType, tower]) => {
+    Object.values(TOWERS).forEach(tower => {
       if (tower.strongVs && tower.strongVs.includes(enemy.type)) {
         strongTowers.push(tower.name);
       }

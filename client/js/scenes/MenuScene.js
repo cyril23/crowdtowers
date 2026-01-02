@@ -49,7 +49,7 @@ class BackgroundScene extends Phaser.Scene {
     }
   }
 
-  resetStar(star, width, height) {
+  resetStar(star) {
     // Reset to center
     star.angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     star.dist = 0;
@@ -187,7 +187,7 @@ class BackgroundScene extends Phaser.Scene {
   // ============================================
   // UPDATE LOOP - Animate moving elements
   // ============================================
-  update(time, delta) {
+  update(_time, _delta) {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
@@ -214,7 +214,7 @@ class BackgroundScene extends Phaser.Scene {
 
       // Reset star when it exits screen bounds
       if (star.x < -20 || star.x > width + 20 || star.y < -20 || star.y > height + 20) {
-        this.resetStar(star, width, height);
+        this.resetStar(star);
       }
     });
 

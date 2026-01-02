@@ -46,7 +46,7 @@ class LobbyScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    const codeText = this.add.text(centerX, 110, this.sessionCode, {
+    this.add.text(centerX, 110, this.sessionCode, {
       fontSize: '36px',
       color: '#ffff00',
       fontFamily: 'Courier New',

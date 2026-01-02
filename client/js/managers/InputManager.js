@@ -122,7 +122,7 @@ class InputManager {
     }
   }
 
-  handlePointerUp(pointer) {
+  handlePointerUp(_pointer) {
     // Could be used for drag-and-drop placement
   }
 
@@ -137,7 +137,7 @@ class InputManager {
 
     // Show placement preview cursor
     if (this.scene.showPlacementMode) {
-      this.scene.showPlacementMode(type);
+      this.scene.showPlacementMode();
     }
   }
 

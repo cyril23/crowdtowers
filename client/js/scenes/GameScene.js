@@ -30,10 +30,10 @@ class GameScene extends Phaser.Scene {
 
   create() {
     // Calculate dimensions
-    const mazeSize = Object.entries(MAZE_SIZES).find(
-      ([key, val]) => val.grid === this.maze.grid.length
+    const mazeConfig = Object.values(MAZE_SIZES).find(
+      val => val.grid === this.maze.grid.length
     );
-    this.mazeConfig = mazeSize ? MAZE_SIZES[mazeSize[0]] : MAZE_SIZES.medium;
+    this.mazeConfig = mazeConfig || MAZE_SIZES.medium;
     this.gridSize = this.maze.grid.length;
     this.tileSize = this.mazeConfig.tileSize;
 
@@ -639,7 +639,7 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  showPlacementMode(towerType) {
+  showPlacementMode() {
     // Visual indicator that placement mode is active
   }
 
@@ -758,7 +758,7 @@ class GameScene extends Phaser.Scene {
       p.y += (dy / dist) * moveSpeed;
 
       // Draw projectile based on type
-      this.drawProjectile(p.type, p.x, p.y, targetX, targetY, p.color, 0);
+      this.drawProjectile(p.type, p.x, p.y, targetX, targetY, p.color);
 
       return true; // Keep projectile
     });
@@ -770,7 +770,7 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  drawProjectile(type, x, y, targetX, targetY, color, progress) {
+  drawProjectile(type, x, y, targetX, targetY, color) {
     const special = TOWERS[type].special;
 
     if (special === 'chain') {

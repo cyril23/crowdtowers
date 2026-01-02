@@ -37,7 +37,7 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
       'no-console': 'off',
       'semi': ['error', 'always'],
       'quotes': ['error', 'single', { 'avoidEscape': true }],
@@ -58,7 +58,7 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
       'no-console': 'off',
       'semi': ['error', 'always'],
       'quotes': ['error', 'single', { 'avoidEscape': true }],
@@ -104,7 +104,7 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
       'no-case-declarations': 'off',
       'no-console': 'off',
       'semi': ['error', 'always'],
