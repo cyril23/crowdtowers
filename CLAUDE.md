@@ -97,6 +97,52 @@ p.x += (dx / dist) * speed;  // Move toward CURRENT target position
 ```
 **Do NOT** pre-calculate trajectory at fire time - enemies move, so projectiles will miss.
 
+## Scene Management Patterns
+
+### Resize Handler Pattern (CRITICAL)
+When using `scene.restart()` on resize, **always remove the listener BEFORE restarting**:
+```javascript
+onResize() {
+  this.scale.off('resize', this.onResize, this);  // Remove FIRST
+  this.scene.restart({ ... });  // Then restart
+}
+```
+**Why:** If you restart first, `create()` registers a new handler while the old one still exists. Each rotation doubles the handlers, causing exponential slowdown (104ms → 360ms → 1400ms → 10000ms+).
+
+### isActive() Safety Check
+Stopped scenes can have lingering handlers that fire. Always check before restarting:
+```javascript
+onResize() {
+  this.scale.off('resize', this.onResize, this);
+  if (!this.scene.isActive()) return;  // Prevent stopped scene from restarting
+  this.scene.restart({ ... });
+}
+```
+
+### shutdown() for Global Listeners
+Any scene that registers on `this.scale` (global scale manager) **must** have a `shutdown()` method:
+```javascript
+shutdown() {
+  this.scale.off('resize', this.handleResize, this);
+}
+```
+
+### Design Space Pattern for Responsive Menus
+Menu scenes use a fixed "design space" (e.g., 400×500) with camera zoom/centering. This allows responsive scaling without recalculating positions:
+```javascript
+static DESIGN_WIDTH = 400;
+static DESIGN_HEIGHT = 500;
+
+setupMenuCamera() {
+  const scaleX = this.cameras.main.width / DESIGN_WIDTH;
+  const scaleY = this.cameras.main.height / DESIGN_HEIGHT;
+  const zoom = Math.min(scaleX, scaleY, 1.5);
+  this.cameras.main.setZoom(zoom);
+  this.cameras.main.centerOn(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2);
+}
+```
+All UI positions use design coordinates; the camera handles the transform.
+
 ## Deployment
 
 **Production:** https://crowdtowers.wochenentwicklung.com
@@ -110,5 +156,7 @@ p.x += (dx / dist) * speed;  // Move toward CURRENT target position
 **GitHub Actions Workflow:**
 - Push to `main` → auto-deploy to **staging**
 - Manual trigger (workflow_dispatch) → deploy to **production**
+
+**Local Dev Scripts:** `./deploy/scripts/deploy-staging.sh` deploys to staging without committing (useful for mobile testing). See deploy/README.md for details.
 
 **Docs:** See [deploy/README.md](deploy/README.md) for setup and troubleshooting.

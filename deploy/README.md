@@ -88,6 +88,19 @@ curl https://staging.crowdtowers.wochenentwicklung.com/api/health   # Staging
 **Staging:** Auto-deploys on push to `main` via GitHub Actions.
 **Production:** Manual trigger only (workflow_dispatch) from GitHub Actions.
 
+### Local Dev Scripts
+
+For faster iteration during development, you can deploy directly to staging from your local machine without committing or pushing to GitHub. This is useful for testing on mobile devices before committing.
+
+```bash
+# Deploy to staging (bypasses push-to-main workflow)
+./deploy/scripts/deploy-staging.sh
+```
+
+Both scripts build the client bundle (`npm run build`) automatically, prompt for the Ansible vault password, and accept additional ansible args (e.g., `--check` for dry run).
+
+**Note:** A `deploy-prod.sh` script also exists for consistency, but you should generally **not** use it - production should only receive tested, committed code via the GitHub Actions workflow.
+
 ### Manual Ansible Commands
 
 The `deploy` user has limited passwordless sudo (only pm2, npm, nginx reload). Use the appropriate command based on what you're changing:
