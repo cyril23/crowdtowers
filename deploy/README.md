@@ -158,6 +158,32 @@ Internet → Nginx (SSL/443) → Node.js (:3000) → MongoDB (:27017 localhost)
          Let's Encrypt
 ```
 
+## Monitoring
+
+**Uptime Monitoring:** New Relic Synthetic Monitor
+- URL: `https://crowdtowers.wochenentwicklung.com/api/health`
+- Interval: 15 minutes
+- Text validation: `"status":"ok"`
+
+**Alternatives:** UptimeRobot (free), Betterstack, Pingdom
+
+## Backups
+
+**Server Backups:** Hetzner automatic daily backups
+- Retention: 7 daily backups (rolling)
+- Cost: 20% of server cost/month
+- Restore: Via Hetzner Cloud Console
+
+**Snapshots:** Manual snapshots for major milestones
+- Cost: €0.011/GB/month
+- Not auto-deleted
+
+**MongoDB:** No separate backup needed with current localhost setup (included in server backups). If migrating to MongoDB Atlas, use Atlas's built-in backup features instead.
+
+**Alternatives:**
+- Backblaze B2 + rclone (offsite backups)
+- rsync.net (SSH-based backup storage)
+
 ## Security
 
 - UFW firewall: only 22, 80, 443 open
@@ -165,3 +191,14 @@ Internet → Nginx (SSL/443) → Node.js (:3000) → MongoDB (:27017 localhost)
 - SSH: key-only auth, no root login, no password auth
 - MongoDB: localhost only, authentication enabled
 - Automatic security updates with 02:00 reboot
+
+**Rate Limiting:** Currently handled by fail2ban at the IP level. For application-level rate limiting (per-endpoint, per-user), consider `express-rate-limit`. Not needed for low-traffic games.
+
+## Future Considerations
+
+**CDN:** Not currently needed. When scaling:
+- Cloudflare (free tier): CDN + DDoS protection + caching
+- Point DNS through Cloudflare, minimal config changes
+- Benefits: faster static asset delivery, reduced server load
+
+**Asset Bundling:** See [FUTURE.md](../FUTURE.md) for planned improvements including JS/CSS minification.

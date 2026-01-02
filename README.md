@@ -8,6 +8,7 @@ A real-time multiplayer cooperative tower defense game where players work togeth
 
 - [CLAUDE.md](CLAUDE.md) - Game mechanics and technical documentation
 - [deploy/README.md](deploy/README.md) - Deployment and server setup guide
+- [FUTURE.md](FUTURE.md) - Planned improvements and roadmap
 
 ## Quick Start (Local Development)
 
