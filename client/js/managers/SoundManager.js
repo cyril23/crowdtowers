@@ -350,6 +350,11 @@ class SoundManager {
   startMenuMusic() {
     if (!this.initialized) return;
 
+    // Don't restart if menu music is already playing (e.g., on scene resize)
+    if (this.currentPlaylistType === 'menu' && this.currentMusic?.isPlaying) {
+      return;
+    }
+
     this.currentPlaylistType = 'menu';
     const tracks = MUSIC_TRACKS.menu;
     const trackKey = tracks[this.menuTrackIndex];
@@ -370,6 +375,11 @@ class SoundManager {
   // Start gameplay music (random start, then sequential)
   startGameplayMusic() {
     if (!this.initialized) return;
+
+    // Don't restart if gameplay music is already playing (e.g., on scene resize)
+    if (this.currentPlaylistType === 'gameplay' && this.currentMusic?.isPlaying) {
+      return;
+    }
 
     this.currentPlaylistType = 'gameplay';
     const tracks = MUSIC_TRACKS.gameplay;

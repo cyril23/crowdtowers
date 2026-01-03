@@ -102,7 +102,10 @@ class GameScene extends Phaser.Scene {
 
     // Start gameplay music (random track, then sequential)
     soundManager.setScene(this);
-    soundManager.resetGameplayIndex();
+    // Only reset track index for new games, not resize restarts
+    if (!this.initData?.gameState) {
+      soundManager.resetGameplayIndex();
+    }
     soundManager.startGameplayMusic();
 
     // Listen for resize events
