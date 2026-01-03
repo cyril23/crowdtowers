@@ -65,7 +65,10 @@ class GameMenuManager {
       options.buttons.forEach(btnConfig => {
         const btn = document.createElement('button');
         btn.id = `menu-${btnConfig.id}-btn`;
-        btn.className = btnConfig.danger ? 'menu-btn menu-btn-danger' : 'menu-btn';
+        let className = 'menu-btn';
+        if (btnConfig.danger) className += ' menu-btn-danger';
+        else if (btnConfig.neutral) className += ' menu-btn-neutral';
+        btn.className = className;
         btn.textContent = btnConfig.label;
         btn.onclick = () => {
           if (btnConfig.onClick) btnConfig.onClick();

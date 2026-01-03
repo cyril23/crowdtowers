@@ -898,6 +898,7 @@ class JoinGameScene extends Phaser.Scene {
         {
           id: 'back',
           label: 'Back to Main Menu',
+          neutral: true,
           onClick: () => {
             this.cleanupInput();
             this.scene.stop('JoinGameScene');
@@ -939,7 +940,7 @@ class JoinGameScene extends Phaser.Scene {
     joinBtn.on('pointerdown', () => this.attemptJoin());
 
     // Back button
-    this.add.text(centerX, 225, 'Back', {
+    const backBtn = this.add.text(centerX, 225, 'Back', {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -948,6 +949,8 @@ class JoinGameScene extends Phaser.Scene {
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => backBtn.setStyle({ backgroundColor: '#444444' }))
+      .on('pointerout', () => backBtn.setStyle({ backgroundColor: '#333333' }))
       .on('pointerdown', () => {
         this.cleanupInput();
         this.scene.stop('JoinGameScene');
@@ -984,7 +987,7 @@ class JoinGameScene extends Phaser.Scene {
     joinBtn.on('pointerdown', () => this.attemptJoin());
 
     // Back button
-    this.add.text(centerX, 340, 'Back', {
+    const backBtn = this.add.text(centerX, 340, 'Back', {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -993,6 +996,8 @@ class JoinGameScene extends Phaser.Scene {
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => backBtn.setStyle({ backgroundColor: '#444444' }))
+      .on('pointerout', () => backBtn.setStyle({ backgroundColor: '#333333' }))
       .on('pointerdown', () => {
         this.cleanupInput();
         this.scene.stop('JoinGameScene');
@@ -1222,6 +1227,7 @@ class CreateGameScene extends Phaser.Scene {
         {
           id: 'back',
           label: 'Back to Main Menu',
+          neutral: true,
           onClick: () => {
             this.scene.stop('CreateGameScene');
             this.scene.launch('MenuScene');
@@ -1314,7 +1320,7 @@ class CreateGameScene extends Phaser.Scene {
       networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
     });
 
-    this.add.text(cx, 450, 'Back', {
+    const backBtn = this.add.text(cx, 450, 'Back', {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1323,6 +1329,8 @@ class CreateGameScene extends Phaser.Scene {
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => backBtn.setStyle({ backgroundColor: '#444444' }))
+      .on('pointerout', () => backBtn.setStyle({ backgroundColor: '#333333' }))
       .on('pointerdown', () => {
         this.scene.stop('CreateGameScene');
         this.scene.launch('MenuScene');
@@ -1380,7 +1388,7 @@ class CreateGameScene extends Phaser.Scene {
       networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
     }, true);
 
-    this.add.text(cx + 70, 260, 'Back', {
+    const backBtn = this.add.text(cx + 70, 260, 'Back', {
       fontSize: '14px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1389,6 +1397,8 @@ class CreateGameScene extends Phaser.Scene {
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => backBtn.setStyle({ backgroundColor: '#444444' }))
+      .on('pointerout', () => backBtn.setStyle({ backgroundColor: '#333333' }))
       .on('pointerdown', () => {
         this.scene.stop('CreateGameScene');
         this.scene.launch('MenuScene');
@@ -1429,8 +1439,10 @@ class CreateGameScene extends Phaser.Scene {
     this.privacyButtons[key] = btn;
   }
 
+  // Hover color computed dynamically because Phaser renders to canvas (CSS doesn't apply),
+  // and this keeps the helper generic for any bgColor passed in.
   createActionButton(x, y, text, bgColor, callback, compact = false) {
-    this.add.text(x, y, text, {
+    const btn = this.add.text(x, y, text, {
       fontSize: compact ? '18px' : '20px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -1438,8 +1450,18 @@ class CreateGameScene extends Phaser.Scene {
       padding: compact ? { x: 20, y: 10 } : { x: 25, y: 12 }
     })
       .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', callback);
+      .setInteractive({ useHandCursor: true });
+
+    // Compute hover color (lighter version)
+    const num = parseInt(bgColor.slice(1), 16);
+    const r = Math.min(255, ((num >> 16) & 0xff) + 0x22);
+    const g = Math.min(255, ((num >> 8) & 0xff) + 0x22);
+    const b = Math.min(255, (num & 0xff) + 0x22);
+    const hoverColor = `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+
+    btn.on('pointerover', () => btn.setStyle({ backgroundColor: hoverColor }));
+    btn.on('pointerout', () => btn.setStyle({ backgroundColor: bgColor }));
+    btn.on('pointerdown', callback);
   }
 
   shutdown() {
@@ -1572,7 +1594,7 @@ class BrowseScene extends Phaser.Scene {
     this.gamesList = [];
 
     // Back button
-    this.add.text(centerX, 510, 'Back', {
+    const backBtn = this.add.text(centerX, 510, 'Back', {
       fontSize: '18px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1581,6 +1603,8 @@ class BrowseScene extends Phaser.Scene {
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => backBtn.setStyle({ backgroundColor: '#444444' }))
+      .on('pointerout', () => backBtn.setStyle({ backgroundColor: '#333333' }))
       .on('pointerdown', () => {
         networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
         this.scene.stop('BrowseScene');
@@ -1642,6 +1666,7 @@ class BrowseScene extends Phaser.Scene {
         {
           id: 'back',
           label: 'Back to Main Menu',
+          neutral: true,
           onClick: () => {
             networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
             this.scene.stop('BrowseScene');

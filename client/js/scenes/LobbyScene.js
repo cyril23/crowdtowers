@@ -128,13 +128,21 @@ class LobbyScene extends Phaser.Scene {
     }
 
     // Leave button
-    this.add.text(centerX, 520, 'Leave Lobby', {
+    this.leaveBtn = this.add.text(centerX, 520, 'Leave Lobby', {
       fontSize: '16px',
-      color: '#aa4444',
-      fontFamily: 'Arial'
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: '#aa4444',
+      padding: { x: 20, y: 10 }
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => {
+        this.leaveBtn.setStyle({ backgroundColor: '#cc5555' });
+      })
+      .on('pointerout', () => {
+        this.leaveBtn.setStyle({ backgroundColor: '#aa4444' });
+      })
       .on('pointerdown', () => {
         networkManager.leaveLobby();
         this.chatPanel.setLobbyMode(false);
