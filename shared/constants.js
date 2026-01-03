@@ -81,12 +81,12 @@ const TOWERS = {
     id: 'cryoCannon',
     name: 'Cryo Cannon',
     cost: 180,
-    damage: 5,
+    damage: 8,
     range: 3,
     fireRate: 800,
     special: 'slow',
     slowAmount: 0.5,
-    slowDuration: 2000,
+    slowDuration: 3000,
     strongVs: ['phasewalker'],
     weakVs: ['swarmling'],
     color: 0x99ffff,
@@ -144,7 +144,7 @@ const ENEMIES = {
     healthScaling: 0.20,
     speedScaling: 0.02,
     special: 'phase',
-    phaseChance: 0.3 // 30% chance to dodge damage
+    phaseChance: 0.2 // 20% chance to dodge damage
   },
   behemoth: {
     id: 'behemoth',

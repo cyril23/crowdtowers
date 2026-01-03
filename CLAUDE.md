@@ -36,14 +36,14 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Upgrade damage formula: `baseDamage × 1.35^(level-1)` (geometric scaling)
 
 ### Enemy Specials
-- **Phasewalker:** 30% chance to dodge any attack
+- **Phasewalker:** 20% chance to dodge damage (slow effects still apply)
 - **Behemoth:** 25% damage reduction (armor)
 - **Broodmother:** Spawns 2 Swarmlings on death
 
 ### Tower Specials
 - **Missile Launcher:** Splash damage (1 tile radius, 50% damage)
 - **Tesla Coil:** Chain lightning (3 targets, 70% damage per chain)
-- **Cryo Cannon:** Slows enemies 50% for 2 seconds
+- **Cryo Cannon:** Slows enemies 50% for 3 seconds
 
 ## Multiplayer
 - Games can be **private** (code required) or **open** (browsable)

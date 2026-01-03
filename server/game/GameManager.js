@@ -231,7 +231,7 @@ class GameManager {
     });
 
     // Apply special effects
-    if (towerDef.special === 'slow' && !result.dodged) {
+    if (towerDef.special === 'slow') {
       target.slowedUntil = now + towerDef.slowDuration;
     }
 

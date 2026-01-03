@@ -213,4 +213,4 @@ Internet → Nginx (SSL/443) → Node.js Production (:3000)  → MongoDB (crowdt
 - Point DNS through Cloudflare, minimal config changes
 - Benefits: faster static asset delivery, reduced server load
 
-**Asset Bundling:** See [FUTURE.md](../FUTURE.md) for planned improvements including JS/CSS minification.
+See [FUTURE.md](../FUTURE.md) for more planned improvements.
