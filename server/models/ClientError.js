@@ -24,8 +24,7 @@ const clientErrorSchema = new mongoose.Schema({
   socketId: String,
   createdAt: {
     type: Date,
-    default: Date.now,
-    index: true
+    default: Date.now
   }
 });
 

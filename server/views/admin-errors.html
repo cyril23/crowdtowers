@@ -55,6 +55,7 @@
     }
     .type-error { background: #e74c3c; }
     .type-unhandledrejection { background: #9b59b6; }
+    .type-phaser_loaderror { background: #e67e22; }
     .actions {
       display: flex;
       gap: 8px;
@@ -226,10 +227,11 @@
             <div class="detail-label">URL</div>
             <div class="detail-value">${escapeHtml(error.url || 'N/A')}</div>
           </div>
+          ${error.filename ? `
           <div class="detail-row">
             <div class="detail-label">File</div>
-            <div class="detail-value">${escapeHtml(error.filename || 'N/A')}:${error.lineno || '?'}:${error.colno || '?'}</div>
-          </div>
+            <div class="detail-value">${escapeHtml(error.filename)}:${error.lineno || '?'}:${error.colno || '?'}</div>
+          </div>` : ''}
           <div class="detail-row">
             <div class="detail-label">Active Scenes</div>
             <div class="detail-value">${escapeHtml(error.activeScenes || 'N/A')}</div>

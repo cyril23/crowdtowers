@@ -1,5 +1,6 @@
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
+import { errorReporter } from '../utils/errorReporter.js';
 
 class BootScene extends Phaser.Scene {
   constructor() {
@@ -10,6 +11,17 @@ class BootScene extends Phaser.Scene {
     // Initialize sound manager and preload audio
     soundManager.init(this);
     soundManager.preloadSounds(this);
+
+    // Catch Phaser file loading errors (e.g., audio decode failures)
+    // These are handled internally by Phaser and don't reach window.onerror
+    this.load.on('loaderror', (file) => {
+      errorReporter.handleError({
+        type: 'phaser_loaderror',
+        message: `Failed to load ${file.type}: ${file.key}`,
+        filename: file.url,
+        stack: `File type: ${file.type}, Key: ${file.key}, URL: ${file.url}`
+      });
+    });
 
     // Show loading progress
     const loadingText = this.add.text(
@@ -68,6 +80,46 @@ class BootScene extends Phaser.Scene {
     // Hide loading div
     document.getElementById('loading').style.display = 'none';
   }
+}
+
+// Test function for triggering Phaser load errors (staging/dev only)
+// Usage in browser console: testPhaserLoadError()
+if (typeof window !== 'undefined') {
+  window.testPhaserLoadError = () => {
+    // Get game from errorReporter (it's set via errorReporter.setGame() in main.js)
+    const game = window.errorReporter?.game;
+    if (!game) {
+      console.error('Game not initialized yet. Make sure errorReporter.setGame() was called.');
+      return;
+    }
+
+    // Get an active scene to use its loader
+    const activeScene = game.scene.getScenes(true)[0];
+    if (!activeScene) {
+      console.error('No active scene found');
+      return;
+    }
+
+    console.log('Triggering test Phaser load error...');
+
+    // Set up error handler on this scene's loader (since BootScene's listener is gone)
+    activeScene.load.once('loaderror', (file) => {
+      console.log('Test load error triggered successfully!');
+      // Manually call errorReporter since this scene doesn't have the listener
+      if (window.errorReporter) {
+        window.errorReporter.handleError({
+          type: 'phaser_loaderror',
+          message: `Failed to load ${file.type}: ${file.key}`,
+          filename: file.url,
+          stack: `File type: ${file.type}, Key: ${file.key}, URL: ${file.url}`
+        });
+      }
+    });
+
+    // Try to load a non-existent audio file
+    activeScene.load.audio('test_nonexistent', 'assets/audio/sfx/nonexistent_test_file.wav');
+    activeScene.load.start();
+  };
 }
 
 // ES module export
