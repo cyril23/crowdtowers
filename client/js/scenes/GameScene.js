@@ -60,6 +60,7 @@ class GameScene extends Phaser.Scene {
 
     // Enemy data from server (rendered directly, no individual sprites)
     this.enemyData = [];
+    this.selectedEnemyGoneHandled = false; // Prevent repeated "gone" updates
 
     // Single graphics object for all enemies (like testgame)
     this.enemyGraphics = this.add.graphics();
@@ -749,9 +750,13 @@ class GameScene extends Phaser.Scene {
       if (enemy) {
         // Update with live health
         this.towerMenu.updateEnemyPanel(enemy);
-      } else {
-        // Enemy died - show death state
-        this.towerMenu.showEnemyDeath();
+        this.selectedEnemyGoneHandled = false; // Reset flag when enemy is alive
+      } else if (!this.selectedEnemyGoneHandled) {
+        // Enemy gone - only handle ONCE (first tick after disappearing)
+        const escapedIds = data.escapedIds || [];
+        const escaped = escapedIds.includes(this.inputManager.selectedEnemyId);
+        this.towerMenu.showEnemyGone(escaped);
+        this.selectedEnemyGoneHandled = true; // Don't keep overwriting
       }
     }
   }

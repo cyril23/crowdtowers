@@ -15,10 +15,10 @@ function getEnemyStats(enemyType, waveNumber) {
   // Cycle bonus: 2× HP per complete cycle
   const cycleBonus = Math.pow(2.0, cycleNumber);
 
-  // Accelerated scaling after first cycle: +10% more per wave per cycle
-  // Cycle 0: no acceleration, Cycle 1: +10% per wave, Cycle 2: +20% per wave
+  // Accelerated scaling after first cycle: +7% more per wave per cycle
+  // Cycle 0: no acceleration, Cycle 1: +7% per wave, Cycle 2: +14% per wave
   const acceleratedScaling = cycleNumber > 0
-    ? 1 + (0.10 * cycleNumber * waveInCycle)
+    ? 1 + (0.07 * cycleNumber * waveInCycle)
     : 1;
 
   const finalHealth = Math.floor(enemy.health * baseMultiplier * cycleBonus * acceleratedScaling);
@@ -27,8 +27,31 @@ function getEnemyStats(enemyType, waveNumber) {
     ...enemy,
     health: finalHealth,
     maxHealth: finalHealth,
-    speed: enemy.speed
+    speed: enemy.speed,
+    reward: getScaledReward(enemyType, waveNumber)
   };
+}
+
+function getScaledReward(enemyType, waveNumber) {
+  const enemy = ENEMIES[enemyType];
+  if (!enemy) return 0;
+
+  // Waves 1-50: static rewards (unchanged)
+  if (waveNumber <= 50) {
+    return enemy.reward;
+  }
+
+  // Waves 51+: scale rewards (softer than HP scaling to maintain challenge)
+  const WAVES_PER_CYCLE = 50;
+  const cycleNumber = Math.floor((waveNumber - 1) / WAVES_PER_CYCLE);
+
+  // Base reward scaling: +10% per wave after wave 50
+  const waveBonus = 1 + (0.10 * (waveNumber - 50));
+
+  // Cycle bonus: 1.5x per cycle (less than HP's 2x to maintain challenge)
+  const cycleBonus = Math.pow(1.5, cycleNumber);
+
+  return Math.floor(enemy.reward * waveBonus * cycleBonus);
 }
 
 function getWaveComposition(waveNumber) {
@@ -96,6 +119,7 @@ function applyDamageToEnemy(enemy, damage, _towerType) {
 
 export {
   getEnemyStats,
+  getScaledReward,
   getWaveComposition,
   generateWaveEnemies,
   applyDamageToEnemy,

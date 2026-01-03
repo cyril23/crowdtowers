@@ -92,11 +92,12 @@ const TOWERS = {
     special: 'slow',
     slowAmount: 0.5,
     slowDuration: 3000,
+    slowDurationBonus: 100, // +100ms slow duration per upgrade level
     strongVs: ['phasewalker'],
     weakVs: ['swarmling'],
     color: 0x99ffff,
     upgradeMultiplier: 1.5,
-    damageMultiplier: 1.35
+    damageMultiplier: 1.40 // Buffed from 1.35 for better late-game scaling
   },
   plasmaTurret: {
     id: 'plasmaTurret',

@@ -183,10 +183,19 @@ class TowerMenu {
 
     const canAfford = budget >= upgradeCost;
 
+    // Build special ability info for Cryo Cannon
+    let specialInfo = '';
+    if (towerDef.special === 'slow' && towerDef.slowDurationBonus) {
+      const currentSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * (tower.level - 1)) / 1000;
+      const nextSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * tower.level) / 1000;
+      specialInfo = `<p>Slow: ${currentSlow.toFixed(1)}s → ${nextSlow.toFixed(1)}s</p>`;
+    }
+
     this.elements.upgradeInfo.innerHTML = `
       <h3>${towerDef.name}</h3>
       <p>Level: ${tower.level}</p>
       <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
+      ${specialInfo}
       <p>Upgrade Cost: $${upgradeCost}</p>
       <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
     `;
@@ -238,10 +247,19 @@ class TowerMenu {
 
     const canAfford = budget >= upgradeCost;
 
+    // Build special ability info for Cryo Cannon
+    let specialInfo = '';
+    if (towerDef.special === 'slow' && towerDef.slowDurationBonus) {
+      const currentSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * (tower.level - 1)) / 1000;
+      const nextSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * tower.level) / 1000;
+      specialInfo = `<p>Slow: ${currentSlow.toFixed(1)}s → ${nextSlow.toFixed(1)}s</p>`;
+    }
+
     this.elements.upgradeInfo.innerHTML = `
       <h3>${towerDef.name}</h3>
       <p>Level: ${tower.level}</p>
       <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
+      ${specialInfo}
       <p>Upgrade Cost: $${upgradeCost}</p>
       <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
     `;
@@ -283,11 +301,19 @@ class TowerMenu {
       }
     });
 
+    const slowAmount = TOWERS.cryoCannon.slowAmount; // 0.5 = 50% speed
+    const actualSpeed = enemy.slowed
+      ? Math.round(enemyDef.speed * slowAmount)
+      : enemyDef.speed;
+    const speedDisplay = enemy.slowed
+      ? `<span class="slowed">${actualSpeed} (SLOWED)</span>`
+      : `${actualSpeed}`;
+
     this.elements.enemyInfo.innerHTML = `
       <h3>${enemyDef.name}</h3>
       <p>Health: ${Math.round(enemy.health)}/${enemy.maxHealth} (${healthPercent}%)</p>
-      <p>Speed: ${enemyDef.speed}</p>
-      <p>Reward: $${enemyDef.reward}</p>
+      <p>Speed: ${speedDisplay}</p>
+      <p>Reward: $${enemy.reward}</p>
       ${specialDesc}
       ${strongTowers.length ? `<p class="enemy-weak">Weak to: ${strongTowers.join(', ')}</p>` : ''}
       ${weakTowers.length ? `<p class="enemy-strong">Strong vs: ${weakTowers.join(', ')}</p>` : ''}
@@ -295,6 +321,7 @@ class TowerMenu {
 
     this.elements.enemyPanel.classList.remove('hidden');
     this.elements.enemyPanel.classList.remove('killed');
+    this.elements.enemyPanel.classList.remove('escaped');
   }
 
   hideEnemyPanel() {
@@ -302,6 +329,7 @@ class TowerMenu {
     this.lastEnemyData = null;
     this.elements.enemyPanel.classList.add('hidden');
     this.elements.enemyPanel.classList.remove('killed');
+    this.elements.enemyPanel.classList.remove('escaped');
   }
 
   updateEnemyPanel(enemy) {
@@ -311,7 +339,7 @@ class TowerMenu {
     }
   }
 
-  showEnemyDeath() {
+  showEnemyGone(escaped = false) {
     if (!this.lastEnemyData) return;
 
     const enemy = this.lastEnemyData;
@@ -326,16 +354,27 @@ class TowerMenu {
       }
     });
 
+    const statusClass = escaped ? 'enemy-escaped' : 'enemy-killed';
+    const statusText = escaped ? 'ESCAPED' : 'KILLED';
+    const rewardLine = escaped
+      ? `<p>Reward: $${enemy.reward} (LOST)</p>`
+      : `<p>Reward: $${enemy.reward}</p>`;
+
     this.elements.enemyInfo.innerHTML = `
       <h3>${enemyDef.name}</h3>
-      <p class="enemy-killed">KILLED</p>
+      <p class="${statusClass}">${statusText}</p>
       <p>Max Health: ${enemy.maxHealth}</p>
       <p>Speed: ${enemyDef.speed}</p>
-      <p>Reward: $${enemyDef.reward}</p>
+      ${rewardLine}
       ${strongTowers.length ? `<p class="enemy-weak">Was weak to: ${strongTowers.join(', ')}</p>` : ''}
     `;
 
-    this.elements.enemyPanel.classList.add('killed');
+    this.elements.enemyPanel.classList.add(escaped ? 'escaped' : 'killed');
+  }
+
+  // Backwards compatibility alias
+  showEnemyDeath() {
+    this.showEnemyGone(false);
   }
 }
 

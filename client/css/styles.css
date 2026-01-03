@@ -503,6 +503,11 @@ html, body {
   font-weight: bold;
 }
 
+#enemy-info .slowed {
+  color: #99ffff;
+  font-weight: bold;
+}
+
 #enemy-info .enemy-weak {
   color: #88ff88;
 }
@@ -528,8 +533,20 @@ html, body {
   border: 1px solid #ff4444;
 }
 
+#enemy-panel.escaped {
+  opacity: 0.8;
+  border: 1px solid #ddaa00;
+}
+
 #enemy-info .enemy-killed {
   color: #ff4444;
+  font-weight: bold;
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+#enemy-info .enemy-escaped {
+  color: #ddaa00;
   font-weight: bold;
   font-size: 16px;
   text-transform: uppercase;

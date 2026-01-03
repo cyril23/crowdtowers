@@ -16,6 +16,7 @@ class GameManager {
     this.enemies = [];
     this.projectiles = [];
     this.towerCooldowns = new Map();
+    this.recentlyEscapedIds = new Set(); // Track escaped enemies for state sync
     this.gameLoop = null;
     this.waveTimeout = null;
     this.lastTick = Date.now();
@@ -144,6 +145,7 @@ class GameManager {
   enemyReachedExit(enemy, index) {
     this.enemies.splice(index, 1);
     this.gameData.gameState.lives--;
+    this.recentlyEscapedIds.add(enemy.id); // Track for state sync
 
     this.log.event('ENEMY_ESCAPED', {
       type: enemy.type,
@@ -153,6 +155,8 @@ class GameManager {
     });
 
     this.io.to(this.sessionCode).emit('enemy-reached-exit', {
+      enemyId: enemy.id,
+      enemyType: enemy.type,
       livesRemaining: this.gameData.gameState.lives
     });
 
@@ -232,7 +236,8 @@ class GameManager {
 
     // Apply special effects
     if (towerDef.special === 'slow') {
-      target.slowedUntil = now + towerDef.slowDuration;
+      const bonusDuration = (towerDef.slowDurationBonus || 0) * (tower.level - 1);
+      target.slowedUntil = now + towerDef.slowDuration + bonusDuration;
     }
 
     if (result.killed) {
@@ -577,6 +582,8 @@ class GameManager {
   }
 
   broadcastState() {
+    const now = Date.now();
+    const escapedIds = Array.from(this.recentlyEscapedIds);
     this.io.to(this.sessionCode).emit('game-state-sync', {
       enemies: this.enemies.filter(e => e.spawnDelay <= 0).map(e => ({
         id: e.id,
@@ -584,12 +591,17 @@ class GameManager {
         x: e.x,
         y: e.y,
         health: e.health,
-        maxHealth: e.maxHealth
+        maxHealth: e.maxHealth,
+        reward: e.reward,
+        slowed: e.slowedUntil > now
       })),
+      escapedIds: escapedIds,
       budget: this.gameData.gameState.budget,
       lives: this.gameData.gameState.lives,
       wave: this.gameData.gameState.currentWave
     });
+    // Clear escaped IDs after broadcasting
+    this.recentlyEscapedIds.clear();
   }
 
   getState() {

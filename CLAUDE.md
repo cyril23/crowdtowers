@@ -37,7 +37,8 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Starting budget: 500 (shared among all players)
 - Tower sell value: **50% of total investment** (base + all upgrades)
 - Upgrade cost formula: `baseCost × 1.5^(level-1)`
-- Upgrade damage formula: `baseDamage × 1.35^(level-1)` (geometric scaling)
+- Upgrade damage formula: `baseDamage × 1.35^(level-1)` (Cryo Cannon: 1.40^)
+- **Late-game credits (wave 51+):** Enemy rewards scale with wave progression
 
 ### Enemy Specials
 - **Phasewalker:** 20% chance to dodge damage (slow effects still apply)
@@ -47,7 +48,7 @@ Strong = 1.5x damage, Weak = 0.5x damage
 ### Tower Specials
 - **Missile Launcher:** Splash damage (1 tile radius, 50% damage)
 - **Tesla Coil:** Chain lightning (3 targets, 70% damage per chain)
-- **Cryo Cannon:** Slows enemies 50% for 3 seconds
+- **Cryo Cannon:** Slows enemies 50% for 3s (+0.1s per upgrade level)
 
 ## Multiplayer
 - Games can be **private** (code required) or **open** (browsable)
@@ -73,8 +74,8 @@ Strong = 1.5x damage, Weak = 0.5x damage
 ### HP Scaling Formula
 - **Base:** +20% per wave (linear, continues forever)
 - **Cycle bonus:** 2× HP per complete 50-wave cycle
-- **Accelerated scaling:** After cycle 1, adds +10% per wave per cycle
-- **Example:** Wave 51 enemies have ~2.4× the HP of wave 1 enemies
+- **Accelerated scaling:** After cycle 1, adds +7% per wave per cycle
+- **Example:** Wave 51 enemies have ~2.1× the HP of wave 1 enemies
 - **Speed:** Constant (does not scale with wave)
 - **No victory condition** - game continues until defeat
 
