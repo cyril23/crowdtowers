@@ -6,8 +6,11 @@ import { BackgroundScene, MenuScene, JoinGameScene, CreateGameScene, BrowseScene
 import { LobbyScene } from './scenes/LobbyScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
+import { errorReporter } from './utils/errorReporter.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize error reporting first
+  errorReporter.init();
   // Full viewport canvas - game board will be centered within using camera
   const calculateSize = () => ({
     width: window.innerWidth,
@@ -51,6 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Create game instance
   const game = new Phaser.Game(config);
+
+  // Give error reporter access to game for scene context
+  errorReporter.setGame(game);
 
   // Handle window resize - update to full viewport
   window.addEventListener('resize', () => {

@@ -7,9 +7,7 @@ module.exports = {
     exec_mode: 'fork',
     watch: false,
     max_memory_restart: '500M',
-    env: {
-      NODE_ENV: 'production'
-    },
+    // Environment loaded from .env.prod via dotenv
     error_file: '/var/log/pm2/crowdtowers-error.log',
     out_file: '/var/log/pm2/crowdtowers-out.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss Z',

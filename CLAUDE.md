@@ -187,3 +187,12 @@ All UI positions use design coordinates; the camera handles the transform.
 **Local Dev Scripts:** `./deploy/scripts/deploy-staging.sh` deploys to staging without committing (useful for mobile testing). See deploy/README.md for details.
 
 **Docs:** See [deploy/README.md](deploy/README.md) for setup and troubleshooting.
+
+## Error Reporting
+
+Client JS errors are captured and stored in MongoDB:
+- `client/js/utils/errorReporter.js` catches errors and unhandled rejections
+- Max 5 errors per client session (prevents spam)
+- Errors include: stack trace, active Phaser scenes, session code, screen size
+- Dev-only toast overlay on localhost/staging
+- Admin page: `/admin/errors` (token-protected in production via `?token=ADMIN_SECRET`)

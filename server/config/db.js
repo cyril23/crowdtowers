@@ -1,28 +1,11 @@
 import mongoose from 'mongoose';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-// ES module __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function connectDB() {
-  // Try to load from .env.prod first
-  const envProdPath = path.join(__dirname, '../../.env.prod');
-
-  let mongoUri = process.env.MONGODB_URI;
-
-  if (fs.existsSync(envProdPath)) {
-    const envConfig = dotenv.config({ path: envProdPath });
-    if (envConfig.parsed && envConfig.parsed.MONGODB_URI) {
-      mongoUri = envConfig.parsed.MONGODB_URI;
-    }
-  }
+  // MONGODB_URI is loaded by index.js via dotenv
+  const mongoUri = process.env.MONGODB_URI;
 
   if (!mongoUri) {
-    console.error('MONGODB_URI not found. Please set it in .env.prod or as an environment variable.');
+    console.error('MONGODB_URI not found. Ensure .env.prod exists or set it as an environment variable.');
     process.exit(1);
   }
 

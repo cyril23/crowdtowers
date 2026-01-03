@@ -9,6 +9,11 @@ const GAME_CONFIG = {
   SESSION_CODE_LENGTH: 6
 };
 
+const ERROR_REPORTING = {
+  MAX_ERRORS_PER_CLIENT: 5,
+  STAGING_HOSTNAME: 'staging.crowdtowers.wochenentwicklung.com'
+};
+
 const MAZE_SIZES = {
   small: { grid: 12, tileSize: 40, canvas: 480 },
   medium: { grid: 20, tileSize: 32, canvas: 640 },
@@ -293,12 +298,16 @@ const SOCKET_EVENTS = {
   CAST_KICK_VOTE: 'cast-kick-vote',
   KICK_VOTE_UPDATE: 'kick-vote-update',
   PLAYER_KICKED: 'player-kicked',
-  KICK_VOTE_FAILED: 'kick-vote-failed'
+  KICK_VOTE_FAILED: 'kick-vote-failed',
+
+  // Error Reporting
+  CLIENT_ERROR: 'client-error'
 };
 
 // Export for ES modules
 export {
   GAME_CONFIG,
+  ERROR_REPORTING,
   MAZE_SIZES,
   GAME_STATUS,
   TILE_TYPES,

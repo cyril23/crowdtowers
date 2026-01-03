@@ -2,18 +2,45 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 import Game from './models/Game.js';
+import adminRouter from './routes/admin.js';
 
 // ES module __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env.prod') });
+// Load environment variables from .env.prod if it exists
+const envPath = path.join(__dirname, '../.env.prod');
+const envFileExists = fs.existsSync(envPath);
+
+if (envFileExists) {
+  // Deployed environment - .env.prod must load successfully
+  const envResult = dotenv.config({ path: envPath });
+
+  if (envResult.error) {
+    console.error(`FATAL: .env.prod exists but failed to load: ${envResult.error.message}`);
+    process.exit(1);
+  }
+
+  // Validate all required vars are present
+  const required = ['NODE_ENV', 'MONGODB_URI', 'ADMIN_SECRET'];
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error(`FATAL: Missing required env vars in .env.prod: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  console.log(`Loaded environment from ${envPath} (${process.env.NODE_ENV})`);
+} else {
+  // Local development - no .env.prod file
+  console.log('No .env.prod found - running in development mode');
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -44,6 +71,11 @@ app.get('/shared/constants.js', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Admin routes (token-protected in production)
+// MUST be registered BEFORE catch-all route
+app.use('/admin', adminRouter);
+console.log(`Admin routes mounted at /admin/errors${isProduction ? ' (token required)' : ''}`);
 
 // Catch-all route for SPA (Express 5 syntax)
 // In production, serve the bundled index.html

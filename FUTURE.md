@@ -4,19 +4,6 @@ Planned features and improvements for CrowdTowers.
 
 ## Observability
 
-### Error Tracking
-Capture JavaScript errors from players in real-time.
-
-**Options:**
-- **Sentry** - Free tier, good JS support, source maps
-- **LogRocket** - Session replay + error tracking
-- **Bugsnag** - Similar to Sentry
-
-**Implementation:**
-```html
-<script src="https://js.sentry-cdn.com/xxx.min.js" crossorigin="anonymous"></script>
-```
-
 ### Player Analytics
 Track game metrics for balancing and insights.
 

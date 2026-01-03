@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import Game from '../models/Game.js';
+import ClientError from '../models/ClientError.js';
 import MazeGenerator from '../game/MazeGenerator.js';
 import GameManager from '../game/GameManager.js';
-import { GAME_CONFIG, SOCKET_EVENTS, GAME_STATUS } from '../../shared/constants.js';
+import { GAME_CONFIG, ERROR_REPORTING, SOCKET_EVENTS, GAME_STATUS } from '../../shared/constants.js';
 import { createGameLogger, serverLogger } from '../utils/logger.js';
 
 // Store active game managers
@@ -573,6 +574,46 @@ function setupSocketHandlers(io) {
         currentNickname = null;
       } catch (error) {
         console.error('Leave game error:', error);
+      }
+    });
+
+    // Client error reporting
+    socket.on(SOCKET_EVENTS.CLIENT_ERROR, async (data) => {
+      try {
+        // Basic validation
+        if (!data || !data.message) {
+          return;
+        }
+
+        // Hard cap per socket
+        const maxErrors = ERROR_REPORTING.MAX_ERRORS_PER_CLIENT;
+        if (!socket._errorCount) socket._errorCount = 0;
+        if (socket._errorCount >= maxErrors) {
+          return;
+        }
+        socket._errorCount++;
+
+        // Save to database
+        await ClientError.create({
+          type: data.type || 'error',
+          message: data.message.substring(0, 2000),
+          filename: data.filename,
+          lineno: data.lineno,
+          colno: data.colno,
+          stack: data.stack?.substring(0, 10000),
+          url: data.url,
+          userAgent: data.userAgent?.substring(0, 500),
+          screenWidth: data.screenWidth,
+          screenHeight: data.screenHeight,
+          activeScenes: data.activeScenes?.substring(0, 200),
+          clientTimestamp: data.timestamp ? new Date(data.timestamp) : null,
+          sessionCode: currentSession || null,
+          socketId: socket.id
+        });
+
+        serverLogger.info(`Client error ${socket._errorCount}/${maxErrors}: ${data.message.substring(0, 100)}`);
+      } catch (err) {
+        serverLogger.error('Failed to save client error', err);
       }
     });
 

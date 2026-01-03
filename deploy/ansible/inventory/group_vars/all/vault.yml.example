@@ -20,3 +20,6 @@ vault_certbot_email: "your-email@example.com"
 
 # Deploy user password (for sudo)
 vault_deploy_user_password: "your-deploy-user-password-here"
+
+# Admin secret for error admin page (production access: /admin/errors?token=SECRET)
+vault_admin_secret: "your-random-admin-secret-here"

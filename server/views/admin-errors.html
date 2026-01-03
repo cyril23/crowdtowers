@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Errors - Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .stats {
+      margin-bottom: 20px;
+      color: #888;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #16213e;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #0f3460;
+    }
+    th {
+      background: #0f3460;
+      font-weight: 600;
+    }
+    tr:hover {
+      background: #1a3a5c;
+    }
+    .message {
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .type {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .type-error { background: #e74c3c; }
+    .type-unhandledrejection { background: #9b59b6; }
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-view { background: #3498db; color: white; }
+    .btn-download { background: #27ae60; color: white; }
+    .btn-delete { background: #e74c3c; color: white; }
+    button:hover { opacity: 0.8; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+    }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .modal-content {
+      background: #16213e;
+      padding: 24px;
+      border-radius: 8px;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow: auto;
+      width: 90%;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .detail-row {
+      margin-bottom: 12px;
+    }
+    .detail-label {
+      color: #888;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .detail-value {
+      color: #fff;
+    }
+    .stack-trace {
+      background: #0a0a1a;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow: auto;
+    }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+    .refresh-btn {
+      background: #3498db;
+      color: white;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Client Errors</h1>
+  <button class="refresh-btn" onclick="loadErrors()">Refresh</button>
+  <div class="stats" id="stats"></div>
+  <table id="errors-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Message</th>
+        <th>Scenes</th>
+        <th>Session</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="errors-body">
+    </tbody>
+  </table>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Error Details</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    // Get token from URL for production auth
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+
+    async function loadErrors() {
+      try {
+        const res = await fetch('/admin/api/errors' + tokenQuery);
+        const errors = await res.json();
+
+        document.getElementById('stats').textContent = `${errors.length} errors (showing most recent 100)`;
+
+        const tbody = document.getElementById('errors-body');
+        if (errors.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty">No errors recorded</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = errors.map(e => `
+          <tr>
+            <td><span class="type type-${e.type}">${e.type}</span></td>
+            <td class="message" title="${escapeHtml(e.message)}">${escapeHtml(e.message)}</td>
+            <td class="message">${escapeHtml(e.activeScenes || 'N/A')}</td>
+            <td>${escapeHtml(e.sessionCode || 'N/A')}</td>
+            <td>${new Date(e.createdAt).toLocaleString()}</td>
+            <td class="actions">
+              <button class="btn-view" onclick="viewError('${e._id}')">View</button>
+              <button class="btn-download" onclick="downloadError('${e._id}')">Download</button>
+              <button class="btn-delete" onclick="deleteError('${e._id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load errors:', err);
+      }
+    }
+
+    async function viewError(id) {
+      try {
+        const res = await fetch(`/admin/api/errors/${id}` + tokenQuery);
+        const error = await res.json();
+
+        document.getElementById('modal-body').innerHTML = `
+          <div class="detail-row">
+            <div class="detail-label">ID</div>
+            <div class="detail-value">${error._id}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Type</div>
+            <div class="detail-value"><span class="type type-${error.type}">${error.type}</span></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Message</div>
+            <div class="detail-value">${escapeHtml(error.message)}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">URL</div>
+            <div class="detail-value">${escapeHtml(error.url || 'N/A')}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">File</div>
+            <div class="detail-value">${escapeHtml(error.filename || 'N/A')}:${error.lineno || '?'}:${error.colno || '?'}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Active Scenes</div>
+            <div class="detail-value">${escapeHtml(error.activeScenes || 'N/A')}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Session Code</div>
+            <div class="detail-value">${error.sessionCode || 'N/A'}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Screen Size</div>
+            <div class="detail-value">${error.screenWidth || '?'} x ${error.screenHeight || '?'}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">User Agent</div>
+            <div class="detail-value" style="font-size: 11px;">${escapeHtml(error.userAgent || 'N/A')}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Created</div>
+            <div class="detail-value">${new Date(error.createdAt).toLocaleString()}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Stack Trace</div>
+            <div class="stack-trace">${escapeHtml(error.stack || 'No stack trace')}</div>
+          </div>
+        `;
+
+        document.getElementById('modal').classList.add('active');
+      } catch (err) {
+        console.error('Failed to view error:', err);
+      }
+    }
+
+    function downloadError(id) {
+      window.location.href = `/admin/api/errors/${id}/download` + tokenQuery;
+    }
+
+    async function deleteError(id) {
+      if (!confirm('Delete this error?')) return;
+
+      try {
+        await fetch(`/admin/api/errors/${id}` + tokenQuery, { method: 'DELETE' });
+        loadErrors();
+      } catch (err) {
+        console.error('Failed to delete error:', err);
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if (e.target.id === 'modal') closeModal();
+    });
+
+    // Load on page load
+    loadErrors();
+  </script>
+</body>
+</html>
