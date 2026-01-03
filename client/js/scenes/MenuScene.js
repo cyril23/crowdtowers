@@ -291,10 +291,8 @@ class MenuScene extends Phaser.Scene {
     if (!this.networkHandlers) {
       this.networkHandlers = [];
     }
-    // Preserve state across scene restarts (from resize)
+    // Preserve nickname across scene restarts (from resize)
     this.preservedNickname = data?.preservedNickname || null;
-    this.currentView = data?.currentView || 'main';  // 'main' or 'join'
-    this.preservedJoinCode = data?.preservedJoinCode || '';
   }
 
   // Helper to register network handlers and track them for cleanup
@@ -309,13 +307,7 @@ class MenuScene extends Phaser.Scene {
   static DESIGN_HEIGHT = 500;
 
   create() {
-    // Setup camera to zoom/center the design space within the canvas
-    this.setupMenuCamera();
-
-    // All positions below are in DESIGN coordinates (400x500)
-    const centerX = MenuScene.DESIGN_WIDTH / 2;  // 200
-
-    // Launch background scene if not already running
+    // Launch background scene first (needed for all views)
     if (!this.scene.isActive('BackgroundScene')) {
       this.scene.launch('BackgroundScene');
       this.scene.sendToBack('BackgroundScene');
@@ -323,6 +315,36 @@ class MenuScene extends Phaser.Scene {
 
     // Make this scene's background transparent
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+
+    // Setup network listeners
+    this.setupNetworkListeners();
+
+    // Check for pending join code (from invite link) - launch JoinGameScene
+    const pendingCode = this.registry.get('pendingJoinCode');
+    if (pendingCode) {
+      this.registry.remove('pendingJoinCode');
+      const savedNickname = localStorage.getItem('playerNickname') || '';
+      if (savedNickname) {
+        // Have nickname, go directly to JoinGameScene
+        this.scene.stop('MenuScene');
+        this.scene.launch('JoinGameScene', { nickname: savedNickname, prefillCode: pendingCode });
+        return;
+      }
+      // No nickname - show main menu but store code for later
+      this.pendingJoinCode = pendingCode;
+    }
+
+    // ===== MAIN MENU UI =====
+
+    // Set design dimensions for main menu
+    this.currentDesignWidth = MenuScene.DESIGN_WIDTH;
+    this.currentDesignHeight = MenuScene.DESIGN_HEIGHT;
+
+    // Setup camera to zoom/center the design space within the canvas
+    this.setupMenuCamera();
+
+    // All positions below are in DESIGN coordinates (400x500)
+    const centerX = MenuScene.DESIGN_WIDTH / 2;  // 200
 
     // Title
     this.createTitle(centerX);
@@ -368,20 +390,6 @@ class MenuScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // Setup network listeners
-    this.setupNetworkListeners();
-
-    // Check for pending join code (from deep link)
-    const pendingCode = this.registry.get('pendingJoinCode');
-    if (pendingCode) {
-      this.registry.remove('pendingJoinCode');
-      this.showJoinMenu(pendingCode);
-    }
-    // Restore previous view if restarting (e.g., from resize)
-    else if (this.currentView === 'join') {
-      this.showJoinMenu(this.preservedJoinCode);
-    }
-
     // Check for toast message (e.g., from lobby close)
     const toastMsg = this.scene.settings.data?.toast;
     if (toastMsg) {
@@ -407,6 +415,11 @@ class MenuScene extends Phaser.Scene {
       duration: 500,
       onComplete: () => toast.destroy()
     });
+  }
+
+  // Check if we should use landscape layout
+  isLandscape() {
+    return this.cameras.main.width > this.cameras.main.height;
   }
 
   // ============================================
@@ -538,9 +551,9 @@ class MenuScene extends Phaser.Scene {
     const zoom = camera.zoom;
 
     // Calculate where the design coordinate maps to on screen
-    // Camera is centered on DESIGN_WIDTH/2, DESIGN_HEIGHT/2
-    const designCenterX = MenuScene.DESIGN_WIDTH / 2;
-    const designCenterY = MenuScene.DESIGN_HEIGHT / 2;
+    // Use dynamic design dimensions if set (for Join view), otherwise use class constants
+    const designCenterX = (this.currentDesignWidth || MenuScene.DESIGN_WIDTH) / 2;
+    const designCenterY = (this.currentDesignHeight || MenuScene.DESIGN_HEIGHT) / 2;
 
     // Screen center
     const screenCenterX = canvasRect.left + canvasRect.width / 2;
@@ -636,68 +649,24 @@ class MenuScene extends Phaser.Scene {
     this.scene.launch('CreateGameScene', { nickname });
   }
 
-  showJoinMenu(prefillCode = '') {
-    // Set current view state (for state preservation across resize)
-    this.currentView = 'join';
-
+  showJoinMenu() {
     const nickname = this.nicknameInput?.value?.trim() || localStorage.getItem('playerNickname') || '';
     if (!nickname) {
       this.showError('Please enter a name');
-      this.currentView = 'main';  // Reset view if validation fails
       return;
     }
 
     // Save nickname to localStorage
     localStorage.setItem('playerNickname', nickname);
 
-    // Store nickname and clear UI
-    const savedNickname = nickname;
+    // Use pending code if available (from invite link)
+    const prefillCode = this.pendingJoinCode || '';
+    this.pendingJoinCode = null;
+
+    // Clean up and switch to JoinGameScene (overlay)
     this.clearMenuUI();
-
-    // Clear only Phaser UI objects (not the background scene)
-    this.children.removeAll();
-
-    // Re-setup camera for new view
-    this.setupMenuCamera();
-
-    const centerX = MenuScene.DESIGN_WIDTH / 2;
-
-    // Rebuild join menu UI
-    this.add.text(centerX, 160, 'Enter Session Code:', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // Create code input using design coordinates
-    this.codeInput = this.createHtmlInput(centerX, 200, 140, 'ABC123');
-    this.codeInput.value = prefillCode;
-    this.codeInput.maxLength = 6;
-    this.codeInput.style.textTransform = 'uppercase';
-
-    // Re-register scale listener for this view
-    this.scale.on('resize', this.onGameResize, this);
-
-    // Error text
-    this.errorText = this.add.text(centerX, 430, '', {
-      fontSize: '16px',
-      color: '#ff4444',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.createButton(centerX, 260, 'Join Game', () => {
-      const code = this.codeInput.value.trim().toUpperCase();
-      if (code.length !== 6) {
-        this.showError('Session code must be 6 characters');
-        return;
-      }
-      networkManager.joinGame(code, savedNickname);
-    });
-
-    this.createButton(centerX, 320, 'Back', () => {
-      this.clearMenuUI();
-      this.scene.restart();
-    });
+    this.scene.stop('MenuScene');
+    this.scene.launch('JoinGameScene', { nickname, prefillCode });
   }
 
   showBrowseMenu() {
@@ -717,14 +686,10 @@ class MenuScene extends Phaser.Scene {
   }
 
   clearMenuUI() {
-    // Remove HTML input elements
+    // Remove HTML input element
     if (this.nicknameInput && this.nicknameInput.parentNode) {
       this.nicknameInput.parentNode.removeChild(this.nicknameInput);
       this.nicknameInput = null;
-    }
-    if (this.codeInput && this.codeInput.parentNode) {
-      this.codeInput.parentNode.removeChild(this.codeInput);
-      this.codeInput = null;
     }
 
     // Remove scale listener
@@ -795,6 +760,346 @@ class MenuScene extends Phaser.Scene {
     this.clearMenuUI();
 
     // Clean up network handlers to prevent accumulation
+    if (this.networkHandlers) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+  }
+}
+
+// ============================================
+// JOIN GAME SCENE (overlay on BackgroundScene)
+// Separate scene for entering game code (matches CreateGameScene/BrowseScene pattern)
+// ============================================
+class JoinGameScene extends Phaser.Scene {
+  constructor() {
+    super({ key: 'JoinGameScene' });
+  }
+
+  init(data) {
+    this.nickname = data.nickname;
+    this.prefillCode = data.prefillCode || '';
+    if (!this.networkHandlers) {
+      this.networkHandlers = [];
+    }
+  }
+
+  registerNetworkHandler(event, handler) {
+    networkManager.on(event, handler);
+    this.networkHandlers.push({ event, handler });
+  }
+
+  isLandscape() {
+    return this.cameras.main.width > this.cameras.main.height;
+  }
+
+  create() {
+    this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
+
+    // Detect orientation and set design space
+    const isLandscape = this.isLandscape();
+    if (isLandscape) {
+      this.designWidth = 500;
+      this.designHeight = 300;
+    } else {
+      this.designWidth = 400;
+      this.designHeight = 500;
+    }
+
+    // Setup camera
+    const canvasWidth = this.cameras.main.width;
+    const canvasHeight = this.cameras.main.height;
+    const scaleX = canvasWidth / this.designWidth;
+    const scaleY = canvasHeight / this.designHeight;
+    const zoom = Math.min(scaleX, scaleY, 1.5);
+
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(this.designWidth / 2, this.designHeight / 2);
+
+    const centerX = this.designWidth / 2;
+
+    if (isLandscape) {
+      this.buildLandscapeLayout(centerX);
+    } else {
+      this.buildPortraitLayout(centerX);
+    }
+
+    // Configure code input
+    this.codeInput.value = this.prefillCode;
+    this.codeInput.maxLength = 6;
+    this.codeInput.style.textTransform = 'uppercase';
+
+    // Setup network handlers
+    if (this.networkHandlers && this.networkHandlers.length > 0) {
+      this.networkHandlers.forEach(({ event, handler }) => {
+        networkManager.off(event, handler);
+      });
+      this.networkHandlers = [];
+    }
+
+    this.registerNetworkHandler(SOCKET_EVENTS.JOIN_SUCCESS, (data) => {
+      this.cleanupInput();
+      this.scene.stop('JoinGameScene');
+      this.scene.stop('BackgroundScene');
+      if (data.status === GAME_STATUS.LOBBY) {
+        this.scene.start('LobbyScene', {
+          sessionCode: data.sessionCode,
+          maze: data.maze,
+          players: data.players,
+          isHost: false
+        });
+      } else {
+        this.scene.start('GameScene', {
+          sessionCode: data.sessionCode,
+          maze: data.maze,
+          gameState: data.gameState,
+          status: data.status
+        });
+      }
+    });
+
+    this.registerNetworkHandler(SOCKET_EVENTS.JOIN_ERROR, (data) => {
+      this.showError(data.message);
+    });
+
+    // Listen for resize
+    this.scale.on('resize', this.onResize, this);
+  }
+
+  buildLandscapeLayout(centerX) {
+    this.add.text(centerX, 70, 'Enter Session Code:', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    this.codeInput = this.createHtmlInput(centerX, 115, 140, 'ABC123');
+
+    this.errorText = this.add.text(centerX, 250, '', {
+      fontSize: '16px',
+      color: '#ff4444',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    // Join Game button
+    const joinBtn = this.add.text(centerX, 170, 'Join Game', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: '#4a4a8a',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    joinBtn.on('pointerover', () => joinBtn.setStyle({ backgroundColor: '#6a6aaa' }));
+    joinBtn.on('pointerout', () => joinBtn.setStyle({ backgroundColor: '#4a4a8a' }));
+    joinBtn.on('pointerdown', () => this.attemptJoin());
+
+    // Back button
+    this.add.text(centerX, 225, 'Back', {
+      fontSize: '16px',
+      color: '#aaaaaa',
+      fontFamily: 'Arial',
+      backgroundColor: '#333333',
+      padding: { x: 15, y: 8 }
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.cleanupInput();
+        this.scene.stop('JoinGameScene');
+        this.scene.launch('MenuScene');
+      });
+  }
+
+  buildPortraitLayout(centerX) {
+    this.add.text(centerX, 180, 'Enter Session Code:', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    this.codeInput = this.createHtmlInput(centerX, 220, 140, 'ABC123');
+
+    this.errorText = this.add.text(centerX, 380, '', {
+      fontSize: '16px',
+      color: '#ff4444',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+
+    // Join Game button
+    const joinBtn = this.add.text(centerX, 280, 'Join Game', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      backgroundColor: '#4a4a8a',
+      padding: { x: 15, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    joinBtn.on('pointerover', () => joinBtn.setStyle({ backgroundColor: '#6a6aaa' }));
+    joinBtn.on('pointerout', () => joinBtn.setStyle({ backgroundColor: '#4a4a8a' }));
+    joinBtn.on('pointerdown', () => this.attemptJoin());
+
+    // Back button
+    this.add.text(centerX, 340, 'Back', {
+      fontSize: '16px',
+      color: '#aaaaaa',
+      fontFamily: 'Arial',
+      backgroundColor: '#333333',
+      padding: { x: 15, y: 8 }
+    })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.cleanupInput();
+        this.scene.stop('JoinGameScene');
+        this.scene.launch('MenuScene');
+      });
+  }
+
+  attemptJoin() {
+    const code = this.codeInput.value.trim().toUpperCase();
+    if (code.length !== 6) {
+      this.showError('Session code must be 6 characters');
+      return;
+    }
+    networkManager.joinGame(code, this.nickname);
+  }
+
+  showError(message) {
+    if (this.errorText) {
+      this.errorText.setText(message);
+      this.time.delayedCall(3000, () => {
+        if (this.errorText) {
+          this.errorText.setText('');
+        }
+      });
+    }
+  }
+
+  // HTML input methods (same as MenuScene)
+  ensureInputWrapper() {
+    if (!document.getElementById('input-wrapper')) {
+      const wrapper = document.createElement('div');
+      wrapper.id = 'input-wrapper';
+      wrapper.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+      `;
+      document.body.appendChild(wrapper);
+    }
+    return document.getElementById('input-wrapper');
+  }
+
+  createHtmlInput(designX, designY, width, placeholder) {
+    // Clean up any existing code inputs first to prevent duplicates on restart
+    const existingWrapper = document.getElementById('input-wrapper');
+    if (existingWrapper) {
+      const existingInputs = existingWrapper.querySelectorAll('input.join-code-input');
+      existingInputs.forEach(el => el.remove());
+    }
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = placeholder;
+    input.maxLength = 20;
+    input.className = 'game-input join-code-input';
+
+    input.style.cssText = `
+      position: absolute;
+      padding: 8px;
+      font-size: 16px;
+      border: 2px solid #4a4a8a;
+      border-radius: 4px;
+      background: #1a1a2e;
+      color: white;
+      text-align: center;
+      outline: none;
+      transform-origin: center center;
+      box-sizing: border-box;
+      pointer-events: auto;
+    `;
+
+    input.addEventListener('focus', () => {
+      input.style.borderColor = '#6a6aaa';
+    });
+    input.addEventListener('blur', () => {
+      input.style.borderColor = '#4a4a8a';
+    });
+
+    const wrapper = this.ensureInputWrapper();
+    wrapper.appendChild(input);
+
+    input._designX = designX;
+    input._designY = designY;
+    input._designWidth = width;
+
+    this.positionHtmlInput(input);
+    setTimeout(() => this.positionHtmlInput(input), 100);
+
+    return input;
+  }
+
+  positionHtmlInput(input) {
+    if (!input) return;
+
+    const canvas = this.game.canvas;
+    const canvasRect = canvas.getBoundingClientRect();
+    const camera = this.cameras.main;
+    const zoom = camera.zoom;
+
+    const designCenterX = this.designWidth / 2;
+    const designCenterY = this.designHeight / 2;
+
+    const screenCenterX = canvasRect.left + canvasRect.width / 2;
+    const screenCenterY = canvasRect.top + canvasRect.height / 2;
+
+    const offsetX = (input._designX - designCenterX) * zoom;
+    const offsetY = (input._designY - designCenterY) * zoom;
+
+    const screenX = screenCenterX + offsetX;
+    const screenY = screenCenterY + offsetY;
+
+    const scaledWidth = Math.min(input._designWidth * zoom, 250);
+
+    input.style.left = `${screenX}px`;
+    input.style.top = `${screenY}px`;
+    input.style.width = `${scaledWidth}px`;
+    input.style.transform = 'translate(-50%, -50%)';
+    input.style.fontSize = `${Math.max(12, Math.min(16 * zoom, 20))}px`;
+  }
+
+  cleanupInput() {
+    if (this.codeInput && this.codeInput.parentNode) {
+      this.codeInput.parentNode.removeChild(this.codeInput);
+      this.codeInput = null;
+    }
+  }
+
+  onResize() {
+    this.scale.off('resize', this.onResize, this);
+
+    if (!this.scene.isActive()) {
+      return;
+    }
+
+    // Save current code before restart
+    const currentCode = this.codeInput?.value || '';
+    this.cleanupInput();
+
+    this.scene.restart({ nickname: this.nickname, prefillCode: currentCode });
+  }
+
+  shutdown() {
+    this.scale.off('resize', this.onResize, this);
+    this.cleanupInput();
+
     if (this.networkHandlers) {
       this.networkHandlers.forEach(({ event, handler }) => {
         networkManager.off(event, handler);
@@ -952,7 +1257,9 @@ class CreateGameScene extends Phaser.Scene {
     this.add.text(cx, 450, 'Back', {
       fontSize: '16px',
       color: '#aaaaaa',
-      fontFamily: 'Arial'
+      fontFamily: 'Arial',
+      backgroundColor: '#333333',
+      padding: { x: 15, y: 8 }
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
@@ -1208,7 +1515,9 @@ class BrowseScene extends Phaser.Scene {
     this.add.text(centerX, 510, 'Back', {
       fontSize: '18px',
       color: '#aaaaaa',
-      fontFamily: 'Arial'
+      fontFamily: 'Arial',
+      backgroundColor: '#333333',
+      padding: { x: 15, y: 8 }
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
@@ -1356,4 +1665,4 @@ class BrowseScene extends Phaser.Scene {
 }
 
 // ES module exports
-export { BackgroundScene, MenuScene, CreateGameScene, BrowseScene };
+export { BackgroundScene, MenuScene, JoinGameScene, CreateGameScene, BrowseScene };

@@ -127,6 +127,33 @@ shutdown() {
 }
 ```
 
+### Scene Navigation Pattern (Back Buttons)
+For overlay scenes (JoinGameScene, CreateGameScene, BrowseScene), **always use `stop()` + `launch()` to navigate to a DIFFERENT scene**:
+```javascript
+// CORRECT - stops self, launches different scene
+this.scene.stop('JoinGameScene');
+this.scene.launch('MenuScene');
+
+// WRONG - restart() on same scene breaks input after rotation
+this.scene.restart();
+```
+**Why:** `scene.restart()` within the same scene causes input system issues after device rotation. The stop+launch pattern creates a fresh scene instance with clean input state.
+
+### HTML DOM Input Cleanup
+HTML inputs overlaid on Phaser canvas must be explicitly cleaned up before creating new ones:
+```javascript
+createHtmlInput(designX, designY, width, placeholder) {
+  // Remove existing inputs first to prevent duplicates on restart
+  const wrapper = document.getElementById('input-wrapper');
+  if (wrapper) {
+    wrapper.querySelectorAll('input.my-unique-class').forEach(el => el.remove());
+  }
+  // Then create new input with unique class
+  input.className = 'game-input my-unique-class';
+}
+```
+**Why:** During `scene.restart()`, timing issues can cause new inputs to be created before old ones are removed, resulting in duplicate visible inputs.
+
 ### Design Space Pattern for Responsive Menus
 Menu scenes use a fixed "design space" (e.g., 400×500) with camera zoom/centering. This allows responsive scaling without recalculating positions:
 ```javascript

@@ -2,7 +2,7 @@
 
 import { CLIENT_CONFIG } from './config.js';
 import { BootScene } from './scenes/BootScene.js';
-import { BackgroundScene, MenuScene, CreateGameScene, BrowseScene } from './scenes/MenuScene.js';
+import { BackgroundScene, MenuScene, JoinGameScene, CreateGameScene, BrowseScene } from './scenes/MenuScene.js';
 import { LobbyScene } from './scenes/LobbyScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       BootScene,
       BackgroundScene,
       MenuScene,
+      JoinGameScene,
       CreateGameScene,
       BrowseScene,
       LobbyScene,
