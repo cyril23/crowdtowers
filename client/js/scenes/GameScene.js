@@ -1,6 +1,7 @@
 import { GAME_CONFIG, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
 import { CLIENT_CONFIG } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
+import { soundManager } from '../managers/SoundManager.js';
 import { InputManager } from '../managers/InputManager.js';
 import { HUD } from '../ui/HUD.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
@@ -97,6 +98,11 @@ class GameScene extends Phaser.Scene {
       budget: this.gameState.budget,
       wave: this.gameState.currentWave
     });
+
+    // Start gameplay music (random track, then sequential)
+    soundManager.setScene(this);
+    soundManager.resetGameplayIndex();
+    soundManager.startGameplayMusic();
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
@@ -346,6 +352,44 @@ class GameScene extends Phaser.Scene {
       this.updateChatButtonText();
     };
 
+    // Mute button
+    this.muteBtn = document.getElementById('mute-btn');
+    this.soundIcon = this.muteBtn.querySelector('.sound-icon');
+
+    // Initialize mute button state
+    this.updateMuteButton();
+
+    this.muteBtn.onclick = () => {
+      soundManager.toggleMute();
+      this.updateMuteButton();
+    };
+
+    // Volume sliders
+    this.sfxVolumeSlider = document.getElementById('sfx-volume');
+    this.sfxVolumeValue = document.getElementById('sfx-volume-value');
+    this.musicVolumeSlider = document.getElementById('music-volume');
+    this.musicVolumeValue = document.getElementById('music-volume-value');
+
+    // Initialize sliders with current values from soundManager
+    this.sfxVolumeSlider.value = Math.round(soundManager.getSfxVolume() * 100);
+    this.sfxVolumeValue.textContent = this.sfxVolumeSlider.value + '%';
+    this.musicVolumeSlider.value = Math.round(soundManager.getMusicVolume() * 100);
+    this.musicVolumeValue.textContent = this.musicVolumeSlider.value + '%';
+
+    // SFX volume slider handler
+    this.sfxVolumeSlider.oninput = () => {
+      const value = parseInt(this.sfxVolumeSlider.value);
+      this.sfxVolumeValue.textContent = value + '%';
+      soundManager.setSfxVolume(value / 100);
+    };
+
+    // Music volume slider handler
+    this.musicVolumeSlider.oninput = () => {
+      const value = parseInt(this.musicVolumeSlider.value);
+      this.musicVolumeValue.textContent = value + '%';
+      soundManager.setMusicVolume(value / 100);
+    };
+
     // Pause overlay
     this.pauseOverlay = document.getElementById('pause-overlay');
     this.pausedByText = document.getElementById('paused-by');
@@ -489,6 +533,16 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  updateMuteButton() {
+    const isMuted = soundManager.isMuted();
+    this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
+    if (isMuted) {
+      this.muteBtn.classList.add('muted');
+    } else {
+      this.muteBtn.classList.remove('muted');
+    }
+  }
+
   // Helper to register network handlers and track them for cleanup
   registerNetworkHandler(event, handler) {
     networkManager.on(event, handler);
@@ -516,6 +570,10 @@ class GameScene extends Phaser.Scene {
       this.createTowerSprite(data.tower);
       this.hud.updateBudget(data.newBudget);
       this.towerMenu.updateBudget(data.newBudget);
+
+      // Play sound (quieter if placed by another player)
+      const isOtherPlayer = data.playerId && data.playerId !== networkManager.socket.id;
+      soundManager.play('tower_place', { isOtherPlayer });
     });
 
     // Tower upgraded
@@ -532,6 +590,10 @@ class GameScene extends Phaser.Scene {
       this.hud.updateBudget(data.newBudget);
       // updateBudget will refresh the upgrade panel with new level/cost info
       this.towerMenu.updateBudget(data.newBudget);
+
+      // Play sound (quieter if upgraded by another player)
+      const isOtherPlayer = data.playerId && data.playerId !== networkManager.socket.id;
+      soundManager.play('tower_upgrade', { isOtherPlayer });
     });
 
     // Tower sold
@@ -568,11 +630,22 @@ class GameScene extends Phaser.Scene {
 
       // Clear placement preview (it may show stale "can't place" indicator)
       this.placementPreview.clear();
+
+      // Play sound (quieter if sold by another player)
+      const isOtherPlayer = data.playerId && data.playerId !== networkManager.socket.id;
+      soundManager.play('tower_sell', { isOtherPlayer });
     });
 
     // Tower error
     this.registerNetworkHandler(SOCKET_EVENTS.TOWER_ERROR, (data) => {
       console.log('Tower error:', data.error);
+
+      // Play error sound based on error type
+      if (data.error && (data.error.includes('budget') || data.error.includes('afford'))) {
+        soundManager.play('error_funds');
+      } else {
+        soundManager.play('error_placement');
+      }
     });
 
     // Enemy killed - show death effect and update budget
@@ -581,12 +654,19 @@ class GameScene extends Phaser.Scene {
       this.gameState.budget = data.newBudget;
       this.hud.updateBudget(data.newBudget);
       this.towerMenu.updateBudget(data.newBudget);
+
+      // Play death sound based on enemy type
+      const deathSound = data.enemyType ? `death_${data.enemyType}` : 'death_generic';
+      soundManager.play(deathSound);
     });
 
     // Enemy reached exit
     this.registerNetworkHandler(SOCKET_EVENTS.ENEMY_REACHED_EXIT, (data) => {
       this.gameState.lives = data.livesRemaining;
       this.hud.updateLives(data.livesRemaining);
+
+      // Play critical alarm sound
+      soundManager.play('enemy_exit');
     });
 
     // Wave events
@@ -594,24 +674,44 @@ class GameScene extends Phaser.Scene {
       this.gameState.currentWave = data.waveNumber;
       this.hud.updateWave(data.waveNumber);
       this.showWaveNotification(`Wave ${data.waveNumber} Starting!`);
+
+      // Boss wave every 50 - switch to boss music
+      if (data.waveNumber % 50 === 0 && data.waveNumber > 0) {
+        soundManager.playBossMusic(data.waveNumber);
+      } else {
+        soundManager.play('wave_start');
+      }
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.WAVE_COMPLETE, (data) => {
       this.showWaveNotification(`Wave ${data.waveNumber} Complete!`);
+      soundManager.play('wave_complete');
+
+      // Resume gameplay music after boss wave
+      if (data.waveNumber % 50 === 0 && data.waveNumber > 0) {
+        soundManager.resumeGameplayMusic();
+      }
     });
 
     // Pause/Resume
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_PAUSED, (data) => {
       this.pausedByText.textContent = `Paused by ${data.pausedBy}`;
       this.pauseOverlay.classList.remove('hidden');
+      soundManager.play('pause');
+      soundManager.pauseMusic();
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_RESUMED, () => {
       this.pauseOverlay.classList.add('hidden');
+      soundManager.play('unpause');
+      soundManager.resumeMusic();
     });
 
     // Game over
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_OVER, (data) => {
+      // Play game over music based on final wave (good if >= 50, bad if < 50)
+      soundManager.playGameOverMusic(data.finalWave);
+
       this.scene.start('GameOverScene', {
         victory: data.victory,
         finalWave: data.finalWave,
@@ -622,6 +722,19 @@ class GameScene extends Phaser.Scene {
     // Tower fired - show projectile
     this.registerNetworkHandler(SOCKET_EVENTS.TOWER_FIRED, (data) => {
       this.createProjectile(data);
+
+      // Play tower firing sound
+      const fireSoundMap = {
+        machineGun: 'machinegun_fire',
+        missileLauncher: 'missile_fire',
+        teslaCoil: 'tesla_fire',
+        cryoCannon: 'cryo_fire',
+        plasmaTurret: 'plasma_fire'
+      };
+      const fireSound = fireSoundMap[data.towerType];
+      if (fireSound) {
+        soundManager.play(fireSound);
+      }
     });
   }
 
@@ -987,6 +1100,9 @@ class GameScene extends Phaser.Scene {
 
     // Remove resize listener
     this.scale.off('resize', this.handleResize, this);
+
+    // Cleanup sounds
+    soundManager.cleanup();
 
     if (this.projectileUpdateEvent) {
       this.projectileUpdateEvent.remove();

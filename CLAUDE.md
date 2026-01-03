@@ -10,6 +10,10 @@ Crowd Towers is a multiplayer cooperative tower defense game: humans defend agai
 - **Build:** `npm run build` (bundles client for production)
 - **Lint:** Run `npm run lint` after making changes to check for errors
 
+## Audio
+- **SFX:** 8-bit sounds created with [sfxr.me](https://sfxr.me/) (WAV files in `client/assets/audio/sfx/`)
+- **Music:** Generated with [Suno](https://suno.com/) (MP3 files in `client/assets/audio/music/`, tracked with Git LFS)
+
 ## Client Bundling
 - **Development:** ES modules loaded directly (`client/js/main.js`)
 - **Production:** esbuild bundles to `client/dist/bundle.min.js` (~63KB minified)

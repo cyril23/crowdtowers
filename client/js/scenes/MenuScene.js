@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS, GAME_STATUS, MAZE_SIZES } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
+import { soundManager } from '../managers/SoundManager.js';
 
 // ============================================
 // BACKGROUND SCENE - Persistent animated background for menu screens
@@ -321,6 +322,10 @@ class MenuScene extends Phaser.Scene {
     // Make this scene's background transparent
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
+    // Start menu music (sequential: 1 -> 2 -> 3 -> 4 -> repeat)
+    soundManager.setScene(this);
+    soundManager.startMenuMusic();
+
     // Setup network listeners
     this.setupNetworkListeners();
 
@@ -633,7 +638,10 @@ class MenuScene extends Phaser.Scene {
       button.setStyle({ backgroundColor: '#4a4a8a' });
     });
 
-    button.on('pointerdown', callback);
+    button.on('pointerdown', () => {
+      soundManager.play('button_click');
+      callback();
+    });
 
     return button;
   }

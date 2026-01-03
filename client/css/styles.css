@@ -68,6 +68,26 @@ html, body {
   align-items: flex-start;
 }
 
+/* Mute Button */
+#mute-btn {
+  background: #4a4a8a;
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#mute-btn:hover {
+  background: #6a6aaa;
+}
+
+#mute-btn.muted {
+  background: #8a4a4a;
+}
+
 /* Chat Toggle Button */
 #chat-toggle-btn {
   position: relative;
@@ -214,6 +234,77 @@ html, body {
 
 #menu-leave-btn:hover {
   background: #cc5555;
+}
+
+/* Volume Sliders */
+.menu-volume-section {
+  padding: 8px 10px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 8px;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.volume-control:last-child {
+  margin-bottom: 0;
+}
+
+.volume-control label {
+  color: #888;
+  font-size: 12px;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.volume-control input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  border-radius: 2px;
+  outline: none;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #6a6aaa;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb:hover {
+  background: #8a8acc;
+}
+
+.volume-control input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #6a6aaa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.volume-control input[type="range"]::-moz-range-thumb:hover {
+  background: #8a8acc;
+}
+
+.volume-control span {
+  color: #aaa;
+  font-size: 11px;
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 #lives-value.warning {

@@ -1,5 +1,6 @@
 import { TOWERS, ENEMIES } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
+import { soundManager } from '../managers/SoundManager.js';
 
 class TowerMenu {
   constructor() {
@@ -115,6 +116,9 @@ class TowerMenu {
       }
       return;
     }
+
+    // Play selection sound
+    soundManager.play('tower_select');
 
     // Remove previous selection
     const prev = this.elements.list.querySelector('.selected');

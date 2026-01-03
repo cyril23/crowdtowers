@@ -1,4 +1,5 @@
 import { networkManager } from '../managers/NetworkManager.js';
+import { soundManager } from '../managers/SoundManager.js';
 
 class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,11 +7,15 @@ class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    // Initialize sound manager and preload audio
+    soundManager.init(this);
+    soundManager.preloadSounds(this);
+
     // Show loading progress
     const loadingText = this.add.text(
       this.cameras.main.centerX,
       this.cameras.main.centerY,
-      'Connecting...',
+      'Loading...',
       {
         fontSize: '24px',
         color: '#ffffff',
@@ -18,7 +23,25 @@ class BootScene extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
-    // Connect to server
+    // Update loading text as assets load
+    this.load.on('progress', (value) => {
+      loadingText.setText(`Loading... ${Math.floor(value * 100)}%`);
+    });
+
+    // After all assets loaded, connect to server
+    this.load.on('complete', () => {
+      // Create sound instances
+      soundManager.createSounds(this);
+
+      loadingText.setText('Connecting...');
+      this.connectToServer(loadingText);
+    });
+
+    // Start loading (will trigger 'complete' when done)
+    this.load.start();
+  }
+
+  connectToServer(loadingText) {
     networkManager.connect()
       .then(() => {
         loadingText.setText('Connected!');

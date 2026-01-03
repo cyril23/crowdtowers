@@ -332,6 +332,7 @@ class GameManager {
 
     this.io.to(this.sessionCode).emit('enemy-killed', {
       enemyId: enemy.id,
+      enemyType: enemy.type,
       x: enemy.x,
       y: enemy.y,
       reward: enemy.reward,

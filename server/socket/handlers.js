@@ -281,7 +281,8 @@ function setupSocketHandlers(io) {
         if (result.success) {
           io.to(currentSession).emit(SOCKET_EVENTS.TOWER_PLACED, {
             tower: result.tower,
-            newBudget: result.newBudget
+            newBudget: result.newBudget,
+            playerId: socket.id
           });
 
           // Save to database
@@ -312,7 +313,8 @@ function setupSocketHandlers(io) {
           io.to(currentSession).emit(SOCKET_EVENTS.TOWER_UPGRADED, {
             towerId: result.towerId,
             newLevel: result.newLevel,
-            newBudget: result.newBudget
+            newBudget: result.newBudget,
+            playerId: socket.id
           });
 
           // Save to database
@@ -343,7 +345,8 @@ function setupSocketHandlers(io) {
           io.to(currentSession).emit(SOCKET_EVENTS.TOWER_SOLD, {
             towerId: result.towerId,
             sellValue: result.sellValue,
-            newBudget: result.newBudget
+            newBudget: result.newBudget,
+            playerId: socket.id
           });
 
           // Save to database

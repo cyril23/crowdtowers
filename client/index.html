@@ -34,6 +34,9 @@
       <div id="wave-display">Wave: <span id="wave-value">0</span></div>
     </div>
     <div id="hud-right">
+      <button id="mute-btn" title="Toggle Sound">
+        <span class="sound-icon">🔊</span>
+      </button>
       <button id="chat-toggle-btn" title="Toggle Chat">
         <span class="chat-icon">💬</span>
         <span id="chat-badge" class="hidden">0</span>
@@ -45,6 +48,18 @@
             <span class="menu-label">Code:</span>
             <span id="menu-code-value"></span>
             <button id="menu-copy-btn">Copy</button>
+          </div>
+          <div class="menu-volume-section">
+            <div class="volume-control">
+              <label for="sfx-volume">SFX</label>
+              <input type="range" id="sfx-volume" min="0" max="100" value="20">
+              <span id="sfx-volume-value">20%</span>
+            </div>
+            <div class="volume-control">
+              <label for="music-volume">Music</label>
+              <input type="range" id="music-volume" min="0" max="100" value="25">
+              <span id="music-volume-value">25%</span>
+            </div>
           </div>
           <button id="menu-pause-btn">Pause Game</button>
           <button id="menu-chat-btn">Show Chat</button>

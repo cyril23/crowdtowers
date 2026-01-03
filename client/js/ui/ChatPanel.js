@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
+import { soundManager } from '../managers/SoundManager.js';
 
 // Singleton instance
 let chatPanelInstance = null;
@@ -51,18 +52,26 @@ class ChatPanel {
   setupNetworkListeners() {
     networkManager.on(SOCKET_EVENTS.CHAT_BROADCAST, (data) => {
       this.addMessage(data.nickname, data.message, data.timestamp);
+
+      // Play chat sound for messages from other players
+      if (data.nickname !== networkManager.nickname) {
+        soundManager.play('chat_message');
+      }
     });
 
     networkManager.on(SOCKET_EVENTS.PLAYER_JOINED, (data) => {
       this.addSystemMessage(`${data.nickname} joined the game`);
+      soundManager.play('player_join');
     });
 
     networkManager.on(SOCKET_EVENTS.PLAYER_LEFT, (data) => {
       this.addSystemMessage(`${data.nickname} left the game`);
+      soundManager.play('player_leave');
     });
 
     networkManager.on(SOCKET_EVENTS.PLAYER_KICKED, (data) => {
       this.addSystemMessage(`${data.nickname} was kicked from the game`);
+      soundManager.play('player_leave');
     });
   }
 
