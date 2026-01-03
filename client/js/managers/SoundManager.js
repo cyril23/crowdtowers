@@ -491,8 +491,9 @@ class SoundManager {
       this.muted = settings.muted || false;
       this.menuTrackIndex = settings.menuTrackIndex || 0;
       // Load volume settings (use defaults if not set)
-      this.sfxVolume = settings.sfxVolume !== undefined ? settings.sfxVolume : 0.2;
-      this.musicVolume = settings.musicVolume !== undefined ? settings.musicVolume : 0.25;
+      // Default volumes correspond to slider positions 15% and 30% with power curve 2.5
+      this.sfxVolume = settings.sfxVolume !== undefined ? settings.sfxVolume : 0.0087;
+      this.musicVolume = settings.musicVolume !== undefined ? settings.musicVolume : 0.0493;
     } catch {
       // Ignore localStorage errors
     }
@@ -540,6 +541,22 @@ class SoundManager {
     return this.musicVolume;
   }
 
+  // Volume scaling exponent for perceptually linear volume control
+  // 2.5 gives more control in the lower range than standard quadratic (2.0)
+  static VOLUME_EXPONENT = 2.5;
+
+  // Convert linear slider value (0-1) to perceptual volume (0-1)
+  // Uses power curve to give more control in lower volume ranges
+  static sliderToVolume(sliderValue) {
+    return Math.pow(sliderValue, SoundManager.VOLUME_EXPONENT);
+  }
+
+  // Convert volume (0-1) back to slider value (0-1)
+  // Used to initialize sliders from saved volume settings
+  static volumeToSlider(volume) {
+    return Math.pow(volume, 1 / SoundManager.VOLUME_EXPONENT);
+  }
+
   // Scene cleanup (call in scene.shutdown)
   cleanup() {
     // Stop all active sounds
@@ -565,4 +582,4 @@ if (typeof window !== 'undefined') {
   window.soundManager = soundManager;
 }
 
-export { soundManager, SOUND_CATEGORIES, SFX_FILES, MUSIC_FILES, MUSIC_TRACKS };
+export { soundManager, SoundManager, SOUND_CATEGORIES, SFX_FILES, MUSIC_FILES, MUSIC_TRACKS };

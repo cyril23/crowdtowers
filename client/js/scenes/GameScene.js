@@ -1,7 +1,7 @@
 import { GAME_CONFIG, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
 import { CLIENT_CONFIG } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
-import { soundManager } from '../managers/SoundManager.js';
+import { soundManager, SoundManager } from '../managers/SoundManager.js';
 import { InputManager } from '../managers/InputManager.js';
 import { HUD } from '../ui/HUD.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
@@ -356,23 +356,26 @@ class GameScene extends Phaser.Scene {
     this.musicVolumeValue = document.getElementById('music-volume-value');
 
     // Initialize sliders with current values from soundManager
-    this.sfxVolumeSlider.value = Math.round(soundManager.getSfxVolume() * 100);
+    // Convert stored volume back to slider position using inverse power curve
+    this.sfxVolumeSlider.value = Math.round(SoundManager.volumeToSlider(soundManager.getSfxVolume()) * 100);
     this.sfxVolumeValue.textContent = this.sfxVolumeSlider.value + '%';
-    this.musicVolumeSlider.value = Math.round(soundManager.getMusicVolume() * 100);
+    this.musicVolumeSlider.value = Math.round(SoundManager.volumeToSlider(soundManager.getMusicVolume()) * 100);
     this.musicVolumeValue.textContent = this.musicVolumeSlider.value + '%';
 
     // SFX volume slider handler
+    // Apply power curve for perceptually linear volume control
     this.sfxVolumeSlider.oninput = () => {
-      const value = parseInt(this.sfxVolumeSlider.value);
-      this.sfxVolumeValue.textContent = value + '%';
-      soundManager.setSfxVolume(value / 100);
+      const sliderValue = parseInt(this.sfxVolumeSlider.value);
+      this.sfxVolumeValue.textContent = sliderValue + '%';
+      soundManager.setSfxVolume(SoundManager.sliderToVolume(sliderValue / 100));
     };
 
     // Music volume slider handler
+    // Apply power curve for perceptually linear volume control
     this.musicVolumeSlider.oninput = () => {
-      const value = parseInt(this.musicVolumeSlider.value);
-      this.musicVolumeValue.textContent = value + '%';
-      soundManager.setMusicVolume(value / 100);
+      const sliderValue = parseInt(this.musicVolumeSlider.value);
+      this.musicVolumeValue.textContent = sliderValue + '%';
+      soundManager.setMusicVolume(SoundManager.sliderToVolume(sliderValue / 100));
     };
 
     // Pause overlay
