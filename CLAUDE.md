@@ -196,3 +196,8 @@ Client JS errors are captured and stored in MongoDB:
 - Errors include: stack trace, active Phaser scenes, session code, screen size
 - Dev-only toast overlay on localhost/staging
 - Admin page: `/admin/errors` (token-protected in production via `?token=ADMIN_SECRET`)
+
+**Testing:** Trigger a fake error from browser console:
+```javascript
+setTimeout(() => { throw new Error('test error'); }, 0)
+```
