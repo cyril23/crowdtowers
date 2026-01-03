@@ -1,6 +1,7 @@
 import { SOCKET_EVENTS, GAME_STATUS, MAZE_SIZES } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
+import { GameMenuManager } from '../ui/GameMenuManager.js';
 
 // ============================================
 // BACKGROUND SCENE - Persistent animated background for menu screens
@@ -406,6 +407,15 @@ class MenuScene extends Phaser.Scene {
       const duration = this.scene.settings.data?.toastDuration;
       this.showToast(toastMsg, duration);
     }
+
+    // Setup global menu with just volume controls
+    this.gameMenu = new GameMenuManager();
+    this.gameMenu.configure({
+      showSessionCode: false,
+      buttons: [],  // No buttons for main menu - just volume controls
+      position: 'top-right'
+    });
+    this.gameMenu.show();
   }
 
   showToast(message, duration = 2000) {
@@ -879,6 +889,25 @@ class JoinGameScene extends Phaser.Scene {
 
     // Listen for resize
     this.scale.on('resize', this.onResize, this);
+
+    // Setup global menu with volume controls + back button
+    this.gameMenu = new GameMenuManager();
+    this.gameMenu.configure({
+      showSessionCode: false,
+      buttons: [
+        {
+          id: 'back',
+          label: 'Back to Main Menu',
+          onClick: () => {
+            this.cleanupInput();
+            this.scene.stop('JoinGameScene');
+            this.scene.launch('MenuScene');
+          }
+        }
+      ],
+      position: 'top-right'
+    });
+    this.gameMenu.show();
   }
 
   buildLandscapeLayout(centerX) {
@@ -1184,6 +1213,24 @@ class CreateGameScene extends Phaser.Scene {
 
     // Listen for resize to rebuild layout
     this.scale.on('resize', this.onResize, this);
+
+    // Setup global menu with volume controls + back button
+    this.gameMenu = new GameMenuManager();
+    this.gameMenu.configure({
+      showSessionCode: false,
+      buttons: [
+        {
+          id: 'back',
+          label: 'Back to Main Menu',
+          onClick: () => {
+            this.scene.stop('CreateGameScene');
+            this.scene.launch('MenuScene');
+          }
+        }
+      ],
+      position: 'top-right'
+    });
+    this.gameMenu.show();
   }
 
   onResize() {
@@ -1586,6 +1633,25 @@ class BrowseScene extends Phaser.Scene {
 
     // Listen for resize
     this.scale.on('resize', this.onResize, this);
+
+    // Setup global menu with volume controls + back button
+    this.gameMenu = new GameMenuManager();
+    this.gameMenu.configure({
+      showSessionCode: false,
+      buttons: [
+        {
+          id: 'back',
+          label: 'Back to Main Menu',
+          onClick: () => {
+            networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
+            this.scene.stop('BrowseScene');
+            this.scene.launch('MenuScene');
+          }
+        }
+      ],
+      position: 'top-right'
+    });
+    this.gameMenu.show();
 
     // Request games list
     this.refreshList();

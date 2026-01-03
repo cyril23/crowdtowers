@@ -2,6 +2,7 @@ import { SOCKET_EVENTS } from '../../../shared/constants.js';
 import { DeviceUtils } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
+import { GameMenuManager } from '../ui/GameMenuManager.js';
 
 class LobbyScene extends Phaser.Scene {
   constructor() {
@@ -155,13 +156,53 @@ class LobbyScene extends Phaser.Scene {
     this.chatPanel.clear();
     this.chatPanel.setLobbyMode(true);
 
-    // On mobile, hide chat by default and show toggle button
+    // On mobile, hide chat by default
     if (DeviceUtils.isMobile()) {
       this.chatPanel.hide();
-      this.createChatToggleButton();
     } else {
       this.chatPanel.show();
     }
+
+    // Setup global menu with volume controls, code, chat toggle, and leave
+    this.gameMenu = new GameMenuManager();
+    this.gameMenu.configure({
+      showSessionCode: true,
+      sessionCode: this.sessionCode,
+      buttons: [
+        {
+          id: 'chat',
+          label: this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat',
+          onClick: () => {
+            this.chatPanel.toggle();
+            // Update button label
+            this.gameMenu.updateButtonLabel('chat', this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat');
+            // Clear badge when showing chat
+            if (this.chatPanel.isVisible) {
+              this.gameMenu.clearUnread();
+            }
+          },
+          updateLabel: () => this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat'
+        },
+        {
+          id: 'leave',
+          label: 'Leave Lobby',
+          danger: true,
+          onClick: () => {
+            networkManager.leaveLobby();
+            this.chatPanel.setLobbyMode(false);
+            this.chatPanel.hide();
+            this.scene.start('MenuScene');
+          }
+        }
+      ],
+      position: 'top-right'
+    });
+    this.gameMenu.show();
+
+    // Track unread messages - update menu badge
+    this.chatPanel.onUnreadChange = (count) => {
+      this.gameMenu.setUnreadCount(count);
+    };
 
     // Setup network listeners
     this.setupNetworkListeners();
@@ -240,39 +281,6 @@ class LobbyScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       this.notification.setText('');
     });
-  }
-
-  createChatToggleButton() {
-    const width = this.cameras.main.width;
-
-    // Chat toggle button (top-right)
-    this.chatToggleBtn = this.add.text(width - 20, 20, 'Chat', {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      backgroundColor: '#4a4a8a',
-      padding: { x: 10, y: 6 }
-    })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerover', () => {
-        this.chatToggleBtn.setStyle({ backgroundColor: '#6a6aaa' });
-      })
-      .on('pointerout', () => {
-        this.chatToggleBtn.setStyle({ backgroundColor: '#4a4a8a' });
-      })
-      .on('pointerdown', () => {
-        this.chatPanel.toggle();
-      });
-
-    // Track unread messages
-    this.chatPanel.onUnreadChange = (count) => {
-      if (count > 0) {
-        this.chatToggleBtn.setText(`Chat (${count})`);
-      } else {
-        this.chatToggleBtn.setText('Chat');
-      }
-    };
   }
 
   shutdown() {

@@ -1,12 +1,13 @@
 import { GAME_CONFIG, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
 import { CLIENT_CONFIG } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
-import { soundManager, SoundManager } from '../managers/SoundManager.js';
+import { soundManager } from '../managers/SoundManager.js';
 import { InputManager } from '../managers/InputManager.js';
 import { HUD } from '../ui/HUD.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
 import { TowerMenu } from '../ui/TowerMenu.js';
 import { TowerSprite } from '../entities/Tower.js';
+import { GameMenuManager } from '../ui/GameMenuManager.js';
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -324,62 +325,52 @@ class GameScene extends Phaser.Scene {
 
     // Chat panel - hidden by default in game, with notification support
     this.chatPanel = new ChatPanel();
-    this.chatPanel.hide(); // Hidden by default - use chat button to show
+    this.chatPanel.hide(); // Hidden by default - use Menu to show
 
-    // Chat toggle button and badge
-    this.chatToggleBtn = document.getElementById('chat-toggle-btn');
-    this.chatBadge = document.getElementById('chat-badge');
+    // Setup global menu with volume controls, code, chat toggle, pause, and leave
+    this.gameMenu = new GameMenuManager();
+    this.gameMenu.configure({
+      showSessionCode: true,
+      sessionCode: this.sessionCode,
+      buttons: [
+        {
+          id: 'pause',
+          label: 'Pause Game',
+          onClick: () => {
+            networkManager.pauseGame();
+          }
+        },
+        {
+          id: 'chat',
+          label: 'Show Chat',
+          onClick: () => {
+            this.chatPanel.toggle();
+            this.gameMenu.updateButtonLabel('chat', this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat');
+            if (this.chatPanel.isVisible) {
+              this.gameMenu.clearUnread();
+            }
+          },
+          updateLabel: () => this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat'
+        },
+        {
+          id: 'leave',
+          label: 'Leave Game',
+          danger: true,
+          onClick: () => {
+            this.showConfirmDialog('Leave Game', 'Are you sure you want to leave the game?', () => {
+              networkManager.leaveGame();
+              this.cleanupAndReturn();
+            });
+          }
+        }
+      ],
+      position: 'top-right'
+    });
+    this.gameMenu.show();
 
-    // Wire up unread notification callback
+    // Wire up unread notification callback to menu badge
     this.chatPanel.onUnreadChange = (count) => {
-      this.updateChatBadge(count);
-    };
-
-    // Chat toggle button click handler
-    this.chatToggleBtn.onclick = () => {
-      this.chatPanel.toggle();
-      this.updateChatButtonText();
-    };
-
-    // Mute button
-    this.muteBtn = document.getElementById('mute-btn');
-    this.soundIcon = this.muteBtn.querySelector('.sound-icon');
-
-    // Initialize mute button state
-    this.updateMuteButton();
-
-    this.muteBtn.onclick = () => {
-      soundManager.toggleMute();
-      this.updateMuteButton();
-    };
-
-    // Volume sliders
-    this.sfxVolumeSlider = document.getElementById('sfx-volume');
-    this.sfxVolumeValue = document.getElementById('sfx-volume-value');
-    this.musicVolumeSlider = document.getElementById('music-volume');
-    this.musicVolumeValue = document.getElementById('music-volume-value');
-
-    // Initialize sliders with current values from soundManager
-    // Convert stored volume back to slider position using inverse power curve
-    this.sfxVolumeSlider.value = Math.round(SoundManager.volumeToSlider(soundManager.getSfxVolume()) * 100);
-    this.sfxVolumeValue.textContent = this.sfxVolumeSlider.value + '%';
-    this.musicVolumeSlider.value = Math.round(SoundManager.volumeToSlider(soundManager.getMusicVolume()) * 100);
-    this.musicVolumeValue.textContent = this.musicVolumeSlider.value + '%';
-
-    // SFX volume slider handler
-    // Apply power curve for perceptually linear volume control
-    this.sfxVolumeSlider.oninput = () => {
-      const sliderValue = parseInt(this.sfxVolumeSlider.value);
-      this.sfxVolumeValue.textContent = sliderValue + '%';
-      soundManager.setSfxVolume(SoundManager.sliderToVolume(sliderValue / 100));
-    };
-
-    // Music volume slider handler
-    // Apply power curve for perceptually linear volume control
-    this.musicVolumeSlider.oninput = () => {
-      const sliderValue = parseInt(this.musicVolumeSlider.value);
-      this.musicVolumeValue.textContent = sliderValue + '%';
-      soundManager.setMusicVolume(SoundManager.sliderToVolume(sliderValue / 100));
+      this.gameMenu.setUnreadCount(count);
     };
 
     // Pause overlay
@@ -390,82 +381,6 @@ class GameScene extends Phaser.Scene {
     this.resumeBtn.addEventListener('click', () => {
       networkManager.resumeGame();
     });
-
-    // Game menu dropdown
-    this.menuToggleBtn = document.getElementById('menu-toggle-btn');
-    this.menuDropdown = document.getElementById('game-menu-dropdown');
-    this.menuCodeValue = document.getElementById('menu-code-value');
-    this.menuPauseBtn = document.getElementById('menu-pause-btn');
-    this.menuChatBtn = document.getElementById('menu-chat-btn');
-
-    // Set session code in menu
-    this.menuCodeValue.textContent = this.sessionCode;
-
-    // Copy code button - use onclick to replace any existing handler
-    this.menuCopyBtn = document.getElementById('menu-copy-btn');
-    this.menuCopyBtn.onclick = (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(this.sessionCode);
-      this.menuCopyBtn.textContent = 'Copied!';
-      setTimeout(() => {
-        this.menuCopyBtn.textContent = 'Copy';
-      }, 1500);
-    };
-
-    // Menu toggle - use onclick to replace any existing handler (prevents duplicate listeners)
-    this.menuToggleBtn.onclick = (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      this.menuDropdown.classList.toggle('hidden');
-      // Position and update dropdown when menu opens
-      if (!this.menuDropdown.classList.contains('hidden')) {
-        // Position dropdown below the button, aligned to its right edge
-        const btnRect = this.menuToggleBtn.getBoundingClientRect();
-        const dropdownWidth = this.menuDropdown.offsetWidth;
-        // Align right edge of dropdown with right edge of button
-        let left = btnRect.right - dropdownWidth;
-        // Make sure it doesn't go off the left edge of screen
-        if (left < 10) left = 10;
-        this.menuDropdown.style.top = (btnRect.bottom + 5) + 'px';
-        this.menuDropdown.style.left = left + 'px';
-        this.updateChatButtonText();
-      }
-    };
-
-    // Close menu when clicking outside - use a named handler to avoid duplicates
-    if (!window._menuCloseHandlerAdded) {
-      window._menuCloseHandlerAdded = true;
-      document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('game-menu-dropdown');
-        const toggleBtn = document.getElementById('menu-toggle-btn');
-        if (dropdown && toggleBtn && !toggleBtn.contains(e.target) && !dropdown.contains(e.target)) {
-          dropdown.classList.add('hidden');
-        }
-      });
-    }
-
-    // Pause button in menu - use onclick to replace any existing handler
-    this.menuPauseBtn.onclick = () => {
-      networkManager.pauseGame();
-      this.menuDropdown.classList.add('hidden');
-    };
-
-    // Chat toggle button in menu - use onclick to replace any existing handler
-    this.menuChatBtn.onclick = () => {
-      this.chatPanel.toggle();
-      this.updateChatButtonText();
-      this.menuDropdown.classList.add('hidden');
-    };
-
-    // Leave game button in menu
-    this.menuLeaveBtn = document.getElementById('menu-leave-btn');
-    this.menuLeaveBtn.onclick = () => {
-      this.menuDropdown.classList.add('hidden');
-      this.showConfirmDialog('Leave Game', 'Are you sure you want to leave the game?', () => {
-        networkManager.leaveGame();
-        this.cleanupAndReturn();
-      });
-    };
 
     // Confirm modal elements
     this.confirmModal = document.getElementById('confirm-modal');
@@ -503,36 +418,8 @@ class GameScene extends Phaser.Scene {
     this.hud.hide();
     this.towerMenu.hide();
     this.chatPanel.hide();
+    this.gameMenu.hide();
     this.scene.start('MenuScene');
-  }
-
-  updateChatButtonText() {
-    if (this.chatPanel.isVisible) {
-      this.menuChatBtn.textContent = 'Hide Chat';
-    } else {
-      this.menuChatBtn.textContent = 'Show Chat';
-    }
-  }
-
-  updateChatBadge(count) {
-    if (count > 0) {
-      this.chatBadge.textContent = count > 99 ? '99+' : count;
-      this.chatBadge.classList.remove('hidden');
-      this.chatToggleBtn.classList.add('has-unread');
-    } else {
-      this.chatBadge.classList.add('hidden');
-      this.chatToggleBtn.classList.remove('has-unread');
-    }
-  }
-
-  updateMuteButton() {
-    const isMuted = soundManager.isMuted();
-    this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
-    if (isMuted) {
-      this.muteBtn.classList.add('muted');
-    } else {
-      this.muteBtn.classList.remove('muted');
-    }
   }
 
   // Helper to register network handlers and track them for cleanup

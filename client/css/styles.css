@@ -236,6 +236,76 @@ html, body {
   background: #cc5555;
 }
 
+/* Dynamic Menu Buttons */
+.menu-btn {
+  display: block;
+  width: 100%;
+  background: #3a3a6a;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 5px;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.menu-btn:hover {
+  background: #4a4a8a;
+}
+
+.menu-btn:last-child {
+  margin-bottom: 0;
+}
+
+.menu-btn-danger {
+  background: #aa4444;
+}
+
+.menu-btn-danger:hover {
+  background: #cc5555;
+}
+
+/* Menu Badge (notification indicator) */
+#menu-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff4444;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+#menu-badge.hidden {
+  display: none;
+}
+
+#menu-toggle-btn {
+  position: relative;
+}
+
+#menu-toggle-btn.has-unread {
+  animation: pulse-badge 1s ease-in-out infinite;
+}
+
+/* Global Menu - Fixed Positioning */
+#game-menu.fixed-position {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+}
+
 /* Volume Sliders */
 .menu-volume-section {
   padding: 8px 10px;
@@ -259,6 +329,33 @@ html, body {
   font-size: 12px;
   width: 40px;
   flex-shrink: 0;
+}
+
+/* Volume Mute Buttons */
+.volume-mute-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  width: 28px;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+
+.volume-mute-btn:hover {
+  transform: scale(1.15);
+}
+
+/* Muted slider state */
+.volume-control input[type="range"].muted {
+  opacity: 0.4;
+}
+
+.volume-control input[type="range"]:disabled {
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .volume-control input[type="range"] {

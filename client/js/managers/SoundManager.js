@@ -115,6 +115,8 @@ class SoundManager {
 
     // Settings (defaults: SFX 20%, Music 25%)
     this.muted = false;
+    this.sfxMuted = false;
+    this.musicMuted = false;
     this.sfxVolume = 0.2;
     this.musicVolume = 0.25;
     this.otherPlayerVolume = 0.3;
@@ -182,7 +184,7 @@ class SoundManager {
   // Play a sound with priority management
   play(soundKey, options = {}) {
     if (!this.initialized) return null;
-    if (this.muted) return null;
+    if (this.muted || this.sfxMuted) return null;
     if (!this.audioUnlocked) return null;
 
     const {
@@ -339,7 +341,7 @@ class SoundManager {
     const track = this.musicTracks.get(trackKey);
     if (track) {
       track.setLoop(loop);
-      track.setVolume(this.musicVolume);
+      track.setVolume(this.musicMuted ? 0 : this.musicVolume);
       track.play();
       this.currentMusic = track;
       this.currentMusicKey = trackKey;
@@ -494,11 +496,41 @@ class SoundManager {
     return this.muted;
   }
 
+  // Toggle SFX mute independently
+  toggleSfxMute() {
+    this.sfxMuted = !this.sfxMuted;
+    this.saveSettings();
+    return this.sfxMuted;
+  }
+
+  // Check if SFX is muted
+  isSfxMuted() {
+    return this.sfxMuted;
+  }
+
+  // Toggle music mute independently
+  toggleMusicMute() {
+    this.musicMuted = !this.musicMuted;
+    // Update currently playing music volume
+    if (this.currentMusic) {
+      this.currentMusic.setVolume(this.musicMuted ? 0 : this.musicVolume);
+    }
+    this.saveSettings();
+    return this.musicMuted;
+  }
+
+  // Check if music is muted
+  isMusicMuted() {
+    return this.musicMuted;
+  }
+
   // Load settings from localStorage
   loadSettings() {
     try {
       const settings = JSON.parse(localStorage.getItem('crowdtowers_sound') || '{}');
       this.muted = settings.muted || false;
+      this.sfxMuted = settings.sfxMuted || false;
+      this.musicMuted = settings.musicMuted || false;
       this.menuTrackIndex = settings.menuTrackIndex || 0;
       // Load volume settings (use defaults if not set)
       // Default volumes correspond to slider positions 15% and 30% with power curve 2.5
@@ -514,6 +546,8 @@ class SoundManager {
     try {
       localStorage.setItem('crowdtowers_sound', JSON.stringify({
         muted: this.muted,
+        sfxMuted: this.sfxMuted,
+        musicMuted: this.musicMuted,
         menuTrackIndex: this.menuTrackIndex,
         sfxVolume: this.sfxVolume,
         musicVolume: this.musicVolume
