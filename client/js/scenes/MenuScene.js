@@ -26,6 +26,11 @@ class BackgroundScene extends Phaser.Scene {
   }
 
   handleResize() {
+    // Safety check - scene might be stopped or cameras destroyed
+    if (!this.scene.isActive() || !this.cameras.main) {
+      return;
+    }
+
     // Update star and UFO centers for new canvas size
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;

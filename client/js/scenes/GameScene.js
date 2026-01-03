@@ -22,6 +22,13 @@ class GameScene extends Phaser.Scene {
       towers: []
     };
 
+    // Preserve selected tower type across restarts (for resize)
+    this.preservedSelectedTowerType = data.selectedTowerType || null;
+
+    // Store new dimensions from resize event (if passed)
+    this._newWidth = data.newWidth || null;
+    this._newHeight = data.newHeight || null;
+
     // DON'T reset networkHandlers here! Only initialize if it doesn't exist.
     if (!this.networkHandlers) {
       this.networkHandlers = [];
@@ -96,17 +103,54 @@ class GameScene extends Phaser.Scene {
   }
 
   setupCamera() {
-    const canvasWidth = this.cameras.main.width;
-    const canvasHeight = this.cameras.main.height;
+    // Use passed dimensions from resize event if available, otherwise read from camera
+    const canvasWidth = this._newWidth || this.cameras.main.width;
+    const canvasHeight = this._newHeight || this.cameras.main.height;
 
-    // Calculate zoom to fit maze in available space (never zoom in past 1:1)
-    const scaleX = canvasWidth / this.mazePixelSize;
-    const scaleY = canvasHeight / this.mazePixelSize;
+    // Clear stored dimensions after using
+    this._newWidth = null;
+    this._newHeight = null;
+
+    console.log('=== setupCamera ===');
+    console.log('Using dimensions:', canvasWidth, 'x', canvasHeight);
+
+    // Panel position detection - must match CSS media query:
+    // @media (max-width: 900px), (max-height: 700px)
+    // Panel is on LEFT only when BOTH width > 900 AND height > 700
+    const isPanelOnLeft = canvasWidth > 900 && canvasHeight > 700;
+
+    // Reserve space for tower panel
+    const PANEL_LEFT_WIDTH = 320;   // ~300px max-width + padding
+    const PANEL_BOTTOM_HEIGHT = 80; // ~70px content + padding
+
+    // Calculate available space for maze
+    const availableWidth = isPanelOnLeft ? canvasWidth - PANEL_LEFT_WIDTH : canvasWidth;
+    const availableHeight = isPanelOnLeft ? canvasHeight : canvasHeight - PANEL_BOTTOM_HEIGHT;
+
+    console.log('isPanelOnLeft:', isPanelOnLeft, 'available:', availableWidth, 'x', availableHeight);
+
+    // Zoom to fit maze in available space (cap at 1x to not enlarge)
+    const scaleX = availableWidth / this.mazePixelSize;
+    const scaleY = availableHeight / this.mazePixelSize;
     const zoom = Math.min(scaleX, scaleY, 1);
 
-    // Center camera on maze center
     this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(this.mazePixelSize / 2, this.mazePixelSize / 2);
+
+    // Offset camera to center maze in available space (not full canvas)
+    const mazeCenter = this.mazePixelSize / 2;
+    let cameraCenterX = mazeCenter;
+    let cameraCenterY = mazeCenter;
+
+    if (isPanelOnLeft) {
+      // Panel on left: shift maze view right by moving camera left
+      cameraCenterX = mazeCenter - (PANEL_LEFT_WIDTH / 2) / zoom;
+    } else {
+      // Panel on bottom: shift maze view up by moving camera down
+      cameraCenterY = mazeCenter + (PANEL_BOTTOM_HEIGHT / 2) / zoom;
+    }
+
+    console.log('zoom:', zoom, 'centerOn:', cameraCenterX, cameraCenterY);
+    this.cameras.main.centerOn(cameraCenterX, cameraCenterY);
   }
 
   drawLetterboxBackground() {
@@ -128,12 +172,42 @@ class GameScene extends Phaser.Scene {
     this.letterboxGraphics.fillRect(0, 0, canvasWidth, canvasHeight);
   }
 
-  handleResize(_gameSize) {
-    // Reconfigure camera for new size
-    this.setupCamera();
+  handleResize(gameSize) {
+    // Debug: Log resize event details
+    console.log('=== handleResize ===');
+    console.log('gameSize:', gameSize?.width, 'x', gameSize?.height);
+    console.log('scale:', this.scale.width, 'x', this.scale.height);
+    console.log('camera:', this.cameras.main.width, 'x', this.cameras.main.height);
+    console.log('isActive:', this.scene.isActive());
 
-    // Redraw letterbox background
-    this.drawLetterboxBackground();
+    // CRITICAL: Remove listener before restart to prevent handler accumulation
+    this.scale.off('resize', this.handleResize, this);
+
+    // Safety check: only restart if this scene is actually active
+    if (!this.scene.isActive()) {
+      console.log('Scene NOT active - returning early');
+      return;
+    }
+
+    // Preserve current state for restart
+    const preservedData = {
+      sessionCode: this.sessionCode,
+      maze: this.maze,
+      gameState: {
+        budget: this.gameState.budget,
+        lives: this.gameState.lives,
+        currentWave: this.gameState.currentWave,
+        towers: this.gameState.towers
+      },
+      // Preserve UI state
+      selectedTowerType: this.towerMenu?.selectedType || null,
+      // Pass new dimensions explicitly (from resize event)
+      newWidth: gameSize?.width,
+      newHeight: gameSize?.height
+    };
+
+    console.log('Calling scene.restart() with dimensions:', preservedData.newWidth, 'x', preservedData.newHeight);
+    this.scene.restart(preservedData);
   }
 
   drawMaze() {

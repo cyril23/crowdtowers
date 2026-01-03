@@ -729,8 +729,8 @@ html, body {
   background: #aa3333;
 }
 
-/* Responsiveness - Tower panel goes horizontal at 1024px */
-@media (max-width: 1024px) {
+/* Responsiveness - Tower panel goes horizontal on narrow OR short screens */
+@media (max-width: 900px), (max-height: 700px) {
   #tower-panel {
     left: 5px;
     right: 5px;
