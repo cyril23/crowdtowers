@@ -88,6 +88,17 @@ curl https://staging.crowdtowers.wochenentwicklung.com/api/health   # Staging
 **Staging:** Auto-deploys on push to `main` via GitHub Actions.
 **Production:** Manual trigger only (workflow_dispatch) from GitHub Actions.
 
+### When to Use What
+
+| Change Type | Deployment Method |
+|-------------|-------------------|
+| Code changes (client, server, shared) | GitHub Actions (or local scripts) |
+| `.env.prod.j2` template changes | Ansible with `ansible_user=root` |
+| New vault secrets | `ansible-vault edit` first, then Ansible |
+| Nginx config, packages, security | Ansible with `ansible_user=root` |
+
+**Why?** GitHub Actions only does `git pull` + `npm install` + `pm2 restart`. It doesn't run Ansible templates or have access to vault secrets. So if you add a new environment variable to `.env.prod.j2`, you must run Ansible to render the template to the actual `.env.prod` file on the server.
+
 ### Local Dev Scripts
 
 For faster iteration during development, you can deploy directly to staging from your local machine without committing or pushing to GitHub. This is useful for testing on mobile devices before committing.
