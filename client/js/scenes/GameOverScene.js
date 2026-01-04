@@ -1,4 +1,5 @@
 // GameOverScene - displays victory or defeat screen
+import { formatCurrency } from '../utils/formatNumber.js';
 
 class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -66,8 +67,8 @@ class GameOverScene extends Phaser.Scene {
     // Right column (resources)
     const rightStats = [
       `Lives Remaining: ${this.stats.livesRemaining}`,
-      `Budget Remaining: $${this.stats.budgetRemaining}`,
-      `Total Spent: $${this.stats.totalBudgetSpent}`
+      `Budget Remaining: ${formatCurrency(this.stats.budgetRemaining)}`,
+      `Total Spent: ${formatCurrency(this.stats.totalBudgetSpent)}`
     ].join('\n');
 
     this.add.text(centerX + 20, centerY + 20, rightStats, {

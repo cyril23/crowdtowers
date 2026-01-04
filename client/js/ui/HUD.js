@@ -1,4 +1,5 @@
 // HUD class - displays lives, budget, wave info
+import { formatCurrency } from '../utils/formatNumber.js';
 
 class HUD {
   constructor() {
@@ -30,7 +31,7 @@ class HUD {
   }
 
   updateBudget(value) {
-    this.elements.budget.textContent = '$' + value;
+    this.elements.budget.textContent = formatCurrency(value);
   }
 
   updateWave(value) {

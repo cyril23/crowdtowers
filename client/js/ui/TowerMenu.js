@@ -1,6 +1,7 @@
 import { TOWERS, ENEMIES } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
+import { formatNumber, formatCurrency } from '../utils/formatNumber.js';
 
 class TowerMenu {
   constructor() {
@@ -85,10 +86,10 @@ class TowerMenu {
         <div class="tower-icon" style="background-color: ${colorHex}"></div>
         <div class="tower-info">
           <div class="tower-name">${tower.name}</div>
-          <div class="tower-cost">$${tower.cost}</div>
+          <div class="tower-cost">${formatCurrency(tower.cost)}</div>
         </div>
         <div class="tower-stats">
-          <div>DMG: ${tower.damage}</div>
+          <div>DMG: ${formatNumber(tower.damage)}</div>
           <div>RNG: ${tower.range}</div>
         </div>
       `;
@@ -184,9 +185,16 @@ class TowerMenu {
     const canAfford = budget >= upgradeCost;
 
     // Helper to format upgrade values: show "current → next" only if different
-    const formatUpgrade = (current, next, decimals = 1, suffix = '') => {
-      const currentStr = typeof current === 'number' && decimals >= 0 ? current.toFixed(decimals) : String(current);
-      const nextStr = typeof next === 'number' && decimals >= 0 ? next.toFixed(decimals) : String(next);
+    // decimals=0 uses formatNumber (integer with dot separators), decimals>0 uses toFixed
+    const formatUpgrade = (current, next, decimals = 0, suffix = '') => {
+      const fmt = (val) => {
+        if (typeof val !== 'number') return String(val);
+        if (decimals === 0) return formatNumber(Math.round(val));
+        if (decimals > 0) return val.toFixed(decimals);
+        return String(Math.round(val)); // decimals < 0: integer without separators
+      };
+      const currentStr = fmt(current);
+      const nextStr = fmt(next);
       return currentStr === nextStr ? `${currentStr}${suffix}` : `${currentStr}${suffix} → ${nextStr}${suffix}`;
     };
 
@@ -209,12 +217,12 @@ class TowerMenu {
       <p>Level: ${tower.level}</p>
       <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
-      <p>Upgrade Cost: $${upgradeCost}</p>
+      <p>Upgrade Cost: ${formatCurrency(upgradeCost)}</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
     this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
-    this.elements.sellBtn.textContent = `Sell (+$${sellValue})`;
+    this.elements.sellBtn.textContent = `Sell (+${formatCurrency(sellValue)})`;
 
     this.elements.upgradePanel.classList.remove('hidden');
   }
@@ -260,9 +268,16 @@ class TowerMenu {
     const canAfford = budget >= upgradeCost;
 
     // Helper to format upgrade values: show "current → next" only if different
-    const formatUpgrade = (current, next, decimals = 1, suffix = '') => {
-      const currentStr = typeof current === 'number' && decimals >= 0 ? current.toFixed(decimals) : String(current);
-      const nextStr = typeof next === 'number' && decimals >= 0 ? next.toFixed(decimals) : String(next);
+    // decimals=0 uses formatNumber (integer with dot separators), decimals>0 uses toFixed
+    const formatUpgrade = (current, next, decimals = 0, suffix = '') => {
+      const fmt = (val) => {
+        if (typeof val !== 'number') return String(val);
+        if (decimals === 0) return formatNumber(Math.round(val));
+        if (decimals > 0) return val.toFixed(decimals);
+        return String(Math.round(val)); // decimals < 0: integer without separators
+      };
+      const currentStr = fmt(current);
+      const nextStr = fmt(next);
       return currentStr === nextStr ? `${currentStr}${suffix}` : `${currentStr}${suffix} → ${nextStr}${suffix}`;
     };
 
@@ -285,12 +300,12 @@ class TowerMenu {
       <p>Level: ${tower.level}</p>
       <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
-      <p>Upgrade Cost: $${upgradeCost}</p>
+      <p>Upgrade Cost: ${formatCurrency(upgradeCost)}</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
     this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
-    this.elements.sellBtn.textContent = `Sell (+$${sellValue})`;
+    this.elements.sellBtn.textContent = `Sell (+${formatCurrency(sellValue)})`;
   }
 
   showEnemyPanel(enemy) {
@@ -337,7 +352,7 @@ class TowerMenu {
       <h3>${enemyDef.name}</h3>
       <p>Health: ${Math.round(enemy.health)}/${enemy.maxHealth} (${healthPercent}%)</p>
       <p>Speed: ${speedDisplay}</p>
-      <p>Reward: $${enemy.reward}</p>
+      <p>Reward: ${formatCurrency(enemy.reward)}</p>
       ${specialDesc}
       ${strongTowers.length ? `<p class="enemy-weak">Weak to: ${strongTowers.join(', ')}</p>` : ''}
       ${weakTowers.length ? `<p class="enemy-strong">Strong vs: ${weakTowers.join(', ')}</p>` : ''}
@@ -381,8 +396,8 @@ class TowerMenu {
     const statusClass = escaped ? 'enemy-escaped' : 'enemy-killed';
     const statusText = escaped ? 'ESCAPED' : 'KILLED';
     const rewardLine = escaped
-      ? `<p>Reward: $${enemy.reward} (LOST)</p>`
-      : `<p>Reward: $${enemy.reward}</p>`;
+      ? `<p>Reward: ${formatCurrency(enemy.reward)} (LOST)</p>`
+      : `<p>Reward: ${formatCurrency(enemy.reward)}</p>`;
 
     this.elements.enemyInfo.innerHTML = `
       <h3>${enemyDef.name}</h3>
