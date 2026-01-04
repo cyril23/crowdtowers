@@ -69,8 +69,7 @@ class GameScene extends Phaser.Scene {
     // Draw letterbox background (areas outside the maze)
     this.drawLetterboxBackground();
 
-    // Arrays to hold game objects
-    this.towers = [];
+    // Tower sprites map (tower data comes from gameState.towers)
     this.towerSprites = new Map();
 
     // Enemy data from server (rendered directly, no individual sprites)
@@ -558,12 +557,6 @@ class GameScene extends Phaser.Scene {
         this.gameState.towers.splice(towerIndex, 1);
       }
 
-      // Remove tower from this.towers array
-      const towersIndex = this.towers.findIndex(t => t.id === data.towerId);
-      if (towersIndex !== -1) {
-        this.towers.splice(towersIndex, 1);
-      }
-
       // Destroy tower sprite
       const sprite = this.towerSprites.get(data.towerId);
       if (sprite) {
@@ -795,13 +788,10 @@ class GameScene extends Phaser.Scene {
     const sprite = new TowerSprite(this, tower, this.tileSize);
     this.towerSprites.set(tower.id, sprite);
 
-    // Only add to towers array if not already present
-    if (!this.towers.some(t => t.id === tower.id)) {
-      this.towers.push(tower);
-    }
-
     sprite.on('pointerdown', () => {
-      this.inputManager.selectTower(tower);
+      // Look up fresh tower data from gameState (closure tower may be stale after rejoin)
+      const currentTower = this.gameState.towers.find(t => t.id === tower.id);
+      this.inputManager.selectTower(currentTower || tower);
     });
 
     sprite.on('pointerover', () => {
@@ -822,7 +812,7 @@ class GameScene extends Phaser.Scene {
     }
 
     const tileType = this.maze.grid[gridY]?.[gridX];
-    const existingTower = this.towers.find(
+    const existingTower = this.gameState.towers.find(
       t => t.gridX === gridX && t.gridY === gridY
     );
 

@@ -210,7 +210,6 @@ class TowerMenu {
       <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
       <p>Upgrade Cost: $${upgradeCost}</p>
-      <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
@@ -287,7 +286,6 @@ class TowerMenu {
       <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
       <p>Upgrade Cost: $${upgradeCost}</p>
-      <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;

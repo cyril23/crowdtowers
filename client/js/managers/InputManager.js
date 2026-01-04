@@ -63,7 +63,7 @@ class InputManager {
     // If we have a tower selected for placement
     if (this.selectedTowerType && tileType === TILE_TYPES.BUILDABLE) {
       // Check if tile already has a tower
-      const existingTower = this.scene.towers.find(
+      const existingTower = this.scene.gameState.towers.find(
         t => t.gridX === gridX && t.gridY === gridY
       );
 
@@ -73,8 +73,8 @@ class InputManager {
       return;
     }
 
-    // Check if clicking on existing tower
-    const tower = this.scene.towers.find(
+    // Check if clicking on existing tower (use gameState.towers for fresh data after rejoin)
+    const tower = this.scene.gameState.towers.find(
       t => t.gridX === gridX && t.gridY === gridY
     );
 
