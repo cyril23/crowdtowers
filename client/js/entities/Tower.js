@@ -8,7 +8,7 @@ function getContrastTextColor(hexColor) {
   const b = hexColor & 0xff;
   // Perceived luminance formula
   const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-  return luminance > 160 ? '#222222' : '#ffffff';
+  return luminance > 140 ? '#222222' : '#ffffff';
 }
 
 class TowerSprite extends Phaser.GameObjects.Container {
