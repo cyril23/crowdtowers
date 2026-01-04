@@ -732,8 +732,15 @@ class GameScene extends Phaser.Scene {
   }
 
   // Phaser update loop - called every frame
-  update() {
+  // Using scene update() for projectiles is more reliable than time.addEvent()
+  // which can break after visibility changes (laptop standby, F5 refresh)
+  update(time, delta) {
     this.drawEnemies();
+
+    // Update projectiles every frame
+    if (this.projectiles.length > 0) {
+      this.updateProjectiles(delta);
+    }
   }
 
   // Draw all enemies using single graphics object (testgame approach)
@@ -960,7 +967,7 @@ class GameScene extends Phaser.Scene {
     const towerDef = TOWERS[towerType];
     const color = towerDef.color;
 
-    // Store projectile with targetId for live tracking (like testgame)
+    // Store projectile with targetId for live tracking
     const projectile = {
       x: fromX,
       y: fromY,
@@ -969,29 +976,20 @@ class GameScene extends Phaser.Scene {
       lastTargetY: toY,
       type: towerType,
       color: color,
-      speed: 300,               // Match testgame speed
+      speed: 300,
       hit: hit
     };
 
     this.projectiles.push(projectile);
-
-    // Start update loop if not already running
-    if (!this.projectileUpdateEvent) {
-      this.projectileUpdateEvent = this.time.addEvent({
-        delay: 16, // ~60fps
-        callback: this.updateProjectiles,
-        callbackScope: this,
-        loop: true
-      });
-    }
+    // No timer management needed - scene update() handles projectile rendering
   }
 
-  updateProjectiles() {
+  updateProjectiles(delta) {
     this.projectileGraphics.clear();
 
     // Filter out completed projectiles and draw active ones
     this.projectiles = this.projectiles.filter(p => {
-      // Find current target position (live tracking like testgame)
+      // Find current target position (live tracking)
       const target = this.enemyData.find(e => e.id === p.targetId);
 
       let targetX, targetY;
@@ -1020,8 +1018,8 @@ class GameScene extends Phaser.Scene {
         return false; // Remove projectile
       }
 
-      // Move toward CURRENT target position (like testgame)
-      const moveSpeed = p.speed * (16 / 1000); // 16ms frame time
+      // Move toward current target position using actual delta time
+      const moveSpeed = p.speed * (delta / 1000);
       p.x += (dx / dist) * moveSpeed;
       p.y += (dy / dist) * moveSpeed;
 
@@ -1030,12 +1028,6 @@ class GameScene extends Phaser.Scene {
 
       return true; // Keep projectile
     });
-
-    // Stop update loop if no projectiles
-    if (this.projectiles.length === 0 && this.projectileUpdateEvent) {
-      this.projectileUpdateEvent.remove();
-      this.projectileUpdateEvent = null;
-    }
   }
 
   drawProjectile(type, x, y, targetX, targetY, color) {
@@ -1132,10 +1124,6 @@ class GameScene extends Phaser.Scene {
     // Cleanup sounds
     soundManager.cleanup();
 
-    if (this.projectileUpdateEvent) {
-      this.projectileUpdateEvent.remove();
-      this.projectileUpdateEvent = null;
-    }
     this.hud.hide();
     this.towerMenu.hide();
     this.towerMenu.hideEnemyPanel();
