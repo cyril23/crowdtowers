@@ -467,6 +467,18 @@ class GameScene extends Phaser.Scene {
       log('[REJOIN]', 'Rejoined game successfully after reconnect');
       // Update local state with server state
       this.gameState = data.gameState;
+
+      // Sync TowerMenu's selectedTower reference to the new gameState
+      // (prevents stale tower data in upgrade panel after rejoin)
+      if (this.towerMenu.selectedTower) {
+        const updatedTower = this.gameState.towers.find(
+          t => t.id === this.towerMenu.selectedTower.id
+        );
+        if (updatedTower) {
+          this.towerMenu.selectedTower = updatedTower;
+        }
+      }
+
       this.hud.update({
         lives: this.gameState.lives,
         budget: this.gameState.budget,
