@@ -1,4 +1,4 @@
-import { TILE_TYPES, ENEMIES } from '../../../shared/constants.js';
+import { TILE_TYPES, ENEMIES, GAME_STATUS } from '../../../shared/constants.js';
 import { DeviceUtils } from '../config.js';
 import { networkManager } from './NetworkManager.js';
 
@@ -30,9 +30,9 @@ class InputManager {
     });
 
     this.scene.input.keyboard.on('keydown-P', () => {
-      if (this.scene.gameState?.status === 'playing') {
+      if (this.scene.gameState?.status === GAME_STATUS.PLAYING) {
         networkManager.pauseGame();
-      } else if (this.scene.gameState?.status === 'paused') {
+      } else if (this.scene.gameState?.status === GAME_STATUS.PAUSED) {
         networkManager.resumeGame();
       }
     });

@@ -1,4 +1,5 @@
 import { SOCKET_EVENTS } from '../../../shared/constants.js';
+import { log } from '../utils/logger.js';
 
 class NetworkManager {
   constructor() {
@@ -8,6 +9,39 @@ class NetworkManager {
     this.nickname = null;
     this.isHost = false;
     this.eventHandlers = new Map();
+
+    // Track when page was last visible (for detecting sleep/wake)
+    this.lastVisibleTime = Date.now();
+
+    // Listen for visibility changes (laptop wake from sleep)
+    this.setupVisibilityHandler();
+  }
+
+  setupVisibilityHandler() {
+    if (typeof document === 'undefined') return;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        const hiddenDuration = Date.now() - this.lastVisibleTime;
+        log('[NETWORK]', `Page visible after ${hiddenDuration}ms`);
+
+        // If hidden for more than 5 seconds, force reconnect to clear zombie sockets
+        // This handles the case where laptop goes to sleep after a pre-sleep wake
+        if (hiddenDuration > 5000 && this.socket && this.sessionCode) {
+          log('[NETWORK]', 'Forcing socket reconnect after extended sleep');
+          this.socket.disconnect();
+          // Wait 500ms for server's disconnect handler to complete before reconnecting
+          // This avoids race condition between disconnect (suspends game) and rejoin
+          setTimeout(() => {
+            log('[NETWORK]', 'Reconnecting after delay');
+            this.socket.connect();
+          }, 500);
+        }
+      } else {
+        this.lastVisibleTime = Date.now();
+        log('[NETWORK]', 'Page hidden');
+      }
+    });
   }
 
   connect() {
@@ -17,18 +51,27 @@ class NetworkManager {
       });
 
       this.socket.on('connect', () => {
-        console.log('Connected to server');
+        log('[NETWORK]', 'Connected to server');
+        const wasConnected = this.connected;
         this.connected = true;
+
+        // If this is a reconnection (not initial connect) and we have an active session,
+        // automatically try to rejoin the game
+        if (wasConnected === false && this.sessionCode) {
+          log('[REJOIN]', 'Socket reconnected while in game, attempting auto-rejoin');
+          this.rejoinGame(this.sessionCode, this.nickname);
+        }
+
         resolve();
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
+        log('[NETWORK]', 'Connection error:', error);
         reject(error);
       });
 
       this.socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+        log('[NETWORK]', 'Disconnected from server');
         this.connected = false;
       });
 
@@ -111,6 +154,7 @@ class NetworkManager {
   }
 
   resumeGame() {
+    log('[NETWORK]', 'Sending RESUME_GAME, connected:', this.connected);
     this.emit(SOCKET_EVENTS.RESUME_GAME, {});
   }
 
@@ -140,6 +184,40 @@ class NetworkManager {
 
   castKickVote(targetNickname, vote) {
     this.emit(SOCKET_EVENTS.CAST_KICK_VOTE, { targetNickname, vote });
+  }
+
+  // Session recovery after standby
+  rejoinGame(sessionCode, nickname) {
+    log('[REJOIN]', 'Attempting to rejoin session:', sessionCode);
+    this.nickname = nickname;
+    this.sessionCode = sessionCode;
+    // Include page visibility so server can auto-pause if reconnecting during sleep
+    const pageHidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    this.emit(SOCKET_EVENTS.REJOIN_GAME, { sessionCode, nickname, pageHidden });
+  }
+
+  // Check localStorage and attempt rejoin if session exists
+  checkAndRejoinSession() {
+    const savedSession = localStorage.getItem('activeGameSession');
+    if (!savedSession) {
+      return null;
+    }
+
+    try {
+      const session = JSON.parse(savedSession);
+      if (session.sessionCode && session.nickname) {
+        return session;
+      }
+    } catch {
+      log('[REJOIN]', 'Invalid session data, clearing');
+      localStorage.removeItem('activeGameSession');
+    }
+    return null;
+  }
+
+  clearSavedSession() {
+    localStorage.removeItem('activeGameSession');
+    log('[REJOIN]', 'Cleared saved session');
   }
 }
 

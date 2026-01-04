@@ -199,6 +199,178 @@ function setupSocketHandlers(io) {
       }
     });
 
+    // Rejoin a suspended game (auto-reconnect after standby)
+    socket.on(SOCKET_EVENTS.REJOIN_GAME, async (data) => {
+      try {
+        const { sessionCode, nickname } = data;
+        serverLogger.info(`[REJOIN] Attempt: sessionCode=${sessionCode} nickname=${nickname}`);
+
+        const game = await Game.findOne({ sessionCode });
+
+        if (!game) {
+          serverLogger.info(`[REJOIN] Failed: Game not found sessionCode=${sessionCode}`);
+          socket.emit(SOCKET_EVENTS.REJOIN_ERROR, { message: 'Game session not found or has expired' });
+          return;
+        }
+
+        // Handle suspended game - resume it
+        if (game.status === GAME_STATUS.SUSPENDED) {
+          // Resume the game in paused state
+          game.status = GAME_STATUS.PAUSED;
+          game.suspendedAt = null;
+          game.pausedBy = 'System (resumed after reconnect)';
+
+          // Add player back
+          game.players = [{
+            socketId: socket.id,
+            playerId: playerId,
+            nickname,
+            isHost: true
+          }];
+
+          // Save with retry on version conflict
+          // This handles race condition with disconnect handler
+          let savedGame = game;
+          try {
+            await game.save();
+          } catch (saveError) {
+            if (saveError.name === 'VersionError') {
+              // Document was modified by disconnect handler, refetch and retry
+              serverLogger.info('[REJOIN] Version conflict, refetching and retrying');
+              savedGame = await Game.findOne({ sessionCode });
+              if (!savedGame) {
+                socket.emit(SOCKET_EVENTS.REJOIN_ERROR, { message: 'Game not found after retry' });
+                return;
+              }
+              // Apply the same changes to the fresh document
+              savedGame.status = GAME_STATUS.PAUSED;
+              savedGame.suspendedAt = null;
+              savedGame.pausedBy = 'System (resumed after reconnect)';
+              savedGame.players = [{
+                socketId: socket.id,
+                playerId: playerId,
+                nickname,
+                isHost: true
+              }];
+              await savedGame.save();
+            } else {
+              throw saveError;
+            }
+          }
+
+          // Join socket room
+          socket.join(sessionCode);
+          currentSession = sessionCode;
+          currentNickname = nickname;
+
+          // Recreate GameManager from saved state
+          const manager = new GameManager(io, sessionCode, savedGame.toObject());
+          activeGames.set(sessionCode, manager);
+          // Don't start the game loop - game is paused, player needs to resume
+
+          const log = createGameLogger(savedGame._id.toString());
+          log.event('PLAYER_REJOINED', {
+            nickname,
+            wasSuspendedFor: savedGame.suspendedAt ?
+              Math.round((Date.now() - savedGame.suspendedAt) / (60 * 1000)) + 'min' : 'unknown'
+          });
+
+          serverLogger.info(`[REJOIN] Success: Resumed suspended game sessionCode=${sessionCode}`);
+
+          socket.emit(SOCKET_EVENTS.REJOIN_SUCCESS, {
+            sessionCode,
+            maze: savedGame.maze,
+            players: savedGame.players.map(p => ({ nickname: p.nickname, isHost: p.isHost })),
+            gameState: savedGame.gameState,
+            status: savedGame.status
+          });
+          return;
+        }
+
+        // Game is not suspended - it's still active
+        // Check if player can join (same logic as JOIN_GAME)
+        if (game.status === GAME_STATUS.LOBBY) {
+          // Don't auto-rejoin lobbies, let them use normal join
+          socket.emit(SOCKET_EVENTS.REJOIN_ERROR, { message: 'Game is in lobby, please join normally' });
+          return;
+        }
+
+        if (game.players.length >= GAME_CONFIG.MAX_PLAYERS) {
+          socket.emit(SOCKET_EVENTS.REJOIN_ERROR, { message: 'Game is full' });
+          return;
+        }
+
+        // Clean up dead sockets
+        const alivePlayers = [];
+        for (const p of game.players) {
+          const sock = io.sockets.sockets.get(p.socketId);
+          if (sock && sock.connected) {
+            alivePlayers.push(p);
+          }
+        }
+        if (alivePlayers.length !== game.players.length) {
+          game.players = alivePlayers;
+        }
+
+        // Check if same nickname already in game
+        if (game.players.some(p => p.nickname === nickname)) {
+          socket.emit(SOCKET_EVENTS.REJOIN_ERROR, { message: 'You are already in this game' });
+          return;
+        }
+
+        // Add player to active game
+        game.players.push({
+          socketId: socket.id,
+          playerId: playerId,
+          nickname,
+          isHost: game.players.length === 0
+        });
+        await game.save();
+
+        socket.join(sessionCode);
+        currentSession = sessionCode;
+        currentNickname = nickname;
+
+        // Get live game state
+        let gameState = game.gameState;
+        let currentStatus = game.status;
+        const manager = activeGames.get(sessionCode);
+        if (manager) {
+          const state = manager.getState();
+          gameState = state.gameState;
+          currentStatus = manager.gameData.status;
+
+          // Auto-pause if reconnecting with page hidden (laptop sleep)
+          // This prevents the game from running while user is away
+          if (data.pageHidden && manager.gameData.status === GAME_STATUS.PLAYING) {
+            manager.pause('System (auto-pause on sleep)');
+            currentStatus = GAME_STATUS.PAUSED;
+            const log = createGameLogger(game._id.toString());
+            log.event('GAME_PAUSED_AUTO', { reason: 'reconnect_page_hidden', nickname });
+          }
+        }
+
+        const log = createGameLogger(game._id.toString());
+        log.event('PLAYER_REJOINED', { nickname, playerCount: game.players.length });
+
+        serverLogger.info(`[REJOIN] Success: Joined active game sessionCode=${sessionCode}`);
+
+        socket.emit(SOCKET_EVENTS.REJOIN_SUCCESS, {
+          sessionCode,
+          maze: game.maze,
+          players: game.players.map(p => ({ nickname: p.nickname, isHost: p.isHost })),
+          gameState: gameState,
+          status: currentStatus
+        });
+
+        // Notify others
+        socket.to(sessionCode).emit(SOCKET_EVENTS.PLAYER_JOINED, { nickname });
+      } catch (error) {
+        console.error('Rejoin game error:', error);
+        socket.emit(SOCKET_EVENTS.REJOIN_ERROR, { message: 'Failed to rejoin game' });
+      }
+    });
+
     // Browse open games
     socket.on(SOCKET_EVENTS.BROWSE_GAMES, async () => {
       try {
@@ -649,19 +821,48 @@ function setupSocketHandlers(io) {
               }
               await game.save();
             } else {
-              // No players left, clean up
+              // No players left (according to MongoDB document)
               const manager = activeGames.get(currentSession);
               if (manager) {
+                // Race condition check: did someone rejoin while we were processing?
+                // The manager's player list is the source of truth for active games
+                if (manager.gameData.players.length > 0) {
+                  // A player rejoined - don't suspend!
+                  log.event('SUSPEND_ABORTED', { reason: 'player_rejoined' });
+                  return;
+                }
+
+                // Sync runtime state to MongoDB document before stopping
+                // The manager has the live game state, MongoDB document may be stale
+                game.gameState.currentWave = manager.gameData.gameState.currentWave;
+                game.gameState.towers = manager.gameData.gameState.towers;
+                game.gameState.budget = manager.gameData.gameState.budget;
+                game.gameState.lives = manager.gameData.gameState.lives;
+
                 manager.stop();
                 activeGames.delete(currentSession);
               }
               log.event('GAME_EMPTY', {});
 
-              // Delete game from database
-              await Game.deleteOne({ sessionCode: currentSession });
-              log.event('GAME_DELETED', {});
+              // Suspend active games (playing/paused) instead of deleting
+              if (game.status === GAME_STATUS.PLAYING || game.status === GAME_STATUS.PAUSED) {
+                const previousStatus = game.status; // Capture before changing
+                game.status = GAME_STATUS.SUSPENDED;
+                game.suspendedAt = new Date();
+                game.gameState.waveInProgress = false; // Wave will restart on resume
+                await game.save();
+                log.event('GAME_SUSPENDED', {
+                  previousStatus: previousStatus,
+                  towers: game.gameState.towers.length,
+                  wave: game.gameState.currentWave
+                });
+              } else {
+                // Delete lobby games (no point saving them)
+                await Game.deleteOne({ sessionCode: currentSession });
+                log.event('GAME_DELETED', {});
+              }
 
-              // Broadcast to browsers that a game was deleted
+              // Broadcast to browsers that a game changed
               broadcastOpenGamesList(io);
             }
 
@@ -677,4 +878,38 @@ function setupSocketHandlers(io) {
   });
 }
 
-export { setupSocketHandlers, activeGames };
+// Cleanup suspended games older than 24 hours
+const SUSPENDED_GAME_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function cleanupSuspendedGames() {
+  try {
+    const cutoffTime = new Date(Date.now() - SUSPENDED_GAME_TTL_MS);
+    const expiredGames = await Game.find({
+      status: GAME_STATUS.SUSPENDED,
+      suspendedAt: { $lt: cutoffTime }
+    });
+
+    for (const game of expiredGames) {
+      const suspendedFor = Math.round((Date.now() - game.suspendedAt.getTime()) / (60 * 60 * 1000));
+      serverLogger.info(`[GAME_CLEANUP] Deleting suspended game sessionCode=${game.sessionCode} suspendedFor=${suspendedFor}h`);
+      await Game.deleteOne({ _id: game._id });
+    }
+
+    if (expiredGames.length > 0) {
+      serverLogger.info(`[GAME_CLEANUP] Deleted ${expiredGames.length} expired suspended game(s)`);
+    }
+  } catch (error) {
+    serverLogger.error('Cleanup suspended games error:', error);
+  }
+}
+
+// Start periodic cleanup (every hour)
+function startCleanupJob() {
+  // Run immediately on startup
+  cleanupSuspendedGames();
+  // Then run every hour
+  setInterval(cleanupSuspendedGames, 60 * 60 * 1000);
+  serverLogger.info('[GAME_CLEANUP] Suspended game cleanup job started (24h TTL, hourly check)');
+}
+
+export { setupSocketHandlers, activeGames, startCleanupJob };

@@ -1,8 +1,9 @@
-import { GAME_CONFIG, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
+import { GAME_CONFIG, GAME_STATUS, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
 import { CLIENT_CONFIG } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
 import { InputManager } from '../managers/InputManager.js';
+import { log } from '../utils/logger.js';
 import { HUD } from '../ui/HUD.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
 import { TowerMenu } from '../ui/TowerMenu.js';
@@ -24,6 +25,9 @@ class GameScene extends Phaser.Scene {
       towers: []
     };
 
+    // Store initial status for handling paused state on rejoin
+    this.initialStatus = data.status || null;
+
     // Preserve selected tower type across restarts (for resize)
     this.preservedSelectedTowerType = data.selectedTowerType || null;
 
@@ -38,6 +42,16 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Store active session for reconnection after standby
+    localStorage.setItem('activeGameSession', JSON.stringify({
+      sessionCode: this.sessionCode,
+      nickname: networkManager.nickname
+    }));
+    // Sync sessionCode to NetworkManager for auto-rejoin on socket reconnect
+    // (createGame doesn't set this, only joinGame does)
+    networkManager.sessionCode = this.sessionCode;
+    log('[REJOIN]', 'Stored active session:', this.sessionCode);
+
     // Calculate dimensions
     const mazeConfig = Object.values(MAZE_SIZES).find(
       val => val.grid === this.maze.grid.length
@@ -358,6 +372,8 @@ class GameScene extends Phaser.Scene {
           danger: true,
           onClick: () => {
             this.showConfirmDialog('Leave Game', 'Are you sure you want to leave the game?', () => {
+              localStorage.removeItem('activeGameSession');
+              log('[REJOIN]', 'Cleared active session (player left)');
               networkManager.leaveGame();
               this.cleanupAndReturn();
             });
@@ -379,8 +395,17 @@ class GameScene extends Phaser.Scene {
     this.resumeBtn = document.getElementById('resume-btn');
 
     this.resumeBtn.addEventListener('click', () => {
+      log('[GAME]', 'Resume button clicked, socket connected:', networkManager.connected);
       networkManager.resumeGame();
     });
+
+    // If rejoining a paused game, show the pause overlay immediately
+    if (this.initialStatus === GAME_STATUS.PAUSED) {
+      log('[REJOIN]', 'Game is paused, showing pause overlay');
+      this.pausedByText.textContent = 'Game paused (reconnected)';
+      this.pauseOverlay.classList.remove('hidden');
+      soundManager.pauseMusic();
+    }
 
     // Confirm modal elements
     this.confirmModal = document.getElementById('confirm-modal');
@@ -436,6 +461,42 @@ class GameScene extends Phaser.Scene {
       });
       this.networkHandlers = [];
     }
+
+    // Handle rejoin success (after socket reconnect from standby)
+    this.registerNetworkHandler(SOCKET_EVENTS.REJOIN_SUCCESS, (data) => {
+      log('[REJOIN]', 'Rejoined game successfully after reconnect');
+      // Update local state with server state
+      this.gameState = data.gameState;
+      this.hud.update({
+        lives: this.gameState.lives,
+        budget: this.gameState.budget,
+        wave: this.gameState.currentWave
+      });
+      this.towerMenu.updateBudget(this.gameState.budget);
+
+      // If game is paused, show the pause overlay
+      if (data.status === GAME_STATUS.PAUSED) {
+        log('[REJOIN]', 'Game is paused, showing overlay');
+        this.pausedByText.textContent = 'Game paused (reconnected)';
+        this.pauseOverlay.classList.remove('hidden');
+        soundManager.pauseMusic();
+      }
+    });
+
+    // Handle rejoin error (game was deleted/expired)
+    this.registerNetworkHandler(SOCKET_EVENTS.REJOIN_ERROR, (data) => {
+      log('[REJOIN]', 'Failed to rejoin game:', data.message);
+      networkManager.clearSavedSession();
+      // Hide pause overlay before leaving scene (it's a DOM element that persists)
+      if (this.pauseOverlay) {
+        this.pauseOverlay.classList.add('hidden');
+      }
+      // Go back to menu with error message
+      this.scene.start('MenuScene', {
+        toast: data.message || 'Your game session has ended',
+        toastDuration: 4000
+      });
+    });
 
     // Game state sync
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_STATE_SYNC, (data) => {
@@ -582,6 +643,7 @@ class GameScene extends Phaser.Scene {
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_RESUMED, () => {
+      log('[GAME]', 'Received GAME_RESUMED from server');
       this.pauseOverlay.classList.add('hidden');
       soundManager.play('unpause');
       soundManager.resumeMusic();
@@ -589,6 +651,10 @@ class GameScene extends Phaser.Scene {
 
     // Game over
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_OVER, (data) => {
+      // Clear session storage - game is over
+      localStorage.removeItem('activeGameSession');
+      log('[REJOIN]', 'Cleared active session (game over)');
+
       // Play game over music based on final wave (good if >= 50, bad if < 50)
       soundManager.playGameOverMusic(data.finalWave);
 
@@ -1062,6 +1128,11 @@ class GameScene extends Phaser.Scene {
     this.towerMenu.hide();
     this.towerMenu.hideEnemyPanel();
     this.inputManager.destroy();
+
+    // Hide pause overlay (DOM element that persists across scene changes)
+    if (this.pauseOverlay) {
+      this.pauseOverlay.classList.add('hidden');
+    }
   }
 }
 

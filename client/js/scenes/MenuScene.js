@@ -769,10 +769,15 @@ class MenuScene extends Phaser.Scene {
   }
 
   showError(message) {
+    // Safety check: ensure scene is active and errorText hasn't been destroyed
+    if (!this.scene.isActive() || !this.errorText?.scene) {
+      console.log('[MenuScene] showError called but scene is not active');
+      return;
+    }
     if (this.errorText) {
       this.errorText.setText(message);
       this.time.delayedCall(3000, () => {
-        if (this.errorText) {
+        if (this.errorText?.scene) {
           this.errorText.setText('');
         }
       });
@@ -1015,10 +1020,15 @@ class JoinGameScene extends Phaser.Scene {
   }
 
   showError(message) {
+    // Safety check: ensure scene is active and errorText hasn't been destroyed
+    if (!this.scene.isActive() || !this.errorText?.scene) {
+      console.log('[JoinGameScene] showError called but scene is not active');
+      return;
+    }
     if (this.errorText) {
       this.errorText.setText(message);
       this.time.delayedCall(3000, () => {
-        if (this.errorText) {
+        if (this.errorText?.scene) {
           this.errorText.setText('');
         }
       });

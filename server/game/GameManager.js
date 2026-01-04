@@ -70,6 +70,11 @@ class GameManager {
       this.gameData.pausedBy = null;
       this.lastTick = Date.now();
       this.gameLoop = setInterval(() => this.tick(), 1000 / GAME_CONFIG.TICK_RATE);
+
+      // If no wave is in progress (e.g., after suspension), schedule next wave
+      if (!this.gameData.gameState.waveInProgress) {
+        this.scheduleNextWave(3000); // 3 second delay before wave starts
+      }
     }
   }
 

@@ -1,6 +1,8 @@
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
 import { errorReporter } from '../utils/errorReporter.js';
+import { log } from '../utils/logger.js';
+import { SOCKET_EVENTS } from '../../../shared/constants.js';
 
 class BootScene extends Phaser.Scene {
   constructor() {
@@ -58,22 +60,85 @@ class BootScene extends Phaser.Scene {
       .then(() => {
         loadingText.setText('Connected!');
 
-        // Check for join code in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const joinCode = urlParams.get('join');
+        // Check for saved session to rejoin after standby
+        const savedSession = networkManager.checkAndRejoinSession();
 
-        setTimeout(() => {
-          if (joinCode) {
-            // Store join code and go to menu
-            this.registry.set('pendingJoinCode', joinCode);
-          }
-          this.scene.start('MenuScene');
-        }, 500);
+        if (savedSession) {
+          loadingText.setText('Reconnecting...');
+          this.attemptRejoin(savedSession, loadingText);
+        } else {
+          // Normal flow - go to menu
+          this.goToMenuAfterDelay(loadingText);
+        }
       })
       .catch((error) => {
         loadingText.setText('Connection failed!\nPlease refresh the page.');
         console.error('Connection error:', error);
       });
+  }
+
+  attemptRejoin(session, loadingText) {
+    // Set up one-time handlers for rejoin response
+    const successHandler = (data) => {
+      networkManager.off(SOCKET_EVENTS.REJOIN_SUCCESS, successHandler);
+      networkManager.off(SOCKET_EVENTS.REJOIN_ERROR, errorHandler);
+
+      log('[REJOIN]', 'Successfully rejoined game:', data.sessionCode);
+
+      // Go directly to GameScene with the recovered state
+      this.scene.start('GameScene', {
+        sessionCode: data.sessionCode,
+        maze: data.maze,
+        gameState: data.gameState,
+        status: data.status
+      });
+    };
+
+    const errorHandler = (data) => {
+      networkManager.off(SOCKET_EVENTS.REJOIN_SUCCESS, successHandler);
+      networkManager.off(SOCKET_EVENTS.REJOIN_ERROR, errorHandler);
+
+      log('[REJOIN]', 'Session no longer exists:', data.message);
+      networkManager.clearSavedSession();
+
+      // Go to menu with toast message
+      this.scene.start('MenuScene', {
+        toast: 'Your previous game session has expired',
+        toastDuration: 4000
+      });
+    };
+
+    networkManager.on(SOCKET_EVENTS.REJOIN_SUCCESS, successHandler);
+    networkManager.on(SOCKET_EVENTS.REJOIN_ERROR, errorHandler);
+
+    // Attempt to rejoin
+    networkManager.rejoinGame(session.sessionCode, session.nickname);
+
+    // Timeout in case server doesn't respond
+    setTimeout(() => {
+      networkManager.off(SOCKET_EVENTS.REJOIN_SUCCESS, successHandler);
+      networkManager.off(SOCKET_EVENTS.REJOIN_ERROR, errorHandler);
+
+      if (this.scene.isActive()) {
+        log('[REJOIN]', 'Timeout waiting for rejoin response');
+        networkManager.clearSavedSession();
+        this.goToMenuAfterDelay(loadingText);
+      }
+    }, 5000);
+  }
+
+  goToMenuAfterDelay(_loadingText) {
+    // Check for join code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinCode = urlParams.get('join');
+
+    setTimeout(() => {
+      if (joinCode) {
+        // Store join code and go to menu
+        this.registry.set('pendingJoinCode', joinCode);
+      }
+      this.scene.start('MenuScene');
+    }, 500);
   }
 
   create() {

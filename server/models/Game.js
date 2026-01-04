@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { GAME_STATUS } from '../../shared/constants.js';
 
 const towerSchema = new mongoose.Schema({
   id: String,
@@ -47,8 +48,8 @@ const gameSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['lobby', 'playing', 'paused', 'completed', 'saved'],
-    default: 'lobby'
+    enum: Object.values(GAME_STATUS),
+    default: GAME_STATUS.LOBBY
   },
   maze: mazeSchema,
   players: [playerSchema],
@@ -59,7 +60,8 @@ const gameSchema = new mongoose.Schema({
   pausedBy: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  savedAt: { type: Date, default: null }
+  savedAt: { type: Date, default: null },
+  suspendedAt: { type: Date, default: null }
 });
 
 // Update timestamp on save

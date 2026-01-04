@@ -25,7 +25,8 @@ const GAME_STATUS = {
   PLAYING: 'playing',
   PAUSED: 'paused',
   COMPLETED: 'completed',
-  SAVED: 'saved'
+  SAVED: 'saved',
+  SUSPENDED: 'suspended'
 };
 
 const TILE_TYPES = {
@@ -265,6 +266,11 @@ const SOCKET_EVENTS = {
   LEAVE_GAME: 'leave-game',
   LOBBY_CLOSED: 'lobby-closed',
   HOST_TRANSFERRED: 'host-transferred',
+
+  // Session Recovery
+  REJOIN_GAME: 'rejoin-game',
+  REJOIN_SUCCESS: 'rejoin-success',
+  REJOIN_ERROR: 'rejoin-error',
 
   // Gameplay
   PLACE_TOWER: 'place-tower',

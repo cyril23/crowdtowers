@@ -6,9 +6,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import { setupSocketHandlers } from './socket/handlers.js';
+import { setupSocketHandlers, startCleanupJob } from './socket/handlers.js';
 import Game from './models/Game.js';
 import adminRouter from './routes/admin.js';
+import { GAME_STATUS } from '../shared/constants.js';
 
 // ES module __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -99,6 +100,9 @@ async function startServer() {
     httpServer.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+      // Start cleanup job for suspended games
+      startCleanupJob();
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -123,7 +127,7 @@ async function runCleanup(filter) {
       break;
     case 'lobby':
       // Games stuck in lobby
-      query = { status: 'lobby' };
+      query = { status: GAME_STATUS.LOBBY };
       description = 'games in lobby status';
       break;
     case 'old': {
@@ -137,7 +141,7 @@ async function runCleanup(filter) {
       // Non-completed games older than 1 hour
       const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
       query = {
-        status: { $nin: ['completed', 'saved'] },
+        status: { $nin: [GAME_STATUS.COMPLETED, GAME_STATUS.SAVED] },
         updatedAt: { $lt: hourAgo }
       };
       description = 'stale games (inactive >1 hour, not completed)';
