@@ -107,10 +107,10 @@ class GameManager {
         continue;
       }
 
-      // Check if slowed
+      // Check if slowed - use stored slowAmount (set by Cryo Cannon hits)
       let speedMultiplier = 1;
       if (enemy.slowedUntil && enemy.slowedUntil > now) {
-        speedMultiplier = 0.5;
+        speedMultiplier = 1 - (enemy.slowAmount || 0.5);
       }
 
       // Move along path
@@ -237,7 +237,17 @@ class GameManager {
     // Apply special effects
     if (towerDef.special === 'slow') {
       const bonusDuration = (towerDef.slowDurationBonus || 0) * (tower.level - 1);
-      target.slowedUntil = now + towerDef.slowDuration + bonusDuration;
+      const rawSlowStrength = towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * (tower.level - 1);
+      const slowStrength = Math.min(rawSlowStrength, towerDef.slowAmountMax || 0.95);
+
+      // Accumulate slow duration (cap at 2× single hit duration)
+      const remainingSlowTime = Math.max(0, (target.slowedUntil || 0) - now);
+      const hitDuration = towerDef.slowDuration + bonusDuration;
+      const maxSlowDuration = hitDuration * 2;
+      target.slowedUntil = now + Math.min(remainingSlowTime + hitDuration, maxSlowDuration);
+
+      // Use strongest slow if multiple towers hit (don't average, take the best)
+      target.slowAmount = Math.max(target.slowAmount || 0, slowStrength);
     }
 
     if (result.killed) {

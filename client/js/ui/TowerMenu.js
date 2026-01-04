@@ -185,10 +185,16 @@ class TowerMenu {
 
     // Build special ability info for Cryo Cannon
     let specialInfo = '';
-    if (towerDef.special === 'slow' && towerDef.slowDurationBonus) {
-      const currentSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * (tower.level - 1)) / 1000;
-      const nextSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * tower.level) / 1000;
-      specialInfo = `<p>Slow: ${currentSlow.toFixed(1)}s → ${nextSlow.toFixed(1)}s</p>`;
+    if (towerDef.special === 'slow') {
+      const currentSlowDur = (towerDef.slowDuration + (towerDef.slowDurationBonus || 0) * (tower.level - 1)) / 1000;
+      const nextSlowDur = (towerDef.slowDuration + (towerDef.slowDurationBonus || 0) * tower.level) / 1000;
+
+      const maxSlow = (towerDef.slowAmountMax || 0.95) * 100;
+      const currentSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * (tower.level - 1)) * 100));
+      const nextSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * tower.level) * 100));
+
+      specialInfo = `<p>Slow: ${currentSlowDur.toFixed(1)}s → ${nextSlowDur.toFixed(1)}s</p>`;
+      specialInfo += `<p>Slow Power: ${currentSlowAmt}% → ${nextSlowAmt}%</p>`;
     }
 
     this.elements.upgradeInfo.innerHTML = `
@@ -249,10 +255,16 @@ class TowerMenu {
 
     // Build special ability info for Cryo Cannon
     let specialInfo = '';
-    if (towerDef.special === 'slow' && towerDef.slowDurationBonus) {
-      const currentSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * (tower.level - 1)) / 1000;
-      const nextSlow = (towerDef.slowDuration + towerDef.slowDurationBonus * tower.level) / 1000;
-      specialInfo = `<p>Slow: ${currentSlow.toFixed(1)}s → ${nextSlow.toFixed(1)}s</p>`;
+    if (towerDef.special === 'slow') {
+      const currentSlowDur = (towerDef.slowDuration + (towerDef.slowDurationBonus || 0) * (tower.level - 1)) / 1000;
+      const nextSlowDur = (towerDef.slowDuration + (towerDef.slowDurationBonus || 0) * tower.level) / 1000;
+
+      const maxSlow = (towerDef.slowAmountMax || 0.95) * 100;
+      const currentSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * (tower.level - 1)) * 100));
+      const nextSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * tower.level) * 100));
+
+      specialInfo = `<p>Slow: ${currentSlowDur.toFixed(1)}s → ${nextSlowDur.toFixed(1)}s</p>`;
+      specialInfo += `<p>Slow Power: ${currentSlowAmt}% → ${nextSlowAmt}%</p>`;
     }
 
     this.elements.upgradeInfo.innerHTML = `

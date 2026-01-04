@@ -38,17 +38,17 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Tower sell value: **50% of total investment** (base + all upgrades)
 - Upgrade cost formula: `baseCost × 1.5^(level-1)`
 - Upgrade damage formula: `baseDamage × 1.35^(level-1)` (Cryo Cannon: 1.40^)
-- **Late-game credits (wave 51+):** Enemy rewards scale with wave progression
+- **Reward scaling:** +10% per wave (scales from wave 1, softer than HP)
 
 ### Enemy Specials
-- **Phasewalker:** 20% chance to dodge damage (slow effects still apply)
-- **Behemoth:** 25% damage reduction (armor)
+- **Phasewalker:** 10% chance to dodge damage (slow effects still apply)
+- **Behemoth:** 50% damage reduction (armor)
 - **Broodmother:** Spawns 2 Swarmlings on death
 
 ### Tower Specials
 - **Missile Launcher:** Splash damage (1 tile radius, 50% damage)
 - **Tesla Coil:** Chain lightning (3 targets, 70% damage per chain)
-- **Cryo Cannon:** Slows enemies 50% for 3s (+0.1s per upgrade level)
+- **Cryo Cannon:** Slows enemies 50% (+5%/level, max 95%) for 4s (+0.1s/level). Slow stacks from multiple towers (duration caps at 2×)
 
 ## Multiplayer
 - Games can be **private** (code required) or **open** (browsable)
@@ -69,14 +69,12 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Waves 31-40: Broodmothers introduced
 - Waves 41-50: All enemy types, increasing intensity
 - **Wave 50:** Final boss wave (40 enemies, all types)
-- **Wave 51+:** Cycles back to wave 1 composition with massive scaling
+- **Wave 51+:** Cycles back to wave 1 composition (scaling continues smoothly)
 
-### HP Scaling Formula
-- **Base:** +20% per wave (linear, continues forever)
-- **Cycle bonus:** 2× HP per complete 50-wave cycle
-- **Accelerated scaling:** After cycle 1, adds +7% per wave per cycle
-- **Example:** Wave 51 enemies have ~2.1× the HP of wave 1 enemies
-- **Speed:** Constant (does not scale with wave)
+### Scaling Formula
+- **HP:** +20% per wave (linear: `baseHP × (1 + 0.2 × (wave-1))`)
+- **Rewards:** +10% per wave (linear: `baseReward × (1 + 0.1 × (wave-1))`)
+- **Speed:** Constant (does not scale)
 - **No victory condition** - game continues until defeat
 
 ## Server Tick Rate

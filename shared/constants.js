@@ -91,7 +91,9 @@ const TOWERS = {
     fireRate: 800,
     special: 'slow',
     slowAmount: 0.5,
-    slowDuration: 3000,
+    slowAmountBonus: 0.05, // +5% slow strength per level
+    slowAmountMax: 0.95, // Cap at 95% (enemies always move at least 5% speed)
+    slowDuration: 4000, // Increased from 3000 for better effectiveness
     slowDurationBonus: 100, // +100ms slow duration per upgrade level
     strongVs: ['phasewalker'],
     weakVs: ['swarmling'],
@@ -150,7 +152,7 @@ const ENEMIES = {
     healthScaling: 0.20,
     speedScaling: 0.02,
     special: 'phase',
-    phaseChance: 0.2 // 20% chance to dodge damage
+    phaseChance: 0.1 // 10% chance to dodge damage (reduced from 20% for better late-game balance)
   },
   behemoth: {
     id: 'behemoth',

@@ -4,24 +4,11 @@ function getEnemyStats(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
   if (!enemy) return null;
 
-  // Calculate cycle-based scaling (50 waves per cycle)
-  const WAVES_PER_CYCLE = 50;
-  const cycleNumber = Math.floor((waveNumber - 1) / WAVES_PER_CYCLE);
-  const waveInCycle = ((waveNumber - 1) % WAVES_PER_CYCLE) + 1;
-
-  // Base linear scaling continues forever (+20% per wave)
+  // Simple linear scaling: +20% HP per wave, no cycle bonuses
+  // This provides smooth difficulty progression without sudden jumps
   const baseMultiplier = 1 + (enemy.healthScaling * (waveNumber - 1));
 
-  // Cycle bonus: 2× HP per complete cycle
-  const cycleBonus = Math.pow(2.0, cycleNumber);
-
-  // Accelerated scaling after first cycle: +7% more per wave per cycle
-  // Cycle 0: no acceleration, Cycle 1: +7% per wave, Cycle 2: +14% per wave
-  const acceleratedScaling = cycleNumber > 0
-    ? 1 + (0.07 * cycleNumber * waveInCycle)
-    : 1;
-
-  const finalHealth = Math.floor(enemy.health * baseMultiplier * cycleBonus * acceleratedScaling);
+  const finalHealth = Math.floor(enemy.health * baseMultiplier);
 
   return {
     ...enemy,
@@ -36,22 +23,10 @@ function getScaledReward(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
   if (!enemy) return 0;
 
-  // Waves 1-50: static rewards (unchanged)
-  if (waveNumber <= 50) {
-    return enemy.reward;
-  }
+  // Linear reward scaling: +10% per wave (softer than HP's +20% to maintain challenge)
+  const rewardMultiplier = 1 + (0.10 * (waveNumber - 1));
 
-  // Waves 51+: scale rewards (softer than HP scaling to maintain challenge)
-  const WAVES_PER_CYCLE = 50;
-  const cycleNumber = Math.floor((waveNumber - 1) / WAVES_PER_CYCLE);
-
-  // Base reward scaling: +10% per wave after wave 50
-  const waveBonus = 1 + (0.10 * (waveNumber - 50));
-
-  // Cycle bonus: 1.5x per cycle (less than HP's 2x to maintain challenge)
-  const cycleBonus = Math.pow(1.5, cycleNumber);
-
-  return Math.floor(enemy.reward * waveBonus * cycleBonus);
+  return Math.floor(enemy.reward * rewardMultiplier);
 }
 
 function getWaveComposition(waveNumber) {
