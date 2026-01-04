@@ -552,12 +552,13 @@ class GameScene extends Phaser.Scene {
     this.registerNetworkHandler(SOCKET_EVENTS.WAVE_START, (data) => {
       this.gameState.currentWave = data.waveNumber;
       this.hud.updateWave(data.waveNumber);
-      this.showWaveNotification(`Wave ${data.waveNumber} Starting!`);
 
-      // Boss wave every 50 - switch to boss music
+      // Boss wave every 50 - use special notification and music
       if (data.waveNumber % 50 === 0 && data.waveNumber > 0) {
+        this.showBossWaveNotification(data.waveNumber);
         soundManager.playBossMusic(data.waveNumber);
       } else {
+        this.showWaveNotification(`Wave ${data.waveNumber} Starting!`);
         soundManager.play('wave_start');
       }
     });
@@ -615,6 +616,7 @@ class GameScene extends Phaser.Scene {
         soundManager.play(fireSound);
       }
     });
+
   }
 
   updateGameState(data) {
@@ -807,6 +809,71 @@ class GameScene extends Phaser.Scene {
       duration: 2000,
       ease: 'Power2',
       onComplete: () => notification.destroy()
+    });
+  }
+
+  showBossWaveNotification(waveNumber) {
+    // Main warning text - large red with emoji accents
+    const mainText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY - 20,
+      '⚡ BOSS WAVE ⚡',
+      {
+        fontSize: '48px',
+        fontStyle: 'bold',
+        color: '#ff3333',
+        fontFamily: 'Arial',
+        stroke: '#000000',
+        strokeThickness: 6
+      }
+    ).setOrigin(0.5).setDepth(200).setScale(0).setAlpha(0);
+
+    // Secondary wave number text
+    const waveText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY + 30,
+      `Wave ${waveNumber}`,
+      {
+        fontSize: '28px',
+        color: '#ffffff',
+        fontFamily: 'Arial',
+        stroke: '#000000',
+        strokeThickness: 4
+      }
+    ).setOrigin(0.5).setDepth(200).setScale(0).setAlpha(0);
+
+    // Animation Stage 1: Scale in with bounce (0-500ms)
+    this.tweens.add({
+      targets: [mainText, waveText],
+      scale: 1,
+      alpha: 1,
+      duration: 500,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Animation Stage 2: Pulse effect (500ms-2000ms)
+        this.tweens.add({
+          targets: mainText,
+          scale: 1.1,
+          duration: 250,
+          yoyo: true,
+          repeat: 2,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            // Animation Stage 3: Fade out + rise (2000ms-3000ms)
+            this.tweens.add({
+              targets: [mainText, waveText],
+              y: '-=50',
+              alpha: 0,
+              duration: 1000,
+              ease: 'Power2',
+              onComplete: () => {
+                mainText.destroy();
+                waveText.destroy();
+              }
+            });
+          }
+        });
+      }
     });
   }
 
