@@ -183,6 +183,13 @@ class TowerMenu {
 
     const canAfford = budget >= upgradeCost;
 
+    // Helper to format upgrade values: show "current → next" only if different
+    const formatUpgrade = (current, next, decimals = 1, suffix = '') => {
+      const currentStr = typeof current === 'number' && decimals >= 0 ? current.toFixed(decimals) : String(current);
+      const nextStr = typeof next === 'number' && decimals >= 0 ? next.toFixed(decimals) : String(next);
+      return currentStr === nextStr ? `${currentStr}${suffix}` : `${currentStr}${suffix} → ${nextStr}${suffix}`;
+    };
+
     // Build special ability info for Cryo Cannon
     let specialInfo = '';
     if (towerDef.special === 'slow') {
@@ -193,14 +200,14 @@ class TowerMenu {
       const currentSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * (tower.level - 1)) * 100));
       const nextSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * tower.level) * 100));
 
-      specialInfo = `<p>Slow: ${currentSlowDur.toFixed(1)}s → ${nextSlowDur.toFixed(1)}s</p>`;
-      specialInfo += `<p>Slow Power: ${currentSlowAmt}% → ${nextSlowAmt}%</p>`;
+      specialInfo = `<p>Slow: ${formatUpgrade(currentSlowDur, nextSlowDur, 1, 's')}</p>`;
+      specialInfo += `<p>Slow Power: ${formatUpgrade(currentSlowAmt, nextSlowAmt, -1, '%')}</p>`;
     }
 
     this.elements.upgradeInfo.innerHTML = `
       <h3>${towerDef.name}</h3>
       <p>Level: ${tower.level}</p>
-      <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
+      <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
       <p>Upgrade Cost: $${upgradeCost}</p>
       <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
@@ -253,6 +260,13 @@ class TowerMenu {
 
     const canAfford = budget >= upgradeCost;
 
+    // Helper to format upgrade values: show "current → next" only if different
+    const formatUpgrade = (current, next, decimals = 1, suffix = '') => {
+      const currentStr = typeof current === 'number' && decimals >= 0 ? current.toFixed(decimals) : String(current);
+      const nextStr = typeof next === 'number' && decimals >= 0 ? next.toFixed(decimals) : String(next);
+      return currentStr === nextStr ? `${currentStr}${suffix}` : `${currentStr}${suffix} → ${nextStr}${suffix}`;
+    };
+
     // Build special ability info for Cryo Cannon
     let specialInfo = '';
     if (towerDef.special === 'slow') {
@@ -263,14 +277,14 @@ class TowerMenu {
       const currentSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * (tower.level - 1)) * 100));
       const nextSlowAmt = Math.min(maxSlow, Math.round((towerDef.slowAmount + (towerDef.slowAmountBonus || 0) * tower.level) * 100));
 
-      specialInfo = `<p>Slow: ${currentSlowDur.toFixed(1)}s → ${nextSlowDur.toFixed(1)}s</p>`;
-      specialInfo += `<p>Slow Power: ${currentSlowAmt}% → ${nextSlowAmt}%</p>`;
+      specialInfo = `<p>Slow: ${formatUpgrade(currentSlowDur, nextSlowDur, 1, 's')}</p>`;
+      specialInfo += `<p>Slow Power: ${formatUpgrade(currentSlowAmt, nextSlowAmt, -1, '%')}</p>`;
     }
 
     this.elements.upgradeInfo.innerHTML = `
       <h3>${towerDef.name}</h3>
       <p>Level: ${tower.level}</p>
-      <p>Damage: ${currentDamage.toFixed(1)} → ${nextDamage.toFixed(1)}</p>
+      <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
       <p>Upgrade Cost: $${upgradeCost}</p>
       <p class="sell-info">Sell Value: $${sellValue} (50%)</p>
