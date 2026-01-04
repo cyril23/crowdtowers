@@ -1,6 +1,16 @@
 import { TOWERS } from '../../../shared/constants.js';
 import { CLIENT_CONFIG } from '../config.js';
 
+// Calculate text color based on background brightness (returns white or dark)
+function getContrastTextColor(hexColor) {
+  const r = (hexColor >> 16) & 0xff;
+  const g = (hexColor >> 8) & 0xff;
+  const b = hexColor & 0xff;
+  // Perceived luminance formula
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  return luminance > 160 ? '#222222' : '#ffffff';
+}
+
 class TowerSprite extends Phaser.GameObjects.Container {
   constructor(scene, tower, tileSize) {
     const x = tower.gridX * tileSize + tileSize / 2;
@@ -24,11 +34,11 @@ class TowerSprite extends Phaser.GameObjects.Container {
     this.drawTower(size, visual.color);
     this.add(this.graphics);
 
-    // Level indicator
+    // Level indicator (shown inside tower)
     if (tower.level > 1) {
-      this.levelText = new Phaser.GameObjects.Text(scene, 0, -size / 2 - 8, `L${tower.level}`, {
+      this.levelText = new Phaser.GameObjects.Text(scene, 0, 0, `${tower.level}`, {
         fontSize: '10px',
-        color: '#ffffff',
+        color: getContrastTextColor(visual.color),
         fontFamily: 'Arial'
       }).setOrigin(0.5);
       this.add(this.levelText);
@@ -116,12 +126,12 @@ class TowerSprite extends Phaser.GameObjects.Container {
     this.level = newLevel;
 
     if (this.levelText) {
-      this.levelText.setText(`L${newLevel}`);
+      this.levelText.setText(`${newLevel}`);
     } else {
-      const size = this.tileSize * 0.7;
-      this.levelText = new Phaser.GameObjects.Text(this.scene, 0, -size / 2 - 8, `L${newLevel}`, {
+      const visual = CLIENT_CONFIG.towerVisuals[this.towerType];
+      this.levelText = new Phaser.GameObjects.Text(this.scene, 0, 0, `${newLevel}`, {
         fontSize: '10px',
-        color: '#ffffff',
+        color: getContrastTextColor(visual.color),
         fontFamily: 'Arial'
       }).setOrigin(0.5);
       this.add(this.levelText);
