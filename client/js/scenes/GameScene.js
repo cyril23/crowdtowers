@@ -443,6 +443,7 @@ class GameScene extends Phaser.Scene {
     this.towerMenu.hide();
     this.chatPanel.hide();
     this.gameMenu.hide();
+    this.scene.stop('GameOverScene');
     this.scene.start('MenuScene');
   }
 
@@ -662,6 +663,9 @@ class GameScene extends Phaser.Scene {
 
       // Play game over music based on final wave (good if >= 50, bad if < 50)
       soundManager.playGameOverMusic(data.finalWave);
+
+      // Update menu button label since game is over
+      this.gameMenu.updateButtonLabel('leave', 'Back to Main Menu');
 
       this.scene.start('GameOverScene', {
         victory: data.victory,

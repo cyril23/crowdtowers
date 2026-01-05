@@ -1,5 +1,7 @@
 // GameOverScene - displays victory or defeat screen
 import { formatCurrency } from '../utils/formatNumber.js';
+import { soundManager } from '../managers/SoundManager.js';
+import { networkManager } from '../managers/NetworkManager.js';
 
 class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -79,8 +81,8 @@ class GameOverScene extends Phaser.Scene {
       lineSpacing: 8
     }).setOrigin(0, 0);
 
-    // Buttons
-    this.add.text(centerX, centerY + 170, 'Play Again', {
+    // Main Menu button
+    this.add.text(centerX, centerY + 170, 'Main Menu', {
       fontSize: '24px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -90,18 +92,21 @@ class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        window.location.reload();
-      });
+        // Clean up and return to menu using scene transitions
+        soundManager.cleanup();
+        networkManager.leaveGame();
 
-    this.add.text(centerX, centerY + 230, 'Main Menu', {
-      fontSize: '18px',
-      color: '#aaaaaa',
-      fontFamily: 'Arial'
-    })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => {
-        window.location.href = '/';
+        // Hide all game UI elements
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('tower-panel').classList.add('hidden');
+        document.getElementById('chat-panel').classList.add('hidden');
+        document.getElementById('pause-overlay').classList.add('hidden');
+        document.getElementById('game-menu').classList.add('hidden');
+
+        // Stop scenes and go to menu
+        this.scene.stop('GameScene');
+        this.scene.stop('GameOverScene');
+        this.scene.start('MenuScene');
       });
 
     // Hide game UI elements
