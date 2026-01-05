@@ -173,6 +173,7 @@ class TowerMenu {
   }
 
   showUpgradePanel(tower, budget) {
+    this.hideEnemyPanel();
     this.selectedTower = tower;
     this.currentBudget = budget;
     const towerDef = TOWERS[tower.type];
