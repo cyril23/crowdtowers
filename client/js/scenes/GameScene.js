@@ -667,6 +667,9 @@ class GameScene extends Phaser.Scene {
       // Update menu button label since game is over
       this.gameMenu.updateButtonLabel('leave', 'Back to Main Menu');
 
+      // Clean up network handlers to prevent stale events firing on defunct scene
+      this.cleanupNetworkHandlers();
+
       this.scene.start('GameOverScene', {
         victory: data.victory,
         finalWave: data.finalWave,
@@ -1103,14 +1106,17 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  shutdown() {
-    // Remove all registered network handlers to prevent duplicates
+  cleanupNetworkHandlers() {
     if (this.networkHandlers) {
       this.networkHandlers.forEach(({ event, handler }) => {
         networkManager.off(event, handler);
       });
       this.networkHandlers = [];
     }
+  }
+
+  shutdown() {
+    this.cleanupNetworkHandlers();
 
     // Remove resize listener
     this.scale.off('resize', this.handleResize, this);
