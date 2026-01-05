@@ -2,6 +2,8 @@
 import { formatCurrency } from '../utils/formatNumber.js';
 import { soundManager } from '../managers/SoundManager.js';
 import { networkManager } from '../managers/NetworkManager.js';
+import { HOTKEYS } from '../../../shared/constants.js';
+import { formatWithHotkey } from '../managers/SettingsManager.js';
 
 class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -82,7 +84,7 @@ class GameOverScene extends Phaser.Scene {
     }).setOrigin(0, 0);
 
     // Main Menu button
-    this.add.text(centerX, centerY + 170, 'Main Menu', {
+    this.add.text(centerX, centerY + 170, formatWithHotkey('Back to Main Menu', HOTKEYS.MAIN_MENU), {
       fontSize: '24px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -92,28 +94,37 @@ class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
-        // Clean up and return to menu using scene transitions
-        soundManager.cleanup();
-        networkManager.leaveGame();
-
-        // Hide all game UI elements
-        document.getElementById('hud').classList.add('hidden');
-        document.getElementById('tower-panel').classList.add('hidden');
-        document.getElementById('chat-panel').classList.add('hidden');
-        document.getElementById('pause-overlay').classList.add('hidden');
-        document.getElementById('game-menu').classList.add('hidden');
-
-        // Stop scenes and go to menu
-        this.scene.stop('GameScene');
-        this.scene.stop('GameOverScene');
-        this.scene.start('MenuScene');
+        this.goToMainMenu();
       });
 
-    // Hide game UI elements
+    // M hotkey to go to main menu
+    this.input.keyboard.on(HOTKEYS.MAIN_MENU, () => {
+      this.goToMainMenu();
+    });
+
+    // Hide game UI elements immediately when scene starts
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('tower-panel').classList.add('hidden');
     document.getElementById('chat-panel').classList.add('hidden');
     document.getElementById('pause-overlay').classList.add('hidden');
+  }
+
+  goToMainMenu() {
+    // Clean up and return to menu using scene transitions
+    soundManager.cleanup();
+    networkManager.leaveGame();
+
+    // Hide all game UI elements
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('tower-panel').classList.add('hidden');
+    document.getElementById('chat-panel').classList.add('hidden');
+    document.getElementById('pause-overlay').classList.add('hidden');
+    document.getElementById('game-menu').classList.add('hidden');
+
+    // Stop scenes and go to menu
+    this.scene.stop('GameScene');
+    this.scene.stop('GameOverScene');
+    this.scene.start('MenuScene');
   }
 }
 

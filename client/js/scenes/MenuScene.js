@@ -1,6 +1,8 @@
-import { SOCKET_EVENTS, GAME_STATUS, MAZE_SIZES } from '../../../shared/constants.js';
+import { SOCKET_EVENTS, GAME_STATUS, MAZE_SIZES, HOTKEYS } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
+import { settingsManager, isInputFocused, formatWithHotkey, getHotkeyDisplay } from '../managers/SettingsManager.js';
+import { DeviceUtils } from '../config.js';
 import { GameMenuManager } from '../ui/GameMenuManager.js';
 
 // ============================================
@@ -380,19 +382,22 @@ class MenuScene extends Phaser.Scene {
     }
 
     // Create Game button
-    this.createButton(centerX, 255, 'Create New Game', () => {
+    const createBtn = this.createButton(centerX, 255, 'Create New Game', () => {
       this.showCreateGameMenu();
-    });
+    }, HOTKEYS.CREATE);
 
     // Join by Code button
-    this.createButton(centerX, 310, 'Join by Code', () => {
+    const joinBtn = this.createButton(centerX, 310, 'Join by Code', () => {
       this.showJoinMenu();
-    });
+    }, HOTKEYS.JOIN);
 
     // Browse Games button
-    this.createButton(centerX, 365, 'Browse Open Games', () => {
+    const browseBtn = this.createButton(centerX, 365, 'Browse Open Games', () => {
       this.showBrowseMenu();
-    });
+    }, HOTKEYS.BROWSE);
+
+    // Track buttons with hotkeys for dynamic updates
+    this.hotkeyButtons = [createBtn, joinBtn, browseBtn];
 
     // Error message area
     this.errorText = this.add.text(centerX, 430, '', {
@@ -416,6 +421,39 @@ class MenuScene extends Phaser.Scene {
       position: 'top-right'
     });
     this.gameMenu.show();
+
+    // Setup keyboard shortcuts (desktop only)
+    this.setupMainMenuKeyboardShortcuts();
+
+    // Listen for hotkey visibility changes
+    this.hotkeyVisibilityHandler = () => {
+      if (!this.scene.isActive()) return;  // Prevent updating destroyed text objects
+      this.updateButtonHotkeyLabels();
+    };
+    window.addEventListener('hotkey-visibility-changed', this.hotkeyVisibilityHandler);
+  }
+
+  setupMainMenuKeyboardShortcuts() {
+    if (DeviceUtils.isMobile()) return;
+
+    this.input.keyboard.on(HOTKEYS.CREATE, () => {
+      if (isInputFocused()) return;
+      this.showCreateGameMenu();
+    });
+
+    this.input.keyboard.on(HOTKEYS.JOIN, () => {
+      if (isInputFocused()) return;
+      this.showJoinMenu();
+    });
+
+    this.input.keyboard.on(HOTKEYS.BROWSE, () => {
+      if (isInputFocused()) return;
+      this.showBrowseMenu();
+    });
+
+    this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      settingsManager.toggleShowHotkeys();
+    });
   }
 
   showToast(message, duration = 2000) {
@@ -629,8 +667,9 @@ class MenuScene extends Phaser.Scene {
     });
   }
 
-  createButton(x, y, text, callback) {
-    const button = this.add.text(x, y, text, {
+  createButton(x, y, text, callback, hotkey = null) {
+    const displayText = formatWithHotkey(text, hotkey);
+    const button = this.add.text(x, y, displayText, {
       fontSize: '18px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -639,6 +678,10 @@ class MenuScene extends Phaser.Scene {
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
+
+    // Store base text and hotkey for dynamic updates
+    button.baseText = text;
+    button.hotkey = hotkey;
 
     button.on('pointerover', () => {
       button.setStyle({ backgroundColor: '#6a6aaa' });
@@ -654,6 +697,17 @@ class MenuScene extends Phaser.Scene {
     });
 
     return button;
+  }
+
+  updateButtonHotkeyLabels() {
+    // Update all buttons with hotkeys in current scene
+    if (this.hotkeyButtons) {
+      this.hotkeyButtons.forEach(button => {
+        if (button.baseText && button.hotkey) {
+          button.setText(formatWithHotkey(button.baseText, button.hotkey));
+        }
+      });
+    }
   }
 
   showCreateGameMenu() {
@@ -787,6 +841,12 @@ class MenuScene extends Phaser.Scene {
   shutdown() {
     this.clearMenuUI();
 
+    // Clean up hotkey visibility listener
+    if (this.hotkeyVisibilityHandler) {
+      window.removeEventListener('hotkey-visibility-changed', this.hotkeyVisibilityHandler);
+      this.hotkeyVisibilityHandler = null;
+    }
+
     // Clean up network handlers to prevent accumulation
     if (this.networkHandlers) {
       this.networkHandlers.forEach(({ event, handler }) => {
@@ -914,6 +974,26 @@ class JoinGameScene extends Phaser.Scene {
       position: 'top-right'
     });
     this.gameMenu.show();
+
+    // Setup keyboard shortcuts (desktop only)
+    this.setupKeyboardShortcuts();
+  }
+
+  setupKeyboardShortcuts() {
+    if (DeviceUtils.isMobile()) return;
+
+    this.input.keyboard.on(HOTKEYS.MAIN_MENU, () => {
+      if (isInputFocused()) return;
+      this.cleanupInput();
+      this.scene.stop('JoinGameScene');
+      this.scene.launch('MenuScene');
+    });
+
+    this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      if (isInputFocused()) return;
+      settingsManager.toggleShowHotkeys();
+      this.scene.restart({ nickname: this.nickname, prefillCode: this.codeInput?.value || '' });
+    });
   }
 
   buildLandscapeLayout(centerX) {
@@ -945,7 +1025,7 @@ class JoinGameScene extends Phaser.Scene {
     joinBtn.on('pointerdown', () => this.attemptJoin());
 
     // Back button
-    const backBtn = this.add.text(centerX, 225, 'Back', {
+    const backBtn = this.add.text(centerX, 225, formatWithHotkey('Back to Main Menu', HOTKEYS.MAIN_MENU), {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -992,7 +1072,7 @@ class JoinGameScene extends Phaser.Scene {
     joinBtn.on('pointerdown', () => this.attemptJoin());
 
     // Back button
-    const backBtn = this.add.text(centerX, 340, 'Back', {
+    const backBtn = this.add.text(centerX, 340, formatWithHotkey('Back to Main Menu', HOTKEYS.MAIN_MENU), {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1247,6 +1327,50 @@ class CreateGameScene extends Phaser.Scene {
       position: 'top-right'
     });
     this.gameMenu.show();
+
+    // Setup keyboard shortcuts (desktop only)
+    if (!DeviceUtils.isMobile()) {
+      this.setupKeyboardShortcuts();
+    }
+  }
+
+  setupKeyboardShortcuts() {
+    // Back to main menu (M)
+    this.input.keyboard.on(HOTKEYS.MAIN_MENU, () => {
+      this.scene.stop('CreateGameScene');
+      this.scene.launch('MenuScene');
+    });
+
+    // Toggle hotkey visibility (H)
+    this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      settingsManager.toggleShowHotkeys();
+      // Rebuild layout to update button labels
+      this.scene.restart({ nickname: this.nickname });
+    });
+
+    // Maze size hotkeys (1, 2, 3)
+    this.input.keyboard.on(HOTKEYS.MAZE_SMALL, () => {
+      this.selectSize('small');
+    });
+    this.input.keyboard.on(HOTKEYS.MAZE_MEDIUM, () => {
+      this.selectSize('medium');
+    });
+    this.input.keyboard.on(HOTKEYS.MAZE_LARGE, () => {
+      this.selectSize('large');
+    });
+
+    // Privacy hotkeys (P, O)
+    this.input.keyboard.on(HOTKEYS.PRIVATE, () => {
+      this.selectPrivacy(true);
+    });
+    this.input.keyboard.on(HOTKEYS.OPEN, () => {
+      this.selectPrivacy(false);
+    });
+
+    // Create game hotkey (C)
+    this.input.keyboard.on(HOTKEYS.CREATE, () => {
+      networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
+    });
   }
 
   onResize() {
@@ -1326,11 +1450,11 @@ class CreateGameScene extends Phaser.Scene {
     this.createPrivacyButton(cx, 335, 'public', 'Open (Browsable)');
 
     // Action buttons
-    this.createActionButton(cx, 400, 'CREATE GAME', '#228822', () => {
+    this.createActionButton(cx, 400, formatWithHotkey('CREATE GAME', HOTKEYS.CREATE), '#228822', () => {
       networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
     });
 
-    const backBtn = this.add.text(cx, 450, 'Back', {
+    const backBtn = this.add.text(cx, 450, formatWithHotkey('Back to Main Menu', HOTKEYS.MAIN_MENU), {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1394,11 +1518,11 @@ class CreateGameScene extends Phaser.Scene {
     this.createPrivacyButton(rightCol, 145, 'public', 'Open', true);
 
     // BOTTOM: Action buttons (centered)
-    this.createActionButton(cx - 70, 260, 'CREATE', '#228822', () => {
+    this.createActionButton(cx - 70, 260, formatWithHotkey('CREATE', HOTKEYS.CREATE), '#228822', () => {
       networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
     }, true);
 
-    const backBtn = this.add.text(cx + 70, 260, 'Back', {
+    const backBtn = this.add.text(cx + 70, 260, formatWithHotkey('Main Menu', HOTKEYS.MAIN_MENU), {
       fontSize: '14px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1416,9 +1540,19 @@ class CreateGameScene extends Phaser.Scene {
   }
 
   createSizeButton(x, y, size, config, compact = false) {
-    const label = compact
+    // Get hotkey for this size
+    const hotkeyMap = {
+      small: HOTKEYS.MAZE_SMALL,
+      medium: HOTKEYS.MAZE_MEDIUM,
+      large: HOTKEYS.MAZE_LARGE
+    };
+    const hotkey = hotkeyMap[size];
+    const hotkeyHint = settingsManager.showHotkeys ? ` [${getHotkeyDisplay(hotkey)}]` : '';
+
+    const baseLabel = compact
       ? `${size.charAt(0).toUpperCase()}${size.slice(1)} (${config.grid}x${config.grid})`
-      : `${size.toUpperCase()} (${config.grid}x${config.grid})`;
+      : `${size.charAt(0).toUpperCase()}${size.slice(1)} (${config.grid}x${config.grid})`;
+    const label = baseLabel + hotkeyHint;
 
     const btn = this.add.text(x, y, label, {
       fontSize: compact ? '14px' : '16px',
@@ -1435,7 +1569,12 @@ class CreateGameScene extends Phaser.Scene {
   }
 
   createPrivacyButton(x, y, key, label, compact = false) {
-    const btn = this.add.text(x, y, label, {
+    // Get hotkey for this privacy option
+    const hotkey = key === 'private' ? HOTKEYS.PRIVATE : HOTKEYS.OPEN;
+    const hotkeyHint = settingsManager.showHotkeys ? ` [${getHotkeyDisplay(hotkey)}]` : '';
+    const labelWithHotkey = label + hotkeyHint;
+
+    const btn = this.add.text(x, y, labelWithHotkey, {
       fontSize: compact ? '14px' : '16px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -1604,7 +1743,7 @@ class BrowseScene extends Phaser.Scene {
     this.gamesList = [];
 
     // Back button
-    const backBtn = this.add.text(centerX, 510, 'Back', {
+    const backBtn = this.add.text(centerX, 510, formatWithHotkey('Back to Main Menu', HOTKEYS.MAIN_MENU), {
       fontSize: '18px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1621,14 +1760,18 @@ class BrowseScene extends Phaser.Scene {
         this.scene.launch('MenuScene');
       });
 
-    // Refresh button
-    this.add.text(centerX + 100, 40, 'Refresh', {
-      fontSize: '14px',
-      color: '#4a4a8a',
-      fontFamily: 'Arial'
+    // Refresh button (positioned above Back button)
+    const refreshBtn = this.add.text(centerX, 470, 'Refresh', {
+      fontSize: '16px',
+      color: '#aaaaaa',
+      fontFamily: 'Arial',
+      backgroundColor: '#333333',
+      padding: { x: 15, y: 8 }
     })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => refreshBtn.setStyle({ backgroundColor: '#444444' }))
+      .on('pointerout', () => refreshBtn.setStyle({ backgroundColor: '#333333' }))
       .on('pointerdown', () => {
         this.refreshList();
       });
@@ -1688,8 +1831,26 @@ class BrowseScene extends Phaser.Scene {
     });
     this.gameMenu.show();
 
+    // Setup keyboard shortcuts (desktop only)
+    this.setupKeyboardShortcuts();
+
     // Request games list
     this.refreshList();
+  }
+
+  setupKeyboardShortcuts() {
+    if (DeviceUtils.isMobile()) return;
+
+    this.input.keyboard.on(HOTKEYS.MAIN_MENU, () => {
+      networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
+      this.scene.stop('BrowseScene');
+      this.scene.launch('MenuScene');
+    });
+
+    this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      settingsManager.toggleShowHotkeys();
+      this.scene.restart({ nickname: this.nickname });
+    });
   }
 
   onResize() {

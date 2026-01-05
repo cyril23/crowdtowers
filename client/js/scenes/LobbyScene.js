@@ -1,6 +1,7 @@
-import { SOCKET_EVENTS } from '../../../shared/constants.js';
+import { SOCKET_EVENTS, HOTKEYS } from '../../../shared/constants.js';
 import { DeviceUtils } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
+import { settingsManager, isInputFocused, formatWithHotkey } from '../managers/SettingsManager.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
 import { GameMenuManager } from '../ui/GameMenuManager.js';
 
@@ -101,7 +102,7 @@ class LobbyScene extends Phaser.Scene {
 
     // Start button (host only)
     if (this.isHost) {
-      this.startButton = this.add.text(centerX, 450, 'START GAME', {
+      this.startButton = this.add.text(centerX, 450, formatWithHotkey('START GAME', HOTKEYS.START), {
         fontSize: '24px',
         color: '#ffffff',
         fontFamily: 'Arial',
@@ -127,8 +128,8 @@ class LobbyScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
-    // Leave button
-    this.leaveBtn = this.add.text(centerX, 520, 'Leave Lobby', {
+    // Quit button
+    this.leaveBtn = this.add.text(centerX, 520, formatWithHotkey('Quit Lobby', HOTKEYS.QUIT), {
       fontSize: '16px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -171,41 +172,38 @@ class LobbyScene extends Phaser.Scene {
       this.chatPanel.show();
     }
 
-    // Setup global menu with volume controls, code, chat toggle, and leave
+    // Setup global menu with volume controls, code, chat toggle, and quit
     this.gameMenu = new GameMenuManager();
     this.gameMenu.configure({
       showSessionCode: true,
       sessionCode: this.sessionCode,
+      chatToggle: {
+        visible: this.chatPanel.isVisible,
+        onChange: (isVisible) => {
+          if (isVisible) {
+            this.chatPanel.show();
+          } else {
+            this.chatPanel.hide();
+          }
+        }
+      },
       buttons: [
         {
-          id: 'chat',
-          label: this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat',
-          onClick: () => {
-            this.chatPanel.toggle();
-            // Update button label
-            this.gameMenu.updateButtonLabel('chat', this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat');
-            // Clear badge when showing chat
-            if (this.chatPanel.isVisible) {
-              this.gameMenu.clearUnread();
-            }
-          },
-          updateLabel: () => this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat'
-        },
-        {
-          id: 'leave',
-          label: 'Leave Lobby',
+          id: 'quit',
+          label: 'Quit Lobby',
+          hotkey: HOTKEYS.QUIT,
           danger: true,
           onClick: () => {
-            networkManager.leaveLobby();
-            this.chatPanel.setLobbyMode(false);
-            this.chatPanel.hide();
-            this.scene.start('MenuScene');
+            this.handleQuitLobby();
           }
         }
       ],
       position: 'top-right'
     });
     this.gameMenu.show();
+
+    // Setup keyboard shortcuts (desktop only)
+    this.setupKeyboardShortcuts();
 
     // Track unread messages - update menu badge
     this.chatPanel.onUnreadChange = (count) => {
@@ -289,6 +287,45 @@ class LobbyScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       this.notification.setText('');
     });
+  }
+
+  setupKeyboardShortcuts() {
+    const isMobile = DeviceUtils.isMobile();
+    if (isMobile) return;
+
+    // Start game (S) - host only
+    this.input.keyboard.on(HOTKEYS.START, () => {
+      if (isInputFocused()) return;
+      if (this.isHost) {
+        networkManager.startGame();
+      }
+    });
+
+    this.input.keyboard.on(HOTKEYS.CHAT, () => {
+      if (isInputFocused()) return;
+      this.chatPanel.toggle();
+      // Sync checkbox state with chat panel visibility
+      this.gameMenu.setChatToggleState(this.chatPanel.isVisible);
+      if (this.chatPanel.isVisible) {
+        this.gameMenu.clearUnread();
+      }
+    });
+
+    this.input.keyboard.on(HOTKEYS.QUIT, () => {
+      if (isInputFocused()) return;
+      this.handleQuitLobby();
+    });
+
+    this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      settingsManager.toggleShowHotkeys();
+    });
+  }
+
+  handleQuitLobby() {
+    networkManager.leaveLobby();
+    this.chatPanel.setLobbyMode(false);
+    this.chatPanel.hide();
+    this.scene.start('MenuScene');
   }
 
   shutdown() {

@@ -1,4 +1,4 @@
-import { GAME_CONFIG, GAME_STATUS, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS } from '../../../shared/constants.js';
+import { GAME_CONFIG, GAME_STATUS, MAZE_SIZES, TILE_TYPES, TOWERS, ENEMIES, SOCKET_EVENTS, HOTKEYS } from '../../../shared/constants.js';
 import { CLIENT_CONFIG } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
@@ -27,6 +27,9 @@ class GameScene extends Phaser.Scene {
 
     // Store initial status for handling paused state on rejoin
     this.initialStatus = data.status || null;
+
+    // Track pause state for hotkey handling
+    this.isPaused = false;
 
     // Preserve selected tower type across restarts (for resize)
     this.preservedSelectedTowerType = data.selectedTowerType || null;
@@ -340,42 +343,37 @@ class GameScene extends Phaser.Scene {
     this.chatPanel = new ChatPanel();
     this.chatPanel.hide(); // Hidden by default - use Menu to show
 
-    // Setup global menu with volume controls, code, chat toggle, pause, and leave
+    // Setup global menu with volume controls, code, chat toggle, pause, and quit
     this.gameMenu = new GameMenuManager();
     this.gameMenu.configure({
       showSessionCode: true,
       sessionCode: this.sessionCode,
+      chatToggle: {
+        visible: this.chatPanel.isVisible,
+        onChange: (isVisible) => {
+          if (isVisible) {
+            this.chatPanel.show();
+          } else {
+            this.chatPanel.hide();
+          }
+        }
+      },
       buttons: [
         {
           id: 'pause',
           label: 'Pause Game',
+          hotkey: HOTKEYS.PAUSE,
           onClick: () => {
             networkManager.pauseGame();
           }
         },
         {
-          id: 'chat',
-          label: 'Show Chat',
-          onClick: () => {
-            this.chatPanel.toggle();
-            this.gameMenu.updateButtonLabel('chat', this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat');
-            if (this.chatPanel.isVisible) {
-              this.gameMenu.clearUnread();
-            }
-          },
-          updateLabel: () => this.chatPanel.isVisible ? 'Hide Chat' : 'Show Chat'
-        },
-        {
-          id: 'leave',
-          label: 'Leave Game',
+          id: 'quit',
+          label: 'Quit Game',
+          hotkey: HOTKEYS.QUIT,
           danger: true,
           onClick: () => {
-            this.showConfirmDialog('Leave Game', 'Are you sure you want to leave the game?', () => {
-              localStorage.removeItem('activeGameSession');
-              log('[REJOIN]', 'Cleared active session (player left)');
-              networkManager.leaveGame();
-              this.cleanupAndReturn();
-            });
+            this.handleQuitGame();
           }
         }
       ],
@@ -412,6 +410,15 @@ class GameScene extends Phaser.Scene {
     this.confirmMessage = document.getElementById('confirm-message');
     this.confirmYesBtn = document.getElementById('confirm-yes');
     this.confirmNoBtn = document.getElementById('confirm-no');
+  }
+
+  handleQuitGame() {
+    this.showConfirmDialog('Quit Game', 'Are you sure you want to quit the game?', () => {
+      localStorage.removeItem('activeGameSession');
+      log('[REJOIN]', 'Cleared active session (player quit)');
+      networkManager.leaveGame();
+      this.cleanupAndReturn();
+    });
   }
 
   showConfirmDialog(title, message, onConfirm) {
@@ -489,6 +496,7 @@ class GameScene extends Phaser.Scene {
       // If game is paused, show the pause overlay
       if (data.status === GAME_STATUS.PAUSED) {
         log('[REJOIN]', 'Game is paused, showing overlay');
+        this.isPaused = true;
         this.pausedByText.textContent = 'Game paused (reconnected)';
         this.pauseOverlay.classList.remove('hidden');
         soundManager.pauseMusic();
@@ -642,6 +650,7 @@ class GameScene extends Phaser.Scene {
 
     // Pause/Resume
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_PAUSED, (data) => {
+      this.isPaused = true;
       this.pausedByText.textContent = `Paused by ${data.pausedBy}`;
       this.pauseOverlay.classList.remove('hidden');
       soundManager.play('pause');
@@ -650,6 +659,7 @@ class GameScene extends Phaser.Scene {
 
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_RESUMED, () => {
       log('[GAME]', 'Received GAME_RESUMED from server');
+      this.isPaused = false;
       this.pauseOverlay.classList.add('hidden');
       soundManager.play('unpause');
       soundManager.resumeMusic();
@@ -664,8 +674,27 @@ class GameScene extends Phaser.Scene {
       // Play game over music based on final wave (good if >= 50, bad if < 50)
       soundManager.playGameOverMusic(data.finalWave);
 
-      // Update menu button label since game is over
-      this.gameMenu.updateButtonLabel('leave', 'Back to Main Menu');
+      // Reconfigure menu for game over state: only "Back to Main Menu" button, no pause/chat
+      this.gameMenu.configure({
+        showSessionCode: true,
+        sessionCode: this.sessionCode,
+        buttons: [
+          {
+            id: 'leave',
+            label: 'Back to Main Menu',
+            hotkey: HOTKEYS.MAIN_MENU,
+            danger: true,
+            onClick: () => {
+              // Go directly to menu without confirmation since game is over
+              localStorage.removeItem('activeGameSession');
+              networkManager.leaveGame();
+              this.cleanupAndReturn();
+            }
+          }
+        ],
+        position: 'top-right'  // Use top-right so menu stays visible when HUD is hidden
+        // No chatToggle = hides the chat toggle section
+      });
 
       // Clean up network handlers to prevent stale events firing on defunct scene
       this.cleanupNetworkHandlers();

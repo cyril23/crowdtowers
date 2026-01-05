@@ -1,6 +1,7 @@
-import { TOWERS, ENEMIES } from '../../../shared/constants.js';
+import { TOWERS, ENEMIES, HOTKEYS } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
+import { formatWithHotkey } from '../managers/SettingsManager.js';
 import { formatNumber, formatCurrency } from '../utils/formatNumber.js';
 
 class TowerMenu {
@@ -22,12 +23,64 @@ class TowerMenu {
     this.selectedTower = null;
     this.selectedEnemy = null;
     this.currentBudget = 0;
+    this.canAffordUpgrade = false;
     this.onTowerSelect = null;
     this.onTowerDeselect = null;
     this.onTowerSold = null;
 
     this.setupEventListeners();
+    this.setupHotkeyListener();
     this.buildTowerList();
+  }
+
+  setupHotkeyListener() {
+    window.addEventListener('hotkey-visibility-changed', () => {
+      if (this.selectedTower) {
+        this.updateButtonLabels();
+      }
+      this.updateTowerListLabels();
+    });
+  }
+
+  updateButtonLabels() {
+    if (this.canAffordUpgrade) {
+      this.elements.upgradeBtn.textContent = formatWithHotkey('Upgrade', HOTKEYS.UPGRADE);
+    }
+    // Keep "Insufficient funds" text unchanged when can't afford
+    this.elements.sellBtn.textContent = formatWithHotkey('Sell', HOTKEYS.SELL);
+  }
+
+  updateTowerListLabels() {
+    const towerHotkeys = [HOTKEYS.TOWER_1, HOTKEYS.TOWER_2, HOTKEYS.TOWER_3, HOTKEYS.TOWER_4, HOTKEYS.TOWER_5];
+    const towerTypes = ['machineGun', 'missileLauncher', 'teslaCoil', 'cryoCannon', 'plasmaTurret'];
+    towerTypes.forEach((type, index) => {
+      const towerEl = this.elements.list.querySelector(`[data-type="${type}"]`);
+      if (towerEl) {
+        const nameEl = towerEl.querySelector('.tower-name');
+        if (nameEl) {
+          const tower = TOWERS[type];
+          nameEl.textContent = formatWithHotkey(tower.name, towerHotkeys[index]);
+        }
+      }
+    });
+  }
+
+  // Methods for InputManager to call via hotkeys
+  hasSelectedTower() {
+    return this.selectedTower !== null;
+  }
+
+  triggerUpgrade() {
+    if (this.selectedTower && this.canAffordUpgrade) {
+      networkManager.upgradeTower(this.selectedTower.id);
+    }
+  }
+
+  triggerSell() {
+    if (this.selectedTower) {
+      networkManager.sellTower(this.selectedTower.id);
+      this.hideUpgradePanel();
+    }
   }
 
   setupEventListeners() {
@@ -222,9 +275,10 @@ class TowerMenu {
       <p class="sell-info">Sell Value: ${formatCurrency(sellValue)} (50%)</p>
     `;
 
+    this.canAffordUpgrade = canAfford;
     this.elements.upgradeBtn.disabled = !canAfford;
-    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not\nenough\nbudget';
-    this.elements.sellBtn.textContent = 'Sell';
+    this.elements.upgradeBtn.textContent = canAfford ? formatWithHotkey('Upgrade', HOTKEYS.UPGRADE) : 'Insufficient\nfunds';
+    this.elements.sellBtn.textContent = formatWithHotkey('Sell', HOTKEYS.SELL);
 
     this.elements.upgradePanel.classList.remove('hidden');
   }
@@ -306,9 +360,10 @@ class TowerMenu {
       <p class="sell-info">Sell Value: ${formatCurrency(sellValue)} (50%)</p>
     `;
 
+    this.canAffordUpgrade = canAfford;
     this.elements.upgradeBtn.disabled = !canAfford;
-    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not\nenough\nbudget';
-    this.elements.sellBtn.textContent = 'Sell';
+    this.elements.upgradeBtn.textContent = canAfford ? formatWithHotkey('Upgrade', HOTKEYS.UPGRADE) : 'Insufficient\nfunds';
+    this.elements.sellBtn.textContent = formatWithHotkey('Sell', HOTKEYS.SELL);
   }
 
   showEnemyPanel(enemy) {

@@ -313,6 +313,47 @@ const SOCKET_EVENTS = {
   CLIENT_ERROR: 'client-error'
 };
 
+// Keyboard hotkeys (Phaser key event names)
+const HOTKEYS = {
+  // Tower selection
+  TOWER_1: 'keydown-ONE',
+  TOWER_2: 'keydown-TWO',
+  TOWER_3: 'keydown-THREE',
+  TOWER_4: 'keydown-FOUR',
+  TOWER_5: 'keydown-FIVE',
+
+  // Tower actions
+  UPGRADE: 'keydown-U',
+  SELL: 'keydown-S',
+
+  // Game controls
+  PAUSE: 'keydown-P',
+  CHAT: 'keydown-C',
+  QUIT: 'keydown-Q',
+  CANCEL: 'keydown-ESC',
+
+  // Settings
+  TOGGLE_HOTKEYS: 'keydown-H',
+
+  // Menu navigation
+  MAIN_MENU: 'keydown-M',
+  JOIN: 'keydown-J',
+  BROWSE: 'keydown-B',
+  CREATE: 'keydown-C',
+
+  // Lobby controls
+  START: 'keydown-S',
+
+  // Create game - maze size (reuses TOWER_1-3 keys, different context)
+  MAZE_SMALL: 'keydown-ONE',
+  MAZE_MEDIUM: 'keydown-TWO',
+  MAZE_LARGE: 'keydown-THREE',
+
+  // Create game - privacy
+  PRIVATE: 'keydown-P',
+  OPEN: 'keydown-O'
+};
+
 // Export for ES modules
 export {
   GAME_CONFIG,
@@ -323,5 +364,6 @@ export {
   TOWERS,
   ENEMIES,
   WAVE_COMPOSITION,
-  SOCKET_EVENTS
+  SOCKET_EVENTS,
+  HOTKEYS
 };

@@ -16,7 +16,7 @@
   <!-- Chat Panel (shown during lobby and game) -->
   <div id="chat-panel" class="hidden">
     <div id="chat-header">
-      <span>Chat</span>
+      <span id="chat-title">Chat</span>
       <button id="chat-close">×</button>
     </div>
     <div id="chat-messages"></div>
@@ -61,6 +61,18 @@
           <input type="range" id="music-volume" min="0" max="100" value="30">
           <span id="music-volume-value">30%</span>
         </div>
+      </div>
+      <div class="menu-toggle-section">
+        <label class="menu-toggle">
+          <input type="checkbox" id="hotkey-toggle" checked>
+          <span>Show Hotkeys [H]</span>
+        </label>
+      </div>
+      <div class="menu-toggle-section" id="chat-toggle-section">
+        <label class="menu-toggle">
+          <input type="checkbox" id="chat-toggle">
+          <span id="chat-toggle-label">Show Chat [C]</span>
+        </label>
       </div>
       <div id="menu-dynamic-buttons"></div>
     </div>

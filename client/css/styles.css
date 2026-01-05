@@ -412,6 +412,32 @@ html, body {
   flex-shrink: 0;
 }
 
+/* Hotkey Toggle Section */
+.menu-toggle-section {
+  padding: 8px 10px;
+  border-bottom: 1px solid #333;
+}
+
+.menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.menu-toggle:hover {
+  color: #ccc;
+}
+
+.menu-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #6a6aaa;
+}
+
 #lives-value.warning {
   color: #ff4444;
   font-weight: bold;
@@ -527,7 +553,6 @@ html, body {
   cursor: pointer;
   margin-top: 10px;
   transition: background 0.2s;
-  white-space: pre-line;
 }
 
 #upgrade-btn:hover:not(:disabled) {
@@ -546,7 +571,12 @@ html, body {
   align-items: flex-end;
 }
 
-#upgrade-buttons button {
+#upgrade-buttons #upgrade-btn {
+  flex: 1.3;
+  white-space: nowrap;
+}
+
+#upgrade-buttons #sell-btn {
   flex: 1;
 }
 

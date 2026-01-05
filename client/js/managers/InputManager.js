@@ -1,6 +1,7 @@
-import { TILE_TYPES, ENEMIES, GAME_STATUS } from '../../../shared/constants.js';
+import { TILE_TYPES, ENEMIES, HOTKEYS } from '../../../shared/constants.js';
 import { DeviceUtils } from '../config.js';
 import { networkManager } from './NetworkManager.js';
+import { settingsManager, isInputFocused } from './SettingsManager.js';
 
 class InputManager {
   constructor(scene) {
@@ -25,24 +26,82 @@ class InputManager {
   }
 
   setupKeyboardShortcuts() {
-    this.scene.input.keyboard.on('keydown-ESC', () => {
+    // Cancel selection (ESC)
+    this.scene.input.keyboard.on(HOTKEYS.CANCEL, () => {
       this.cancelSelection();
     });
 
-    this.scene.input.keyboard.on('keydown-P', () => {
-      if (this.scene.gameState?.status === GAME_STATUS.PLAYING) {
-        networkManager.pauseGame();
-      } else if (this.scene.gameState?.status === GAME_STATUS.PAUSED) {
+    // Pause/Resume (P)
+    this.scene.input.keyboard.on(HOTKEYS.PAUSE, () => {
+      if (isInputFocused()) return;
+      if (this.scene.isPaused) {
         networkManager.resumeGame();
+      } else {
+        networkManager.pauseGame();
       }
     });
 
-    // Tower hotkeys
-    this.scene.input.keyboard.on('keydown-ONE', () => this.selectTowerType('machineGun'));
-    this.scene.input.keyboard.on('keydown-TWO', () => this.selectTowerType('missileLauncher'));
-    this.scene.input.keyboard.on('keydown-THREE', () => this.selectTowerType('teslaCoil'));
-    this.scene.input.keyboard.on('keydown-FOUR', () => this.selectTowerType('cryoCannon'));
-    this.scene.input.keyboard.on('keydown-FIVE', () => this.selectTowerType('plasmaTurret'));
+    // Tower selection hotkeys (1-5)
+    this.scene.input.keyboard.on(HOTKEYS.TOWER_1, () => {
+      if (isInputFocused()) return;
+      this.selectTowerType('machineGun');
+    });
+    this.scene.input.keyboard.on(HOTKEYS.TOWER_2, () => {
+      if (isInputFocused()) return;
+      this.selectTowerType('missileLauncher');
+    });
+    this.scene.input.keyboard.on(HOTKEYS.TOWER_3, () => {
+      if (isInputFocused()) return;
+      this.selectTowerType('teslaCoil');
+    });
+    this.scene.input.keyboard.on(HOTKEYS.TOWER_4, () => {
+      if (isInputFocused()) return;
+      this.selectTowerType('cryoCannon');
+    });
+    this.scene.input.keyboard.on(HOTKEYS.TOWER_5, () => {
+      if (isInputFocused()) return;
+      this.selectTowerType('plasmaTurret');
+    });
+
+    // Upgrade tower (U)
+    this.scene.input.keyboard.on(HOTKEYS.UPGRADE, () => {
+      if (isInputFocused()) return;
+      if (this.scene.towerMenu?.hasSelectedTower()) {
+        this.scene.towerMenu.triggerUpgrade();
+      }
+    });
+
+    // Sell tower (S)
+    this.scene.input.keyboard.on(HOTKEYS.SELL, () => {
+      if (isInputFocused()) return;
+      if (this.scene.towerMenu?.hasSelectedTower()) {
+        this.scene.towerMenu.triggerSell();
+      }
+    });
+
+    // Toggle chat (C)
+    this.scene.input.keyboard.on(HOTKEYS.CHAT, () => {
+      if (isInputFocused()) return;
+      this.scene.chatPanel?.toggle();
+      // Sync checkbox state with chat panel visibility
+      if (this.scene.gameMenu && this.scene.chatPanel) {
+        this.scene.gameMenu.setChatToggleState(this.scene.chatPanel.isVisible);
+        if (this.scene.chatPanel.isVisible) {
+          this.scene.gameMenu.clearUnread();
+        }
+      }
+    });
+
+    // Quit game (Q)
+    this.scene.input.keyboard.on(HOTKEYS.QUIT, () => {
+      if (isInputFocused()) return;
+      this.scene.handleQuitGame?.();
+    });
+
+    // Toggle hotkey visibility (H) - works even when input is focused
+    this.scene.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      settingsManager.toggleShowHotkeys();
+    });
   }
 
   handlePointerDown(pointer) {

@@ -1,4 +1,5 @@
 import { soundManager, SoundManager } from '../managers/SoundManager.js';
+import { settingsManager, formatWithHotkey } from '../managers/SettingsManager.js';
 
 // Singleton instance
 let gameMenuInstance = null;
@@ -24,16 +25,24 @@ class GameMenuManager {
       sfxMuteBtn: document.getElementById('sfx-mute-btn'),
       musicSlider: document.getElementById('music-volume'),
       musicValue: document.getElementById('music-volume-value'),
-      musicMuteBtn: document.getElementById('music-mute-btn')
+      musicMuteBtn: document.getElementById('music-mute-btn'),
+      hotkeyToggle: document.getElementById('hotkey-toggle'),
+      chatToggleSection: document.getElementById('chat-toggle-section'),
+      chatToggle: document.getElementById('chat-toggle'),
+      chatToggleLabel: document.getElementById('chat-toggle-label')
     };
 
     this.currentConfig = null;
     this.callbacks = {};
+    this.buttonConfigs = []; // Store button configs for hotkey hint updates
     this.unreadCount = 0;
+    this.chatToggleCallback = null;
 
     this.setupVolumeControls();
     this.setupToggleButton();
     this.setupCopyButton();
+    this.setupHotkeyToggle();
+    this.setupChatToggle();
     this.setupDocumentClickHandler();
 
     gameMenuInstance = this;
@@ -44,12 +53,14 @@ class GameMenuManager {
    * @param {Object} options Configuration options
    * @param {boolean} options.showSessionCode Whether to show session code section
    * @param {string} options.sessionCode The session code to display
-   * @param {Array} options.buttons Array of button configs: { id, label, onClick, danger, updateLabel }
+   * @param {Array} options.buttons Array of button configs: { id, label, onClick, danger, updateLabel, hotkey }
    * @param {string} options.position 'top-right' for fixed position, 'in-hud' for HUD integration
+   * @param {Object} options.chatToggle Chat toggle config: { visible, onChange }
    */
   configure(options) {
     this.currentConfig = options;
     this.callbacks = {};
+    this.buttonConfigs = options.buttons || [];
 
     // Show/hide session code
     if (options.showSessionCode && options.sessionCode) {
@@ -59,17 +70,26 @@ class GameMenuManager {
       this.elements.sessionCode.classList.add('hidden');
     }
 
+    // Configure chat toggle
+    if (options.chatToggle) {
+      this.configureChatToggle(options.chatToggle);
+    } else {
+      // Hide chat toggle for scenes without chat
+      this.elements.chatToggleSection.classList.add('hidden');
+      this.chatToggleCallback = null;
+    }
+
     // Build dynamic buttons
     this.elements.dynamicButtons.innerHTML = '';
-    if (options.buttons && options.buttons.length > 0) {
-      options.buttons.forEach(btnConfig => {
+    if (this.buttonConfigs.length > 0) {
+      this.buttonConfigs.forEach(btnConfig => {
         const btn = document.createElement('button');
         btn.id = `menu-${btnConfig.id}-btn`;
         let className = 'menu-btn';
         if (btnConfig.danger) className += ' menu-btn-danger';
         else if (btnConfig.neutral) className += ' menu-btn-neutral';
         btn.className = className;
-        btn.textContent = btnConfig.label;
+        btn.textContent = this.getButtonLabel(btnConfig);
         btn.onclick = () => {
           if (btnConfig.onClick) btnConfig.onClick();
           this.closeDropdown();
@@ -90,6 +110,50 @@ class GameMenuManager {
     this.updateVolumeDisplay();
     this.updateMuteButtons();
     this.updateSliderDisabledState();
+    this.updateHotkeyToggle();
+  }
+
+  /**
+   * Configure the chat toggle checkbox
+   * @param {Object} config Chat toggle config
+   * @param {boolean} config.visible Initial visibility of chat
+   * @param {function} config.onChange Callback when toggle changes (receives new visibility state)
+   */
+  configureChatToggle(config) {
+    this.elements.chatToggleSection.classList.remove('hidden');
+    this.elements.chatToggle.checked = config.visible;
+    this.chatToggleCallback = config.onChange;
+    this.updateChatToggleLabel();
+  }
+
+  updateChatToggleLabel() {
+    // Label stays constant - checkbox state indicates visibility
+    const hotkeyHint = settingsManager.showHotkeys ? ' [C]' : '';
+    this.elements.chatToggleLabel.textContent = 'Show Chat' + hotkeyHint;
+  }
+
+  setChatToggleState(isVisible) {
+    this.elements.chatToggle.checked = isVisible;
+  }
+
+  /**
+   * Get button label with optional hotkey hint
+   */
+  getButtonLabel(btnConfig) {
+    const label = btnConfig.updateLabel ? btnConfig.updateLabel() : btnConfig.label;
+    return formatWithHotkey(label, btnConfig.hotkey);
+  }
+
+  /**
+   * Rebuild all button labels (called when hotkey visibility changes)
+   */
+  rebuildButtonLabels() {
+    this.buttonConfigs.forEach(btnConfig => {
+      const btn = document.getElementById(`menu-${btnConfig.id}-btn`);
+      if (btn) {
+        btn.textContent = this.getButtonLabel(btnConfig);
+      }
+    });
   }
 
   positionMenu(position) {
@@ -225,6 +289,46 @@ class GameMenuManager {
     };
   }
 
+  setupHotkeyToggle() {
+    // Initialize checkbox state
+    this.updateHotkeyToggle();
+
+    // Handle checkbox change
+    this.elements.hotkeyToggle.onchange = (e) => {
+      e.stopPropagation();
+      settingsManager.toggleShowHotkeys();
+      // rebuildButtonLabels will be called via event listener
+    };
+
+    // Listen for external changes (e.g., H key press)
+    window.addEventListener('hotkey-visibility-changed', () => {
+      this.updateHotkeyToggle();
+      this.rebuildButtonLabels();
+      // Also update chat toggle label if visible
+      if (!this.elements.chatToggleSection.classList.contains('hidden')) {
+        this.updateChatToggleLabel();
+      }
+    });
+  }
+
+  updateHotkeyToggle() {
+    this.elements.hotkeyToggle.checked = settingsManager.showHotkeys;
+  }
+
+  setupChatToggle() {
+    this.elements.chatToggle.onchange = (e) => {
+      e.stopPropagation();
+      const isVisible = e.target.checked;
+      if (this.chatToggleCallback) {
+        this.chatToggleCallback(isVisible);
+      }
+      // Clear unread when showing chat
+      if (isVisible) {
+        this.clearUnread();
+      }
+    };
+  }
+
   setupDocumentClickHandler() {
     // Only add once (guard with flag on window)
     if (!window._gameMenuClickHandler) {
@@ -240,10 +344,13 @@ class GameMenuManager {
   }
 
   updateDynamicLabels() {
-    Object.entries(this.callbacks).forEach(([id, updateFn]) => {
-      const btn = document.getElementById(`menu-${id}-btn`);
-      if (btn && updateFn) {
-        btn.textContent = updateFn();
+    // Update buttons with dynamic labels (includes hotkey hints)
+    this.buttonConfigs.forEach(btnConfig => {
+      if (btnConfig.updateLabel) {
+        const btn = document.getElementById(`menu-${btnConfig.id}-btn`);
+        if (btn) {
+          btn.textContent = this.getButtonLabel(btnConfig);
+        }
       }
     });
   }

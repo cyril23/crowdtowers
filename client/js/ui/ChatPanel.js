@@ -1,6 +1,7 @@
-import { SOCKET_EVENTS } from '../../../shared/constants.js';
+import { SOCKET_EVENTS, HOTKEYS } from '../../../shared/constants.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
+import { settingsManager, getHotkeyDisplay } from '../managers/SettingsManager.js';
 
 // Singleton instance
 let chatPanelInstance = null;
@@ -14,6 +15,7 @@ class ChatPanel {
 
     this.elements = {
       panel: document.getElementById('chat-panel'),
+      title: document.getElementById('chat-title'),
       messages: document.getElementById('chat-messages'),
       input: document.getElementById('chat-input'),
       sendBtn: document.getElementById('chat-send'),
@@ -25,8 +27,19 @@ class ChatPanel {
     this.onUnreadChange = null; // Callback for when unread count changes
     this.setupEventListeners();
     this.setupNetworkListeners();
+    this.updateTitle();
+
+    // Listen for hotkey visibility changes
+    window.addEventListener('hotkey-visibility-changed', () => {
+      this.updateTitle();
+    });
 
     chatPanelInstance = this;
+  }
+
+  updateTitle() {
+    const hotkeyHint = settingsManager.showHotkeys ? ` [${getHotkeyDisplay(HOTKEYS.CHAT)}]` : '';
+    this.elements.title.textContent = 'Chat' + hotkeyHint;
   }
 
   setupEventListeners() {
