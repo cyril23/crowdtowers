@@ -527,6 +527,7 @@ html, body {
   cursor: pointer;
   margin-top: 10px;
   transition: background 0.2s;
+  white-space: pre-line;
 }
 
 #upgrade-btn:hover:not(:disabled) {
@@ -542,6 +543,7 @@ html, body {
   display: flex;
   gap: 8px;
   margin-bottom: 5px;
+  align-items: flex-end;
 }
 
 #upgrade-buttons button {

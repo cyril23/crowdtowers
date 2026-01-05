@@ -219,11 +219,12 @@ class TowerMenu {
       <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
       <p>Upgrade Cost: ${formatCurrency(upgradeCost)}</p>
+      <p class="sell-info">Sell Value: ${formatCurrency(sellValue)} (50%)</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
-    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
-    this.elements.sellBtn.textContent = `Sell (+${formatCurrency(sellValue)})`;
+    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not\nenough\nbudget';
+    this.elements.sellBtn.textContent = 'Sell';
 
     this.elements.upgradePanel.classList.remove('hidden');
   }
@@ -302,11 +303,12 @@ class TowerMenu {
       <p>Damage: ${formatUpgrade(currentDamage, nextDamage)}</p>
       ${specialInfo}
       <p>Upgrade Cost: ${formatCurrency(upgradeCost)}</p>
+      <p class="sell-info">Sell Value: ${formatCurrency(sellValue)} (50%)</p>
     `;
 
     this.elements.upgradeBtn.disabled = !canAfford;
-    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not enough budget';
-    this.elements.sellBtn.textContent = `Sell (+${formatCurrency(sellValue)})`;
+    this.elements.upgradeBtn.textContent = canAfford ? 'Upgrade' : 'Not\nenough\nbudget';
+    this.elements.sellBtn.textContent = 'Sell';
   }
 
   showEnemyPanel(enemy) {
