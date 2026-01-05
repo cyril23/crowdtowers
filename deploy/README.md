@@ -45,8 +45,6 @@ ansible-vault create inventory/group_vars/all/vault.yml
 
 See [vault.yml.example](ansible/inventory/group_vars/all/vault.yml.example) for required secrets.
 
-**Important**: Use plain ASCII quotes `"` not German quotes `„"`.
-
 To edit later: `ansible-vault edit inventory/group_vars/all/vault.yml`
 
 ### 4. Run Ansible Provisioning
