@@ -87,8 +87,8 @@ const SFX_FILES = [
 
 // Music tracks organized by category
 const MUSIC_TRACKS = {
-  menu: ['menu_theme1', 'menu_theme2', 'menu_theme3', 'menu_theme4'],
-  gameplay: ['gameplay_01', 'gameplay_02', 'gameplay_03', 'gameplay_04', 'gameplay_05', 'gameplay_06'],
+  menu: ['menu_theme1'],
+  gameplay: ['gameplay_01', 'gameplay_02', 'gameplay_03', 'gameplay_04', 'gameplay_05', 'gameplay_06', 'gameplay_07', 'gameplay_08', 'gameplay_09'],
   boss: ['boss_theme1', 'boss_theme2', 'boss_theme3'],
   gameOver: ['game_over_good', 'game_over_bad']
 };
