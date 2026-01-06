@@ -107,6 +107,8 @@ class GameOverScene extends Phaser.Scene {
     document.getElementById('tower-panel').classList.add('hidden');
     document.getElementById('chat-panel').classList.add('hidden');
     document.getElementById('pause-overlay').classList.add('hidden');
+    document.getElementById('upgrade-panel').classList.add('hidden');
+    document.getElementById('enemy-panel').classList.add('hidden');
   }
 
   goToMainMenu() {
@@ -120,6 +122,8 @@ class GameOverScene extends Phaser.Scene {
     document.getElementById('chat-panel').classList.add('hidden');
     document.getElementById('pause-overlay').classList.add('hidden');
     document.getElementById('game-menu').classList.add('hidden');
+    document.getElementById('upgrade-panel').classList.add('hidden');
+    document.getElementById('enemy-panel').classList.add('hidden');
 
     // Stop scenes and go to menu
     this.scene.stop('GameScene');
