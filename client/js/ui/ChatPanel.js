@@ -160,6 +160,7 @@ class ChatPanel {
 
   clear() {
     this.elements.messages.innerHTML = '';
+    this.elements.input.value = '';
   }
 
   setLobbyMode(enabled) {

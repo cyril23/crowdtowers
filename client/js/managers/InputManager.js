@@ -106,6 +106,12 @@ class InputManager {
   }
 
   handlePointerDown(pointer) {
+    // Unfocus chat input when clicking on game canvas
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput && document.activeElement === chatInput) {
+      chatInput.blur();
+    }
+
     if (!this.scene.maze || !this.scene.tileSize) return;
 
     // Use worldX/worldY to account for camera zoom/scroll
@@ -189,6 +195,12 @@ class InputManager {
   }
 
   selectTowerType(type) {
+    // If same tower type is already selected, toggle it off
+    if (this.selectedTowerType === type) {
+      this.cancelSelection();
+      return;
+    }
+
     this.selectedTowerType = type;
     this.deselectTower();
 
