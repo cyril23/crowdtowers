@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { GAME_STATUS } from '../../shared/constants.js';
+import { GAME_CONFIG, GAME_STATUS } from '../../shared/constants.js';
 
 const towerSchema = new mongoose.Schema({
   id: String,
@@ -18,8 +18,8 @@ const playerSchema = new mongoose.Schema({
 }, { _id: false });
 
 const gameStateSchema = new mongoose.Schema({
-  budget: { type: Number, default: 500 },
-  lives: { type: Number, default: 10 },
+  budget: { type: Number, default: GAME_CONFIG.STARTING_BUDGET },
+  lives: { type: Number, default: GAME_CONFIG.STARTING_LIVES },
   currentWave: { type: Number, default: 0 },
   towers: [towerSchema],
   waveInProgress: { type: Boolean, default: false }

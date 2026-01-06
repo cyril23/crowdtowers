@@ -628,8 +628,8 @@ class GameScene extends Phaser.Scene {
       this.gameState.currentWave = data.waveNumber;
       this.hud.updateWave(data.waveNumber);
 
-      // Boss wave every 50 - use special notification and music
-      if (data.waveNumber % 50 === 0 && data.waveNumber > 0) {
+      // Boss wave - use special notification and music
+      if (data.composition && data.composition.boss) {
         this.showBossWaveNotification(data.waveNumber);
         soundManager.playBossMusic(data.waveNumber);
       } else {
@@ -643,7 +643,7 @@ class GameScene extends Phaser.Scene {
       soundManager.play('wave_complete');
 
       // Resume gameplay music after boss wave
-      if (data.waveNumber % 50 === 0 && data.waveNumber > 0) {
+      if (data.boss) {
         soundManager.resumeGameplayMusic();
       }
     });
@@ -671,7 +671,7 @@ class GameScene extends Phaser.Scene {
       localStorage.removeItem('activeGameSession');
       log('[REJOIN]', 'Cleared active session (game over)');
 
-      // Play game over music based on final wave (good if >= 50, bad if < 50)
+      // Play game over music based on final wave (good if >= TOTAL_WAVES, bad otherwise)
       soundManager.playGameOverMusic(data.finalWave);
 
       // Reconfigure menu for game over state: only "Back to Main Menu" button, no pause/chat

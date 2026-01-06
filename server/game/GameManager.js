@@ -391,8 +391,10 @@ class GameManager {
       budget: this.gameData.gameState.budget
     });
 
+    const composition = getWaveComposition(this.gameData.gameState.currentWave);
     this.io.to(this.sessionCode).emit('wave-complete', {
-      waveNumber: this.gameData.gameState.currentWave
+      waveNumber: this.gameData.gameState.currentWave,
+      boss: composition.boss
     });
 
     // No victory condition - waves continue infinitely until defeat

@@ -4,7 +4,7 @@ function getEnemyStats(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
   if (!enemy) return null;
 
-  // Simple linear scaling: +20% HP per wave, no cycle bonuses
+  // Simple linear scaling: +30% HP per wave, no cycle bonuses
   // This provides smooth difficulty progression without sudden jumps
   const baseMultiplier = 1 + (enemy.healthScaling * (waveNumber - 1));
 
@@ -23,21 +23,20 @@ function getScaledReward(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
   if (!enemy) return 0;
 
-  // Linear reward scaling: +10% per wave (softer than HP's +20% to maintain challenge)
-  const rewardMultiplier = 1 + (0.10 * (waveNumber - 1));
+  // Linear reward scaling: +5% per wave (softer than HP's +25% to maintain challenge)
+  const rewardMultiplier = 1 + (0.05 * (waveNumber - 1));
 
   return Math.floor(enemy.reward * rewardMultiplier);
 }
 
 function getWaveComposition(waveNumber) {
-  // Waves cycle after 50 (wave 51 = wave 1, etc.)
+  // Waves cycle after TOTAL_WAVES (wave 26 = wave 1, etc.)
   const waveIndex = (waveNumber - 1) % WAVE_COMPOSITION.length;
   const wave = WAVE_COMPOSITION[waveIndex];
 
   return {
     enemies: wave.enemies,
     count: wave.count,
-    difficulty: wave.difficulty,
     boss: wave.boss || false
   };
 }

@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from '../../../shared/constants.js';
+
 // Sound categories with priority levels (lower number = higher priority)
 const SOUND_CATEGORIES = {
   CRITICAL: {
@@ -406,29 +408,30 @@ class SoundManager {
   }
 
   // Play boss music based on wave number
-  // Wave 50 -> boss_theme1, Wave 100 -> boss_theme2, Wave 150 -> boss_theme3, then repeat
+  // Each cycle through TOTAL_WAVES uses a different boss theme
   playBossMusic(waveNumber) {
     if (!this.initialized) return;
 
     this.currentPlaylistType = 'boss';
     const tracks = MUSIC_TRACKS.boss;
 
-    // Calculate which boss track (50 = 0, 100 = 1, 150 = 2, 200 = 0, etc.)
-    const bossIndex = Math.floor((waveNumber - 50) / 50) % tracks.length;
+    // Calculate which boss track based on how many full cycles completed
+    const cycleNumber = Math.floor((waveNumber - 1) / GAME_CONFIG.TOTAL_WAVES);
+    const bossIndex = cycleNumber % tracks.length;
     const trackKey = tracks[bossIndex];
 
     this.playMusicTrack(trackKey, true); // Boss music loops
   }
 
   // Play game over music based on final wave
-  // Wave >= 50: game_over_good (loops)
-  // Wave < 50: game_over_bad (loops)
+  // Wave >= TOTAL_WAVES: game_over_good (loops)
+  // Wave < TOTAL_WAVES: game_over_bad (loops)
   playGameOverMusic(finalWave) {
     if (!this.initialized) return;
 
     this.currentPlaylistType = 'gameOver';
 
-    if (finalWave >= 50) {
+    if (finalWave >= GAME_CONFIG.TOTAL_WAVES) {
       this.playMusicTrack('game_over_good', true);
     } else {
       this.playMusicTrack('game_over_bad', true);

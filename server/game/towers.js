@@ -36,20 +36,20 @@ function calculateDamage(towerType, towerLevel, enemyType) {
   return damage;
 }
 
-function getTowerRange(towerType, level = 1) {
+function getTowerRange(towerType, _level = 1) {
   const tower = TOWERS[towerType];
   if (!tower) return 0;
 
-  // Range increases slightly with level
-  return tower.range + (level - 1) * 0.1;
+  // Range is fixed (no level scaling)
+  return tower.range;
 }
 
-function getTowerFireRate(towerType, level = 1) {
+function getTowerFireRate(towerType, _level = 1) {
   const tower = TOWERS[towerType];
   if (!tower) return 1000;
 
-  // Fire rate improves (decreases) slightly with level
-  return Math.max(100, tower.fireRate * Math.pow(0.95, level - 1));
+  // Fire rate is fixed (no level scaling)
+  return tower.fireRate;
 }
 
 function getTotalTowerCost(towerType, currentLevel) {

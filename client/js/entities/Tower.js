@@ -139,7 +139,7 @@ class TowerSprite extends Phaser.GameObjects.Container {
 
     // Update range indicator
     const towerDef = TOWERS[this.towerType];
-    const newRange = (towerDef.range + (newLevel - 1) * 0.1) * this.tileSize;
+    const newRange = towerDef.range * this.tileSize;
     this.drawRangeIndicator(newRange);
 
     // Flash effect
