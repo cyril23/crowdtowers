@@ -39,7 +39,6 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Upgrade cost formula: `baseCost × 1.5^(level-1)`
 - Upgrade damage formula: `baseDamage × 1.35^(level-1)` (Cryo Cannon: 1.40^)
 - Upgrades only improve damage (and Cryo slow) - range and fire rate are fixed
-- **Reward scaling:** +5% per wave (scales from wave 1, softer than HP)
 
 ### Enemy Specials
 - **Phasewalker:** 10% chance to dodge damage (slow effects still apply)
@@ -74,7 +73,7 @@ Strong = 1.5x damage, Weak = 0.5x damage
 
 ### Scaling Formula
 - **HP:** +30% per wave (linear: `baseHP × (1 + 0.3 × (wave-1))`)
-- **Rewards:** +5% per wave (linear: `baseReward × (1 + 0.05 × (wave-1))`)
+- **Rewards:** +4% per wave (linear: `baseReward × (1 + 0.04 × (wave-1))`)
 - **Speed:** Constant (does not scale)
 - **No victory condition** - game continues until defeat
 
