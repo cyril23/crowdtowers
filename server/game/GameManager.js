@@ -190,17 +190,30 @@ class GameManager {
     }
   }
 
+  /**
+   * Update all towers - find targets and fire
+   *
+   * At high game speeds, tower cooldowns can drop below the server tick interval.
+   * To maintain proper DPS, towers fire multiple shots per tick when needed.
+   * Example: At 10x speed, a 200ms cooldown becomes 20ms, but ticks are 50ms apart.
+   * Without compensation, DPS would cap at 4x instead of scaling to 10x.
+   */
   updateTowers(now) {
     const mazeConfig = MAZE_SIZES[this.gameData.mazeSize];
     const tileSize = mazeConfig.tileSize;
+    const tickInterval = 1000 / GAME_CONFIG.TICK_RATE; // ms between server ticks
 
     for (const tower of this.gameData.gameState.towers) {
       const towerId = tower.id;
       const lastFired = this.towerCooldowns.get(towerId) || 0;
       const fireRate = getTowerFireRate(tower.type, tower.level);
+      const scaledFireRate = fireRate / this.speedMultiplier;
 
-      // Scale fire rate with speed multiplier (towers fire faster at higher speeds)
-      if (now - lastFired < fireRate / this.speedMultiplier) {
+      // Calculate time since last fired
+      const timeSinceLastFired = now - lastFired;
+
+      // Skip if still cooling down
+      if (timeSinceLastFired < scaledFireRate) {
         continue;
       }
 
@@ -226,7 +239,34 @@ class GameManager {
       }
 
       if (target) {
-        this.fireTower(tower, target, now);
+        // Calculate how many shots should fire this tick (handles high speeds)
+        // When cooldown < tick interval, fire multiple times to compensate
+        const shotsToCatchUp = Math.min(
+          Math.floor(timeSinceLastFired / scaledFireRate),
+          Math.ceil(tickInterval / scaledFireRate) // Cap to reasonable burst
+        );
+
+        for (let i = 0; i < shotsToCatchUp; i++) {
+          // Re-check if target is still alive (might have been killed by previous shot)
+          if (target.health <= 0) {
+            // Find new target
+            target = null;
+            minDistance = Infinity;
+            for (const enemy of this.enemies) {
+              if (enemy.spawnDelay > 0 || enemy.health <= 0) continue;
+              const dx = enemy.x - towerX;
+              const dy = enemy.y - towerY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance <= range && distance < minDistance) {
+                minDistance = distance;
+                target = enemy;
+              }
+            }
+            if (!target) break; // No valid targets left
+          }
+
+          this.fireTower(tower, target, now);
+        }
       }
     }
   }
@@ -387,7 +427,7 @@ class GameManager {
           x: enemy.x + (Math.random() - 0.5) * 24,
           y: enemy.y + (Math.random() - 0.5) * 24,
           slowedUntil: 0,
-          spawnDelay: (i * 200) / this.speedMultiplier // Small stagger for spawned enemies, adjusted for speed
+          spawnDelay: i * 200 // Small stagger for spawned enemies (countdown uses adjustedDelta)
         };
         this.enemies.push(spawn);
       }
@@ -436,8 +476,8 @@ class GameManager {
     const tileSize = mazeConfig.tileSize;
     const entry = this.gameData.maze.entry;
 
-    // Generate enemies for this wave (pass speedMultiplier for spawn stagger timing)
-    this.enemies = generateWaveEnemies(this.gameData.gameState.currentWave, this.speedMultiplier);
+    // Generate enemies for this wave
+    this.enemies = generateWaveEnemies(this.gameData.gameState.currentWave);
 
     // Set initial position at entry with small random spread
     const entryX = entry.x * tileSize + tileSize / 2;

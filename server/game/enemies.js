@@ -41,7 +41,7 @@ function getWaveComposition(waveNumber) {
   };
 }
 
-function generateWaveEnemies(waveNumber, speedMultiplier = 1) {
+function generateWaveEnemies(waveNumber) {
   const composition = getWaveComposition(waveNumber);
   const enemies = [];
 
@@ -58,7 +58,7 @@ function generateWaveEnemies(waveNumber, speedMultiplier = 1) {
       x: 0,
       y: 0,
       slowedUntil: 0,
-      spawnDelay: (i * 600) / speedMultiplier // Stagger spawns, adjusted for game speed
+      spawnDelay: i * 600 // Stagger spawns (countdown uses adjustedDelta, so speed scaling is automatic)
     });
   }
 

@@ -1101,16 +1101,16 @@ class GameScene extends Phaser.Scene {
       const dy = targetY - p.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Check if projectile reached target
-      if (dist < 5) {
+      // Move toward current target position using actual delta time and game speed
+      const moveSpeed = p.speed * this.gameSpeed * (delta / 1000);
+
+      // Check if projectile reached target (scale threshold with speed to prevent overshoot)
+      if (dist < Math.max(5, moveSpeed * 1.5)) {
         if (p.hit) {
           this.showImpactEffect(targetX, targetY, p.color);
         }
         return false; // Remove projectile
       }
-
-      // Move toward current target position using actual delta time and game speed
-      const moveSpeed = p.speed * this.gameSpeed * (delta / 1000);
       p.x += (dx / dist) * moveSpeed;
       p.y += (dy / dist) * moveSpeed;
 
