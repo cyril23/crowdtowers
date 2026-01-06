@@ -158,6 +158,10 @@ class NetworkManager {
     this.emit(SOCKET_EVENTS.RESUME_GAME, {});
   }
 
+  changeGameSpeed(speed) {
+    this.emit(SOCKET_EVENTS.CHANGE_SPEED, { speed });
+  }
+
   saveGame() {
     this.emit(SOCKET_EVENTS.SAVE_GAME, {});
   }

@@ -31,6 +31,12 @@ class GameScene extends Phaser.Scene {
     // Track pause state for hotkey handling
     this.isPaused = false;
 
+    // Track game over state
+    this.isGameOver = false;
+
+    // Game speed multiplier (synced from server)
+    this.gameSpeed = data.gameSpeed || 1;
+
     // Preserve selected tower type across restarts (for resize)
     this.preservedSelectedTowerType = data.selectedTowerType || null;
 
@@ -116,6 +122,7 @@ class GameScene extends Phaser.Scene {
       budget: this.gameState.budget,
       wave: this.gameState.currentWave
     });
+    this.hud.updateSpeed(this.gameSpeed);
 
     // Start gameplay music (random track, then sequential)
     soundManager.setScene(this);
@@ -356,6 +363,12 @@ class GameScene extends Phaser.Scene {
           } else {
             this.chatPanel.hide();
           }
+        }
+      },
+      speedControl: {
+        currentSpeed: this.gameSpeed,
+        onChange: (speed) => {
+          networkManager.changeGameSpeed(speed);
         }
       },
       buttons: [
@@ -665,11 +678,26 @@ class GameScene extends Phaser.Scene {
       soundManager.resumeMusic();
     });
 
+    // Speed changed
+    this.registerNetworkHandler(SOCKET_EVENTS.SPEED_CHANGED, (data) => {
+      const oldSpeed = this.gameSpeed;
+      this.gameSpeed = data.speed;
+      this.gameMenu.setSpeedValue(data.speed);
+      this.hud.updateSpeed(data.speed);
+      this.showSpeedChangeNotification(data.speed, data.changedBy);
+      this.chatPanel.addSystemMessage(`Speed changed to ${Math.round(data.speed * 100)}% by ${data.changedBy}`);
+      // Play appropriate sound based on speed direction
+      soundManager.play(data.speed > oldSpeed ? 'speed_up' : 'speed_down');
+    });
+
     // Game over
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_OVER, (data) => {
       // Clear session storage - game is over
       localStorage.removeItem('activeGameSession');
       log('[REJOIN]', 'Cleared active session (game over)');
+
+      // Mark game as over (prevents speed changes via hotkeys)
+      this.isGameOver = true;
 
       // Play game over music based on final wave (good if >= TOTAL_WAVES, bad otherwise)
       soundManager.playGameOverMusic(data.finalWave);
@@ -731,6 +759,13 @@ class GameScene extends Phaser.Scene {
     this.gameState.budget = data.budget;
     this.gameState.lives = data.lives;
     this.gameState.currentWave = data.wave;
+
+    // Sync game speed from server (auto-sync for new players)
+    if (data.gameSpeed !== undefined && data.gameSpeed !== this.gameSpeed) {
+      this.gameSpeed = data.gameSpeed;
+      this.gameMenu.setSpeedValue(data.gameSpeed);
+      this.hud.updateSpeed(data.gameSpeed);
+    }
 
     this.hud.update({
       budget: data.budget,
@@ -925,6 +960,32 @@ class GameScene extends Phaser.Scene {
     });
   }
 
+  showSpeedChangeNotification(speed, playerName) {
+    const mazeCenterX = this.mazePixelSize / 2;
+    const mazeCenterY = this.mazePixelSize / 2;
+    const notification = this.add.text(
+      mazeCenterX,
+      mazeCenterY,
+      `Speed: ${Math.round(speed * 100)}% (${playerName})`,
+      {
+        fontSize: '24px',
+        color: '#00ffff',  // Cyan to distinguish from wave notifications
+        fontFamily: 'Arial',
+        stroke: '#000000',
+        strokeThickness: 4
+      }
+    ).setOrigin(0.5).setDepth(200);
+
+    this.tweens.add({
+      targets: notification,
+      y: notification.y - 50,
+      alpha: 0,
+      duration: 2000,
+      ease: 'Power2',
+      onComplete: () => notification.destroy()
+    });
+  }
+
   showBossWaveNotification(waveNumber) {
     const mazeCenterX = this.mazePixelSize / 2;
     const mazeCenterY = this.mazePixelSize / 2;
@@ -1048,8 +1109,8 @@ class GameScene extends Phaser.Scene {
         return false; // Remove projectile
       }
 
-      // Move toward current target position using actual delta time
-      const moveSpeed = p.speed * (delta / 1000);
+      // Move toward current target position using actual delta time and game speed
+      const moveSpeed = p.speed * this.gameSpeed * (delta / 1000);
       p.x += (dx / dist) * moveSpeed;
       p.y += (dy / dist) * moveSpeed;
 
@@ -1137,6 +1198,23 @@ class GameScene extends Phaser.Scene {
       duration: 150,
       onComplete: () => puff.destroy()
     });
+  }
+
+  /**
+   * Cycle through game speeds in the given direction
+   * @param {number} direction - 1 for faster, -1 for slower
+   */
+  cycleSpeed(direction) {
+    if (this.isGameOver) return;  // Don't allow speed changes after game over
+
+    const speeds = GAME_CONFIG.GAME_SPEEDS;
+    const currentIndex = speeds.indexOf(this.gameSpeed);
+    if (currentIndex === -1) return;  // Current speed not in list
+
+    const newIndex = Math.max(0, Math.min(speeds.length - 1, currentIndex + direction));
+    if (newIndex !== currentIndex) {
+      networkManager.changeGameSpeed(speeds[newIndex]);
+    }
   }
 
   cleanupNetworkHandlers() {

@@ -84,7 +84,10 @@ const SFX_FILES = [
   'chat_message',
   // UI
   'button_click',
-  'tower_select'
+  'tower_select',
+  // Speed control
+  'speed_up',
+  'speed_down'
 ];
 
 // Music tracks organized by category

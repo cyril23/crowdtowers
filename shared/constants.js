@@ -6,7 +6,8 @@ const GAME_CONFIG = {
   STARTING_LIVES: 10,
   TOTAL_WAVES: 25,
   TICK_RATE: 20, // Server updates per second
-  SESSION_CODE_LENGTH: 6
+  SESSION_CODE_LENGTH: 6,
+  GAME_SPEEDS: [0.5, 1, 1.5, 2, 3, 5, 10] // Available speed multipliers
 };
 
 const ERROR_REPORTING = {
@@ -272,6 +273,10 @@ const SOCKET_EVENTS = {
   GAME_SAVED: 'game-saved',
   LOAD_GAME: 'load-game',
 
+  // Speed Control
+  CHANGE_SPEED: 'change-speed',
+  SPEED_CHANGED: 'speed-changed',
+
   // Chat
   CHAT_MESSAGE: 'chat-message',
   CHAT_BROADCAST: 'chat-broadcast',
@@ -309,6 +314,10 @@ const HOTKEYS = {
 
   // Settings
   TOGGLE_HOTKEYS: 'keydown-H',
+
+  // Speed control
+  SPEED_UP: 'keydown-PLUS',
+  SPEED_DOWN: 'keydown-MINUS',
 
   // Menu navigation
   MAIN_MENU: 'keydown-M',

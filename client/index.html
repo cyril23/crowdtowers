@@ -32,6 +32,7 @@
       <div id="lives-display">Lives: <span id="lives-value">10</span></div>
       <div id="budget-display">Budget: <span id="budget-value">$500</span></div>
       <div id="wave-display">Wave: <span id="wave-value">0</span></div>
+      <div id="speed-display" class="hidden">Speed: <span id="speed-value">100%</span></div>
     </div>
     <div id="hud-right">
       <!-- Menu button moved to #game-menu outside HUD for global availability -->
@@ -73,6 +74,20 @@
           <input type="checkbox" id="chat-toggle">
           <span id="chat-toggle-label">Show Chat [C]</span>
         </label>
+      </div>
+      <div class="menu-speed-section hidden" id="speed-section">
+        <div class="speed-control">
+          <label>Speed</label>
+          <select id="game-speed">
+            <option value="0.5">50%</option>
+            <option value="1" selected>100%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="3">300%</option>
+            <option value="5">500%</option>
+            <option value="10">1000%</option>
+          </select>
+        </div>
       </div>
       <div id="menu-dynamic-buttons"></div>
     </div>

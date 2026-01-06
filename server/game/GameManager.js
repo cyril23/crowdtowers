@@ -25,6 +25,9 @@ class GameManager {
     this.totalUpgrades = 0;
     this.highestTowerLevel = 1;
     this.totalBudgetSpent = 0;
+
+    // Speed control
+    this.speedMultiplier = 1;
   }
 
   start() {
@@ -78,6 +81,15 @@ class GameManager {
     }
   }
 
+  setGameSpeed(multiplier) {
+    if (GAME_CONFIG.GAME_SPEEDS.includes(multiplier)) {
+      this.speedMultiplier = multiplier;
+      this.log.event('SPEED_CHANGED', { speed: multiplier });
+      return true;
+    }
+    return false;
+  }
+
   tick() {
     const now = Date.now();
     const deltaTime = (now - this.lastTick) / 1000;
@@ -87,8 +99,11 @@ class GameManager {
       return;
     }
 
+    // Apply speed multiplier to deltaTime for game simulation
+    const adjustedDelta = deltaTime * this.speedMultiplier;
+
     // Update enemies
-    this.updateEnemies(deltaTime);
+    this.updateEnemies(adjustedDelta);
 
     // Update towers (targeting and shooting)
     this.updateTowers(now);
@@ -184,7 +199,8 @@ class GameManager {
       const lastFired = this.towerCooldowns.get(towerId) || 0;
       const fireRate = getTowerFireRate(tower.type, tower.level);
 
-      if (now - lastFired < fireRate) {
+      // Scale fire rate with speed multiplier (towers fire faster at higher speeds)
+      if (now - lastFired < fireRate / this.speedMultiplier) {
         continue;
       }
 
@@ -246,8 +262,9 @@ class GameManager {
       const slowStrength = Math.min(rawSlowStrength, towerDef.slowAmountMax || 0.95);
 
       // Accumulate slow duration (cap at 2× single hit duration)
+      // Scale duration with speed multiplier so slow effect feels consistent
       const remainingSlowTime = Math.max(0, (target.slowedUntil || 0) - now);
-      const hitDuration = towerDef.slowDuration + bonusDuration;
+      const hitDuration = (towerDef.slowDuration + bonusDuration) / this.speedMultiplier;
       const maxSlowDuration = hitDuration * 2;
       target.slowedUntil = now + Math.min(remainingSlowTime + hitDuration, maxSlowDuration);
 
@@ -370,7 +387,7 @@ class GameManager {
           x: enemy.x + (Math.random() - 0.5) * 24,
           y: enemy.y + (Math.random() - 0.5) * 24,
           slowedUntil: 0,
-          spawnDelay: i * 200 // Small stagger for spawned enemies
+          spawnDelay: (i * 200) / this.speedMultiplier // Small stagger for spawned enemies, adjusted for speed
         };
         this.enemies.push(spawn);
       }
@@ -404,9 +421,11 @@ class GameManager {
   }
 
   scheduleNextWave(delay) {
+    // Scale delay with speed multiplier (faster waves at higher speeds)
+    const adjustedDelay = delay / this.speedMultiplier;
     this.waveTimeout = setTimeout(() => {
       this.startWave();
-    }, delay);
+    }, adjustedDelay);
   }
 
   startWave() {
@@ -417,8 +436,8 @@ class GameManager {
     const tileSize = mazeConfig.tileSize;
     const entry = this.gameData.maze.entry;
 
-    // Generate enemies for this wave
-    this.enemies = generateWaveEnemies(this.gameData.gameState.currentWave);
+    // Generate enemies for this wave (pass speedMultiplier for spawn stagger timing)
+    this.enemies = generateWaveEnemies(this.gameData.gameState.currentWave, this.speedMultiplier);
 
     // Set initial position at entry with small random spread
     const entryX = entry.x * tileSize + tileSize / 2;
@@ -615,7 +634,8 @@ class GameManager {
       escapedIds: escapedIds,
       budget: this.gameData.gameState.budget,
       lives: this.gameData.gameState.lives,
-      wave: this.gameData.gameState.currentWave
+      wave: this.gameData.gameState.currentWave,
+      gameSpeed: this.speedMultiplier
     });
     // Clear escaped IDs after broadcasting
     this.recentlyEscapedIds.clear();
@@ -627,7 +647,8 @@ class GameManager {
       gameState: this.gameData.gameState,
       status: this.gameData.status,
       pausedBy: this.gameData.pausedBy,
-      enemies: this.enemies.filter(e => e.spawnDelay <= 0)
+      enemies: this.enemies.filter(e => e.spawnDelay <= 0),
+      gameSpeed: this.speedMultiplier
     };
   }
 }

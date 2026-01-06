@@ -7,7 +7,9 @@ class HUD {
       hud: document.getElementById('hud'),
       lives: document.getElementById('lives-value'),
       budget: document.getElementById('budget-value'),
-      wave: document.getElementById('wave-value')
+      wave: document.getElementById('wave-value'),
+      speedDisplay: document.getElementById('speed-display'),
+      speedValue: document.getElementById('speed-value')
     };
   }
 
@@ -36,6 +38,16 @@ class HUD {
 
   updateWave(value) {
     this.elements.wave.textContent = value;
+  }
+
+  updateSpeed(value) {
+    // Only show speed indicator when not at 100% (normal speed)
+    if (value === 1) {
+      this.elements.speedDisplay.classList.add('hidden');
+    } else {
+      this.elements.speedDisplay.classList.remove('hidden');
+      this.elements.speedValue.textContent = `${Math.round(value * 100)}%`;
+    }
   }
 
   update(gameState) {

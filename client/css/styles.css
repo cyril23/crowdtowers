@@ -438,6 +438,44 @@ html, body {
   accent-color: #6a6aaa;
 }
 
+/* Speed Control Section */
+.menu-speed-section {
+  padding: 8px 10px;
+  border-bottom: 1px solid #333;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-control label {
+  color: #aaa;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.speed-control select {
+  flex: 1;
+  background: #2a2a4e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.speed-control select:hover {
+  border-color: #6a6aaa;
+}
+
+.speed-control select:focus {
+  outline: none;
+  border-color: #8a8acc;
+}
+
 #lives-value.warning {
   color: #ff4444;
   font-weight: bold;

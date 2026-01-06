@@ -103,6 +103,18 @@ class InputManager {
       if (isInputFocused()) return;
       settingsManager.toggleShowHotkeys();
     });
+
+    // Speed up (+)
+    this.scene.input.keyboard.on(HOTKEYS.SPEED_UP, () => {
+      if (isInputFocused()) return;
+      this.scene.cycleSpeed?.(1);  // Direction: +1 = faster
+    });
+
+    // Speed down (-)
+    this.scene.input.keyboard.on(HOTKEYS.SPEED_DOWN, () => {
+      if (isInputFocused()) return;
+      this.scene.cycleSpeed?.(-1);  // Direction: -1 = slower
+    });
   }
 
   handlePointerDown(pointer) {

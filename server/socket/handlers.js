@@ -182,7 +182,8 @@ function setupSocketHandlers(io) {
           maze: game.maze,
           players: game.players.map(p => ({ nickname: p.nickname, isHost: p.isHost })),
           gameState: gameState || game.gameState,
-          status: game.status
+          status: game.status,
+          gameSpeed: manager ? manager.speedMultiplier : 1
         });
 
         // Notify other players
@@ -282,7 +283,8 @@ function setupSocketHandlers(io) {
             maze: savedGame.maze,
             players: savedGame.players.map(p => ({ nickname: p.nickname, isHost: p.isHost })),
             gameState: savedGame.gameState,
-            status: savedGame.status
+            status: savedGame.status,
+            gameSpeed: 1  // Suspended games restart at normal speed
           });
           return;
         }
@@ -360,7 +362,8 @@ function setupSocketHandlers(io) {
           maze: game.maze,
           players: game.players.map(p => ({ nickname: p.nickname, isHost: p.isHost })),
           gameState: gameState,
-          status: currentStatus
+          status: currentStatus,
+          gameSpeed: manager ? manager.speedMultiplier : 1
         });
 
         // Notify others
@@ -582,6 +585,26 @@ function setupSocketHandlers(io) {
         io.to(currentSession).emit(SOCKET_EVENTS.GAME_RESUMED, {});
       } catch (error) {
         console.error('Resume game error:', error);
+      }
+    });
+
+    // Change game speed
+    socket.on(SOCKET_EVENTS.CHANGE_SPEED, async (data) => {
+      try {
+        if (!currentSession || !currentNickname) return;
+
+        const manager = activeGames.get(currentSession);
+        if (!manager) return;
+
+        const speed = parseFloat(data.speed);
+        if (manager.setGameSpeed(speed)) {
+          io.to(currentSession).emit(SOCKET_EVENTS.SPEED_CHANGED, {
+            speed: speed,
+            changedBy: currentNickname
+          });
+        }
+      } catch (error) {
+        console.error('Change speed error:', error);
       }
     });
 

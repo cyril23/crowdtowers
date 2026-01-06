@@ -29,7 +29,9 @@ class GameMenuManager {
       hotkeyToggle: document.getElementById('hotkey-toggle'),
       chatToggleSection: document.getElementById('chat-toggle-section'),
       chatToggle: document.getElementById('chat-toggle'),
-      chatToggleLabel: document.getElementById('chat-toggle-label')
+      chatToggleLabel: document.getElementById('chat-toggle-label'),
+      speedSection: document.getElementById('speed-section'),
+      speedSelect: document.getElementById('game-speed')
     };
 
     this.currentConfig = null;
@@ -37,12 +39,14 @@ class GameMenuManager {
     this.buttonConfigs = []; // Store button configs for hotkey hint updates
     this.unreadCount = 0;
     this.chatToggleCallback = null;
+    this.speedChangeCallback = null;
 
     this.setupVolumeControls();
     this.setupToggleButton();
     this.setupCopyButton();
     this.setupHotkeyToggle();
     this.setupChatToggle();
+    this.setupSpeedControl();
     this.setupDocumentClickHandler();
 
     gameMenuInstance = this;
@@ -77,6 +81,15 @@ class GameMenuManager {
       // Hide chat toggle for scenes without chat
       this.elements.chatToggleSection.classList.add('hidden');
       this.chatToggleCallback = null;
+    }
+
+    // Configure speed control
+    if (options.speedControl) {
+      this.configureSpeedControl(options.speedControl);
+    } else {
+      // Hide speed control for scenes without it
+      this.elements.speedSection.classList.add('hidden');
+      this.speedChangeCallback = null;
     }
 
     // Build dynamic buttons
@@ -327,6 +340,36 @@ class GameMenuManager {
         this.clearUnread();
       }
     };
+  }
+
+  setupSpeedControl() {
+    this.elements.speedSelect.onchange = (e) => {
+      e.stopPropagation();
+      const speed = parseFloat(e.target.value);
+      if (this.speedChangeCallback) {
+        this.speedChangeCallback(speed);
+      }
+    };
+  }
+
+  /**
+   * Configure the speed control
+   * @param {Object} config Speed control config
+   * @param {number} config.currentSpeed Current game speed (default 1)
+   * @param {function} config.onChange Callback when speed changes (receives new speed)
+   */
+  configureSpeedControl(config) {
+    this.elements.speedSection.classList.remove('hidden');
+    this.elements.speedSelect.value = config.currentSpeed || 1;
+    this.speedChangeCallback = config.onChange;
+  }
+
+  /**
+   * Update the speed selector to reflect server state
+   * @param {number} speed The current game speed
+   */
+  setSpeedValue(speed) {
+    this.elements.speedSelect.value = speed;
   }
 
   setupDocumentClickHandler() {
