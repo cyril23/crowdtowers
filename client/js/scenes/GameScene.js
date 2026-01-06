@@ -900,9 +900,11 @@ class GameScene extends Phaser.Scene {
   }
 
   showWaveNotification(text) {
+    const mazeCenterX = this.mazePixelSize / 2;
+    const mazeCenterY = this.mazePixelSize / 2;
     const notification = this.add.text(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY,
+      mazeCenterX,
+      mazeCenterY,
       text,
       {
         fontSize: '32px',
@@ -924,10 +926,12 @@ class GameScene extends Phaser.Scene {
   }
 
   showBossWaveNotification(waveNumber) {
+    const mazeCenterX = this.mazePixelSize / 2;
+    const mazeCenterY = this.mazePixelSize / 2;
     // Main warning text - large red with emoji accents
     const mainText = this.add.text(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY - 20,
+      mazeCenterX,
+      mazeCenterY - 20,
       '⚡ BOSS WAVE ⚡',
       {
         fontSize: '48px',
@@ -941,8 +945,8 @@ class GameScene extends Phaser.Scene {
 
     // Secondary wave number text
     const waveText = this.add.text(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY + 30,
+      mazeCenterX,
+      mazeCenterY + 30,
       `Wave ${waveNumber}`,
       {
         fontSize: '28px',
