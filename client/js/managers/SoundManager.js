@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../../../shared/constants.js';
+import { errorReporter } from '../utils/errorReporter.js';
 
 // Sound categories with priority levels (lower number = higher priority)
 const SOUND_CATEGORIES = {
@@ -15,7 +16,7 @@ const SOUND_CATEGORIES = {
   GAME_STATE: {
     priority: 1,
     maxConcurrent: 1,
-    sounds: ['pause', 'unpause']
+    sounds: ['pause', 'unpause', 'speed_up', 'speed_down']
   },
   TOWER_ACTION: {
     priority: 1,
@@ -201,7 +202,11 @@ class SoundManager {
     // Find category for this sound
     const category = this.getCategoryForSound(soundKey);
     if (!category) {
-      console.warn(`Unknown sound: ${soundKey}`);
+      errorReporter.handleError({
+        type: 'sound_error',
+        message: `Unknown sound: ${soundKey}`,
+        stack: new Error().stack
+      });
       return null;
     }
 

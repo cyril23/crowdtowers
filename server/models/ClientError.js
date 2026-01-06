@@ -4,7 +4,7 @@ const clientErrorSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['error', 'unhandledrejection']
+    enum: ['error', 'unhandledrejection', 'phaser_loaderror', 'sound_error']
   },
   message: {
     type: String,

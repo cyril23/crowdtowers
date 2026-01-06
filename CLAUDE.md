@@ -14,6 +14,13 @@ Crowd Towers is a multiplayer cooperative tower defense game: humans defend agai
 - **SFX:** 8-bit sounds created with [sfxr.me](https://sfxr.me/) (WAV files in `client/assets/audio/sfx/`)
 - **Music:** Generated with [Suno](https://suno.com/) (MP3 files in `client/assets/audio/music/`, tracked with Git LFS)
 
+### Adding New Sound Effects
+When adding a new SFX, you must update **two places** in `client/js/managers/SoundManager.js`:
+1. **`SFX_FILES` array** - for loading the file
+2. **`SOUND_CATEGORIES`** - for playback (determines priority and concurrency limits)
+
+If you only add to `SFX_FILES`, the sound loads but `play()` fails with "Unknown sound" error.
+
 ## Client Bundling
 - **Development:** ES modules loaded directly (`client/js/main.js`)
 - **Production:** esbuild bundles to `client/dist/bundle.min.js` (~63KB minified)
@@ -55,6 +62,9 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Any player can pause (shows who paused)
 - Kick voting requires majority vote
 - Towers remain when a player leaves
+
+## Game Speed
+Any player can adjust game speed (50% to 1000%) during active gameplay via menu or hotkeys. Speed affects tower cooldowns, enemy spawn stagger, cryo slow duration, and projectile travel. Speed is synced to all players, including those joining mid-game.
 
 ## Maze Generation
 - Uses recursive backtracking algorithm
@@ -143,35 +153,10 @@ this.scene.restart();
 **Why:** `scene.restart()` within the same scene causes input system issues after device rotation. The stop+launch pattern creates a fresh scene instance with clean input state.
 
 ### HTML DOM Input Cleanup
-HTML inputs overlaid on Phaser canvas must be explicitly cleaned up before creating new ones:
-```javascript
-createHtmlInput(designX, designY, width, placeholder) {
-  // Remove existing inputs first to prevent duplicates on restart
-  const wrapper = document.getElementById('input-wrapper');
-  if (wrapper) {
-    wrapper.querySelectorAll('input.my-unique-class').forEach(el => el.remove());
-  }
-  // Then create new input with unique class
-  input.className = 'game-input my-unique-class';
-}
-```
-**Why:** During `scene.restart()`, timing issues can cause new inputs to be created before old ones are removed, resulting in duplicate visible inputs.
+HTML inputs overlaid on Phaser canvas must be explicitly removed before creating new ones. During `scene.restart()`, timing issues can cause duplicates if old inputs aren't cleaned up first.
 
 ### Design Space Pattern for Responsive Menus
-Menu scenes use a fixed "design space" (e.g., 400×500) with camera zoom/centering. This allows responsive scaling without recalculating positions:
-```javascript
-static DESIGN_WIDTH = 400;
-static DESIGN_HEIGHT = 500;
-
-setupMenuCamera() {
-  const scaleX = this.cameras.main.width / DESIGN_WIDTH;
-  const scaleY = this.cameras.main.height / DESIGN_HEIGHT;
-  const zoom = Math.min(scaleX, scaleY, 1.5);
-  this.cameras.main.setZoom(zoom);
-  this.cameras.main.centerOn(DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2);
-}
-```
-All UI positions use design coordinates; the camera handles the transform.
+Menu scenes use a fixed "design space" (e.g., 400×500) with camera zoom/centering. All UI positions use design coordinates; the camera handles scaling. See `MenuScene.js` for implementation.
 
 ## Deployment
 
@@ -196,10 +181,15 @@ All UI positions use design coordinates; the camera handles the transform.
 Client JS errors are captured and stored in MongoDB:
 - `client/js/utils/errorReporter.js` catches errors and unhandled rejections
 - `BootScene.js` catches Phaser file load errors (audio decode failures, etc.)
+- `SoundManager.js` reports unknown sound errors
 - Max 5 errors per client session (prevents spam)
 - Errors include: stack trace, active Phaser scenes, session code, screen size
 - Dev-only toast overlay on localhost/staging
 - Admin page: `/admin/errors` (token-protected in production via `?token=ADMIN_SECRET`)
+
+**Adding Custom Error Types:**
+1. Call `errorReporter.handleError({ type: 'my_type', message: '...', stack: new Error().stack })`
+2. Add `'my_type'` to the enum in `server/models/ClientError.js`
 
 **Testing:** Trigger errors from browser console:
 ```javascript
