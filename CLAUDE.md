@@ -34,11 +34,12 @@ Crowd Towers is a multiplayer cooperative tower defense game: humans defend agai
 Strong = 1.5x damage, Weak = 0.5x damage
 
 ### Economy
-- Starting budget: 500 (shared among all players)
+- Starting budget: 250 (shared among all players)
 - Tower sell value: **50% of total investment** (base + all upgrades)
 - Upgrade cost formula: `baseCost × 1.5^(level-1)`
 - Upgrade damage formula: `baseDamage × 1.35^(level-1)` (Cryo Cannon: 1.40^)
-- **Reward scaling:** +10% per wave (scales from wave 1, softer than HP)
+- Upgrades only improve damage (and Cryo slow) - range and fire rate are fixed
+- **Reward scaling:** +5% per wave (scales from wave 1, softer than HP)
 
 ### Enemy Specials
 - **Phasewalker:** 10% chance to dodge damage (slow effects still apply)
@@ -63,17 +64,17 @@ Strong = 1.5x damage, Weak = 0.5x damage
 - Three sizes: small (12×12), medium (20×20), large (28×28)
 
 ## Wave Progression (infinite, cycling)
-- Waves 1-10: Swarmlings, then Drones introduced
-- Waves 11-20: Phasewalkers introduced
-- Waves 21-30: Behemoths introduced
-- Waves 31-40: Broodmothers introduced
-- Waves 41-50: All enemy types, increasing intensity
-- **Wave 50:** Final boss wave (40 enemies, all types)
-- **Wave 51+:** Cycles back to wave 1 composition (scaling continues smoothly)
+- Waves 1-5: Swarmlings only (tutorial)
+- Waves 6-10: Drones introduced
+- Waves 11-15: Phasewalkers introduced
+- Waves 16-20: Behemoths introduced
+- Waves 21-25: Broodmothers introduced
+- **Wave 25:** Final boss wave (30 enemies, all types)
+- **Wave 26+:** Cycles back to wave 1 composition (scaling continues smoothly)
 
 ### Scaling Formula
-- **HP:** +20% per wave (linear: `baseHP × (1 + 0.2 × (wave-1))`)
-- **Rewards:** +10% per wave (linear: `baseReward × (1 + 0.1 × (wave-1))`)
+- **HP:** +30% per wave (linear: `baseHP × (1 + 0.3 × (wave-1))`)
+- **Rewards:** +5% per wave (linear: `baseReward × (1 + 0.05 × (wave-1))`)
 - **Speed:** Constant (does not scale)
 - **No victory condition** - game continues until defeat
 
