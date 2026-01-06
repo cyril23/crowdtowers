@@ -98,8 +98,9 @@ class InputManager {
       this.scene.handleQuitGame?.();
     });
 
-    // Toggle hotkey visibility (H) - works even when input is focused
+    // Toggle hotkey visibility (H)
     this.scene.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      if (isInputFocused()) return;
       settingsManager.toggleShowHotkeys();
     });
   }

@@ -317,6 +317,7 @@ class LobbyScene extends Phaser.Scene {
     });
 
     this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      if (isInputFocused()) return;
       settingsManager.toggleShowHotkeys();
     });
   }
