@@ -320,10 +320,12 @@ const HOTKEYS = {
   SPEED_DOWN: 'keydown-MINUS',
 
   // Menu navigation
-  MAIN_MENU: 'keydown-M',
+  MAIN_MENU: 'keydown-ESC',
+  MENU: 'keydown-M',
   JOIN: 'keydown-J',
   BROWSE: 'keydown-B',
   CREATE: 'keydown-C',
+  REFRESH: 'keydown-R',
 
   // Lobby controls
   START: 'keydown-S',
@@ -335,7 +337,11 @@ const HOTKEYS = {
 
   // Create game - privacy
   PRIVATE: 'keydown-P',
-  OPEN: 'keydown-O'
+  OPEN: 'keydown-O',
+
+  // Confirm dialog
+  CONFIRM_YES: 'keydown-Y',
+  CONFIRM_NO: 'keydown-N'
 };
 
 // Export for ES modules

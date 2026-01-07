@@ -452,7 +452,20 @@ class MenuScene extends Phaser.Scene {
     });
 
     this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
+      if (isInputFocused()) return;
       settingsManager.toggleShowHotkeys();
+    });
+
+    this.input.keyboard.on(HOTKEYS.MENU, () => {
+      if (isInputFocused()) return;
+      this.gameMenu.toggle();
+    });
+
+    // Blur nickname input when clicking on canvas (re-enables hotkeys)
+    this.input.on('pointerdown', () => {
+      if (this.nicknameInput && document.activeElement === this.nicknameInput) {
+        this.nicknameInput.blur();
+      }
     });
   }
 
@@ -963,6 +976,7 @@ class JoinGameScene extends Phaser.Scene {
         {
           id: 'back',
           label: 'Back to Main Menu',
+          hotkey: HOTKEYS.MAIN_MENU,
           neutral: true,
           onClick: () => {
             this.cleanupInput();
@@ -994,6 +1008,23 @@ class JoinGameScene extends Phaser.Scene {
       settingsManager.toggleShowHotkeys();
       this.scene.restart({ nickname: this.nickname, prefillCode: this.codeInput?.value || '' });
     });
+
+    this.input.keyboard.on(HOTKEYS.JOIN, () => {
+      if (isInputFocused()) return;
+      this.attemptJoin();
+    });
+
+    this.input.keyboard.on(HOTKEYS.MENU, () => {
+      if (isInputFocused()) return;
+      this.gameMenu.toggle();
+    });
+
+    // Blur code input when clicking on canvas (re-enables hotkeys)
+    this.input.on('pointerdown', () => {
+      if (this.codeInput && document.activeElement === this.codeInput) {
+        this.codeInput.blur();
+      }
+    });
   }
 
   buildLandscapeLayout(centerX) {
@@ -1012,7 +1043,7 @@ class JoinGameScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Join Game button
-    const joinBtn = this.add.text(centerX, 170, 'Join Game', {
+    const joinBtn = this.add.text(centerX, 170, formatWithHotkey('Join Game', HOTKEYS.JOIN), {
       fontSize: '18px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -1059,7 +1090,7 @@ class JoinGameScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Join Game button
-    const joinBtn = this.add.text(centerX, 280, 'Join Game', {
+    const joinBtn = this.add.text(centerX, 280, formatWithHotkey('Join Game', HOTKEYS.JOIN), {
       fontSize: '18px',
       color: '#ffffff',
       fontFamily: 'Arial',
@@ -1317,6 +1348,7 @@ class CreateGameScene extends Phaser.Scene {
         {
           id: 'back',
           label: 'Back to Main Menu',
+          hotkey: HOTKEYS.MAIN_MENU,
           neutral: true,
           onClick: () => {
             this.scene.stop('CreateGameScene');
@@ -1370,6 +1402,11 @@ class CreateGameScene extends Phaser.Scene {
     // Create game hotkey (C)
     this.input.keyboard.on(HOTKEYS.CREATE, () => {
       networkManager.createGame(this.nickname, this.isPrivate, this.selectedSize);
+    });
+
+    // Toggle menu (M)
+    this.input.keyboard.on(HOTKEYS.MENU, () => {
+      this.gameMenu.toggle();
     });
   }
 
@@ -1761,7 +1798,7 @@ class BrowseScene extends Phaser.Scene {
       });
 
     // Refresh button (positioned above Back button)
-    const refreshBtn = this.add.text(centerX, 470, 'Refresh', {
+    const refreshBtn = this.add.text(centerX, 470, formatWithHotkey('Refresh', HOTKEYS.REFRESH), {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'Arial',
@@ -1819,6 +1856,7 @@ class BrowseScene extends Phaser.Scene {
         {
           id: 'back',
           label: 'Back to Main Menu',
+          hotkey: HOTKEYS.MAIN_MENU,
           neutral: true,
           onClick: () => {
             networkManager.emit(SOCKET_EVENTS.STOP_BROWSING, {});
@@ -1850,6 +1888,14 @@ class BrowseScene extends Phaser.Scene {
     this.input.keyboard.on(HOTKEYS.TOGGLE_HOTKEYS, () => {
       settingsManager.toggleShowHotkeys();
       this.scene.restart({ nickname: this.nickname });
+    });
+
+    this.input.keyboard.on(HOTKEYS.REFRESH, () => {
+      this.refreshList();
+    });
+
+    this.input.keyboard.on(HOTKEYS.MENU, () => {
+      this.gameMenu.toggle();
     });
   }
 

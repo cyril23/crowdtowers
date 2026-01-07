@@ -4,6 +4,7 @@ import { soundManager } from '../managers/SoundManager.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { HOTKEYS } from '../../../shared/constants.js';
 import { formatWithHotkey } from '../managers/SettingsManager.js';
+import { GameMenuManager } from '../ui/GameMenuManager.js';
 
 class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -97,9 +98,13 @@ class GameOverScene extends Phaser.Scene {
         this.goToMainMenu();
       });
 
-    // M hotkey to go to main menu
     this.input.keyboard.on(HOTKEYS.MAIN_MENU, () => {
       this.goToMainMenu();
+    });
+
+    this.gameMenu = new GameMenuManager();
+    this.input.keyboard.on(HOTKEYS.MENU, () => {
+      this.gameMenu.toggle();
     });
 
     // Hide game UI elements immediately when scene starts

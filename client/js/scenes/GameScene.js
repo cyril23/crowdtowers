@@ -3,6 +3,7 @@ import { CLIENT_CONFIG } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { soundManager } from '../managers/SoundManager.js';
 import { InputManager } from '../managers/InputManager.js';
+import { formatWithHotkey } from '../managers/SettingsManager.js';
 import { log } from '../utils/logger.js';
 import { HUD } from '../ui/HUD.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
@@ -437,24 +438,43 @@ class GameScene extends Phaser.Scene {
   showConfirmDialog(title, message, onConfirm) {
     this.confirmTitle.textContent = title;
     this.confirmMessage.textContent = message;
+    this.confirmYesBtn.textContent = formatWithHotkey('Yes', HOTKEYS.CONFIRM_YES);
+    this.confirmNoBtn.textContent = formatWithHotkey('No', HOTKEYS.CONFIRM_NO);
     this.confirmModal.classList.remove('hidden');
 
-    // Store callback and set up one-time handlers
-    const handleYes = () => {
+    // Cleanup function to remove all handlers
+    const cleanup = () => {
       this.confirmModal.classList.add('hidden');
       this.confirmYesBtn.removeEventListener('click', handleYes);
       this.confirmNoBtn.removeEventListener('click', handleNo);
+      this.input.keyboard.off(HOTKEYS.CONFIRM_YES, handleYesKey);
+      this.input.keyboard.off(HOTKEYS.CONFIRM_NO, handleNoKey);
+    };
+
+    // Click handlers
+    const handleYes = () => {
+      cleanup();
       onConfirm();
     };
 
     const handleNo = () => {
-      this.confirmModal.classList.add('hidden');
-      this.confirmYesBtn.removeEventListener('click', handleYes);
-      this.confirmNoBtn.removeEventListener('click', handleNo);
+      cleanup();
+    };
+
+    // Keyboard handlers
+    const handleYesKey = () => {
+      cleanup();
+      onConfirm();
+    };
+
+    const handleNoKey = () => {
+      cleanup();
     };
 
     this.confirmYesBtn.addEventListener('click', handleYes);
     this.confirmNoBtn.addEventListener('click', handleNo);
+    this.input.keyboard.on(HOTKEYS.CONFIRM_YES, handleYesKey);
+    this.input.keyboard.on(HOTKEYS.CONFIRM_NO, handleNoKey);
   }
 
   cleanupAndReturn() {

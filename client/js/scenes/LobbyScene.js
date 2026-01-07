@@ -320,6 +320,11 @@ class LobbyScene extends Phaser.Scene {
       if (isInputFocused()) return;
       settingsManager.toggleShowHotkeys();
     });
+
+    this.input.keyboard.on(HOTKEYS.MENU, () => {
+      if (isInputFocused()) return;
+      this.gameMenu.toggle();
+    });
   }
 
   handleQuitLobby() {

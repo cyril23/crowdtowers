@@ -110,10 +110,14 @@ class InputManager {
       this.scene.cycleSpeed?.(1);  // Direction: +1 = faster
     });
 
-    // Speed down (-)
     this.scene.input.keyboard.on(HOTKEYS.SPEED_DOWN, () => {
       if (isInputFocused()) return;
       this.scene.cycleSpeed?.(-1);  // Direction: -1 = slower
+    });
+
+    this.scene.input.keyboard.on(HOTKEYS.MENU, () => {
+      if (isInputFocused()) return;
+      this.scene.gameMenu?.toggle();
     });
   }
 

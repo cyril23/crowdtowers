@@ -1,5 +1,6 @@
 import { soundManager, SoundManager } from '../managers/SoundManager.js';
 import { settingsManager, formatWithHotkey } from '../managers/SettingsManager.js';
+import { HOTKEYS } from '../../../shared/constants.js';
 
 // Singleton instance
 let gameMenuInstance = null;
@@ -14,6 +15,7 @@ class GameMenuManager {
     this.elements = {
       menu: document.getElementById('game-menu'),
       toggleBtn: document.getElementById('menu-toggle-btn'),
+      toggleText: document.getElementById('menu-toggle-text'),
       dropdown: document.getElementById('game-menu-dropdown'),
       badge: document.getElementById('menu-badge'),
       sessionCode: document.getElementById('menu-session-code'),
@@ -190,6 +192,7 @@ class GameMenuManager {
 
   show() {
     this.elements.menu.classList.remove('hidden');
+    this.updateToggleButtonLabel();
     this.updateVolumeDisplay();
     this.updateMuteButtons();
     this.updateSliderDisabledState();
@@ -198,6 +201,19 @@ class GameMenuManager {
   hide() {
     this.elements.menu.classList.add('hidden');
     this.closeDropdown();
+  }
+
+  toggle() {
+    const isHidden = this.elements.dropdown.classList.contains('hidden');
+    if (isHidden) {
+      this.elements.dropdown.classList.remove('hidden');
+      this.positionDropdown();
+      this.updateDynamicLabels();
+      this.updateMuteButtons();
+      this.updateSliderDisabledState();
+    } else {
+      this.elements.dropdown.classList.add('hidden');
+    }
   }
 
   closeDropdown() {
@@ -316,6 +332,7 @@ class GameMenuManager {
     // Listen for external changes (e.g., H key press)
     window.addEventListener('hotkey-visibility-changed', () => {
       this.updateHotkeyToggle();
+      this.updateToggleButtonLabel();
       this.rebuildButtonLabels();
       // Also update chat toggle label if visible
       if (!this.elements.chatToggleSection.classList.contains('hidden')) {
@@ -326,6 +343,10 @@ class GameMenuManager {
 
   updateHotkeyToggle() {
     this.elements.hotkeyToggle.checked = settingsManager.showHotkeys;
+  }
+
+  updateToggleButtonLabel() {
+    this.elements.toggleText.textContent = formatWithHotkey('Menu', HOTKEYS.MENU);
   }
 
   setupChatToggle() {
