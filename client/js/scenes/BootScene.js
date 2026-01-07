@@ -60,6 +60,9 @@ class BootScene extends Phaser.Scene {
       .then(() => {
         loadingText.setText('Connected!');
 
+        // Send any errors that occurred before connection (e.g., audio decode errors)
+        errorReporter.flushPendingErrors();
+
         // Check for saved session to rejoin after standby
         const savedSession = networkManager.checkAndRejoinSession();
 

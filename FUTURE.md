@@ -41,19 +41,6 @@ Optional accounts for persistent stats.
 - **Nicknames only** - No auth, just localStorage
 
 ## Gameplay Features
-
-### Game Speed Controls
-Allow host to change game speed during gameplay (2x, 5x, 10x).
-
-**Current state:** Fixed tick rate of 20/second in `shared/constants.js`
-
-**Implementation:**
-- Server: Multiply `deltaTime` in `GameManager.tick()` by speed factor
-- Client: Speed selector UI (host-only) in game menu
-- Socket: `SET_GAME_SPEED` event with host permission check
-- Affects: Enemy movement, tower cooldowns, wave timing
-- Does NOT affect: Chat, pause/resume timing
-
 ### In-Game Player List
 Show connected players during gameplay (currently only visible in lobby).
 

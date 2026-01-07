@@ -10,6 +10,7 @@ class ErrorReporter {
     this.isDevMode = false;
     this.toast = null;
     this.game = null;
+    this.pendingErrors = []; // Queue for errors before network connects
   }
 
   setGame(game) {
@@ -94,14 +95,26 @@ class ErrorReporter {
       activeScenes: this.getActiveScenes()
     };
 
-    // Send to server if connected
+    // Send to server if connected, otherwise queue for later
     if (networkManager.connected) {
       networkManager.emit(SOCKET_EVENTS.CLIENT_ERROR, errorData);
+    } else {
+      this.pendingErrors.push(errorData);
     }
 
     // Show toast in dev mode
     if (this.isDevMode && this.toast) {
       this.toast.show(errorInfo.message, errorInfo.stack);
+    }
+  }
+
+  // Send any queued errors after network connects
+  flushPendingErrors() {
+    if (networkManager.connected && this.pendingErrors.length > 0) {
+      this.pendingErrors.forEach(errorData => {
+        networkManager.emit(SOCKET_EVENTS.CLIENT_ERROR, errorData);
+      });
+      this.pendingErrors = [];
     }
   }
 

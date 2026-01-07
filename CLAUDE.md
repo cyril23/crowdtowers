@@ -4,6 +4,7 @@
 Crowd Towers is a multiplayer cooperative tower defense game: humans defend against alien invaders. Up to 32 players share a single budget and place towers anonymously.
 
 ## Tech Stack
+- **Repository:** https://github.com/cyril23/crowdtowers
 - **Server:** Node.js + Express 5 + Socket.IO + MongoDB
 - **Client:** Phaser.js 3 (canvas-based)
 - **Run:** `npm start` (requires local MongoDB on default port)

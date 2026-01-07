@@ -164,20 +164,32 @@ class SoundManager {
     this.scene = scene;
     this.initialized = true;
 
-    // Create SFX instances
+    // Create SFX instances (report missing/failed files)
     SFX_FILES.forEach(key => {
       if (scene.cache.audio.exists(key)) {
         this.sounds.set(key, scene.sound.add(key));
+      } else {
+        errorReporter.handleError({
+          type: 'audio_decode_error',
+          message: `Failed to load/decode SFX: ${key}`,
+          stack: `File: assets/audio/sfx/${key}.wav`
+        });
       }
     });
 
-    // Create music instances (NOT looping by default - we handle sequencing)
+    // Create music instances (report missing/failed files)
     MUSIC_FILES.forEach(key => {
       if (scene.cache.audio.exists(key)) {
         this.musicTracks.set(key, scene.sound.add(key, {
           loop: false,
           volume: this.musicVolume
         }));
+      } else {
+        errorReporter.handleError({
+          type: 'audio_decode_error',
+          message: `Failed to load/decode music: ${key}`,
+          stack: `File: assets/audio/music/${key}.mp3`
+        });
       }
     });
 
