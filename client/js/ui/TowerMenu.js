@@ -151,12 +151,6 @@ class TowerMenu {
         this.selectTower(type);
       });
 
-      // Touch support for mobile
-      towerEl.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        this.selectTower(type);
-      });
-
       this.elements.list.appendChild(towerEl);
     });
   }

@@ -516,6 +516,7 @@ html, body {
   cursor: pointer;
   transition: all 0.2s;
   min-width: 140px;
+  touch-action: manipulation;  /* Prevents 300ms click delay on touch devices */
 }
 
 .tower-item:hover {
