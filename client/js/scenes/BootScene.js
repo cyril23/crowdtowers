@@ -93,7 +93,8 @@ class BootScene extends Phaser.Scene {
         sessionCode: data.sessionCode,
         maze: data.maze,
         gameState: data.gameState,
-        status: data.status
+        status: data.status,
+        players: data.players  // Pass player list to GameScene
       });
     };
 

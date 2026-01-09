@@ -271,7 +271,8 @@ class LobbyScene extends Phaser.Scene {
       this.scene.start('GameScene', {
         sessionCode: this.sessionCode,
         maze: data.maze,
-        gameState: data.gameState
+        gameState: data.gameState,
+        players: this.players  // Pass player list to GameScene
       });
     });
 

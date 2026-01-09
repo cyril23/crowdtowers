@@ -32,6 +32,9 @@ class GameMenuManager {
       chatToggleSection: document.getElementById('chat-toggle-section'),
       chatToggle: document.getElementById('chat-toggle'),
       chatToggleLabel: document.getElementById('chat-toggle-label'),
+      playerToggleSection: document.getElementById('player-toggle-section'),
+      playerToggle: document.getElementById('player-toggle'),
+      playerToggleLabel: document.getElementById('player-toggle-label'),
       speedSection: document.getElementById('speed-section'),
       speedSelect: document.getElementById('game-speed')
     };
@@ -41,6 +44,7 @@ class GameMenuManager {
     this.buttonConfigs = []; // Store button configs for hotkey hint updates
     this.unreadCount = 0;
     this.chatToggleCallback = null;
+    this.playerToggleCallback = null;
     this.speedChangeCallback = null;
 
     this.setupVolumeControls();
@@ -48,6 +52,7 @@ class GameMenuManager {
     this.setupCopyButton();
     this.setupHotkeyToggle();
     this.setupChatToggle();
+    this.setupPlayerToggle();
     this.setupSpeedControl();
     this.setupDocumentClickHandler();
 
@@ -83,6 +88,15 @@ class GameMenuManager {
       // Hide chat toggle for scenes without chat
       this.elements.chatToggleSection.classList.add('hidden');
       this.chatToggleCallback = null;
+    }
+
+    // Configure player toggle
+    if (options.playerToggle) {
+      this.configurePlayerToggle(options.playerToggle);
+    } else {
+      // Hide player toggle for scenes without player panel
+      this.elements.playerToggleSection.classList.add('hidden');
+      this.playerToggleCallback = null;
     }
 
     // Configure speed control
@@ -149,6 +163,28 @@ class GameMenuManager {
 
   setChatToggleState(isVisible) {
     this.elements.chatToggle.checked = isVisible;
+  }
+
+  /**
+   * Configure the player toggle checkbox
+   * @param {Object} config Player toggle config
+   * @param {boolean} config.visible Initial visibility of player panel
+   * @param {function} config.onChange Callback when toggle changes (receives new visibility state)
+   */
+  configurePlayerToggle(config) {
+    this.elements.playerToggleSection.classList.remove('hidden');
+    this.elements.playerToggle.checked = config.visible;
+    this.playerToggleCallback = config.onChange;
+    this.updatePlayerToggleLabel();
+  }
+
+  updatePlayerToggleLabel() {
+    const hotkeyHint = settingsManager.showHotkeys ? ' [L]' : '';
+    this.elements.playerToggleLabel.textContent = 'Show Players' + hotkeyHint;
+  }
+
+  setPlayerToggleState(isVisible) {
+    this.elements.playerToggle.checked = isVisible;
   }
 
   /**
@@ -338,6 +374,10 @@ class GameMenuManager {
       if (!this.elements.chatToggleSection.classList.contains('hidden')) {
         this.updateChatToggleLabel();
       }
+      // Also update player toggle label if visible
+      if (!this.elements.playerToggleSection.classList.contains('hidden')) {
+        this.updatePlayerToggleLabel();
+      }
     });
   }
 
@@ -359,6 +399,16 @@ class GameMenuManager {
       // Clear unread when showing chat
       if (isVisible) {
         this.clearUnread();
+      }
+    };
+  }
+
+  setupPlayerToggle() {
+    this.elements.playerToggle.onchange = (e) => {
+      e.stopPropagation();
+      const isVisible = e.target.checked;
+      if (this.playerToggleCallback) {
+        this.playerToggleCallback(isVisible);
       }
     };
   }

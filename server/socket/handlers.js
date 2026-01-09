@@ -436,6 +436,14 @@ function setupSocketHandlers(io) {
           gameState: game.gameState
         });
 
+        // Send initial player list to all players
+        io.to(currentSession).emit(SOCKET_EVENTS.PLAYER_LIST, {
+          players: game.players.map(p => ({
+            nickname: p.nickname,
+            isHost: p.isHost
+          }))
+        });
+
         // Broadcast status change to browsers
         broadcastOpenGamesList(io);
       } catch (error) {

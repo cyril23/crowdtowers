@@ -92,6 +92,16 @@ class InputManager {
       }
     });
 
+    // Toggle player list (L)
+    this.scene.input.keyboard.on(HOTKEYS.PLAYERS, () => {
+      if (isInputFocused()) return;
+      this.scene.playerPanel?.toggle();
+      // Sync checkbox state with player panel visibility
+      if (this.scene.gameMenu && this.scene.playerPanel) {
+        this.scene.gameMenu.setPlayerToggleState(this.scene.playerPanel.isVisible);
+      }
+    });
+
     // Quit game (Q)
     this.scene.input.keyboard.on(HOTKEYS.QUIT, () => {
       if (isInputFocused()) return;

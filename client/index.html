@@ -26,6 +26,21 @@
     </div>
   </div>
 
+  <!-- Player Panel (in-game player list) -->
+  <div id="player-panel" class="hidden">
+    <div id="player-panel-header">
+      <span id="player-panel-title">Players</span>
+      <span id="player-count-badge">0</span>
+      <button id="player-panel-toggle">-</button>
+    </div>
+    <div id="player-list"></div>
+  </div>
+
+  <!-- Player Context Menu (right-click on player) -->
+  <div id="player-context-menu" class="hidden">
+    <button id="player-kick-btn">Initiate Kick Vote</button>
+  </div>
+
   <!-- HUD Overlay -->
   <div id="hud" class="hidden">
     <div id="hud-left">
@@ -73,6 +88,12 @@
         <label class="menu-toggle">
           <input type="checkbox" id="chat-toggle">
           <span id="chat-toggle-label">Show Chat [C]</span>
+        </label>
+      </div>
+      <div class="menu-toggle-section" id="player-toggle-section">
+        <label class="menu-toggle">
+          <input type="checkbox" id="player-toggle" checked>
+          <span id="player-toggle-label">Show Players [L]</span>
         </label>
       </div>
       <div class="menu-speed-section hidden" id="speed-section">

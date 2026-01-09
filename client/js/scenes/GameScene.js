@@ -7,6 +7,7 @@ import { formatWithHotkey } from '../managers/SettingsManager.js';
 import { log } from '../utils/logger.js';
 import { HUD } from '../ui/HUD.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
+import { PlayerPanel } from '../ui/PlayerPanel.js';
 import { TowerMenu } from '../ui/TowerMenu.js';
 import { TowerSprite } from '../entities/Tower.js';
 import { GameMenuManager } from '../ui/GameMenuManager.js';
@@ -40,6 +41,14 @@ class GameScene extends Phaser.Scene {
 
     // Preserve selected tower type across restarts (for resize)
     this.preservedSelectedTowerType = data.selectedTowerType || null;
+
+    // Preserve chat visibility across restarts (for resize)
+    this.preservedChatVisible = data.chatVisible ?? false;
+
+    // Preserve player panel state across restarts (for resize)
+    this.preservedPlayerPanelVisible = data.playerPanelVisible ?? true;  // Visible by default
+    this.preservedPlayerPanelMinimized = data.playerPanelMinimized ?? false;
+    this.preservedPlayers = data.players || [];
 
     // Store new dimensions from resize event (if passed)
     this._newWidth = data.newWidth || null;
@@ -222,6 +231,10 @@ class GameScene extends Phaser.Scene {
       },
       // Preserve UI state
       selectedTowerType: this.towerMenu?.selectedType || null,
+      chatVisible: this.chatPanel?.isVisible || false,
+      playerPanelVisible: this.playerPanel?.isVisible ?? true,
+      playerPanelMinimized: this.playerPanel?.isMinimized ?? false,
+      players: this.playerPanel?.players || [],
       // Pass new dimensions explicitly (from resize event)
       newWidth: gameSize?.width,
       newHeight: gameSize?.height
@@ -347,9 +360,13 @@ class GameScene extends Phaser.Scene {
       this.inputManager.cancelSelection();
     };
 
-    // Chat panel - hidden by default in game, with notification support
+    // Chat panel - restore visibility from preserved state (default hidden)
     this.chatPanel = new ChatPanel();
-    this.chatPanel.hide(); // Hidden by default - use Menu to show
+    if (this.preservedChatVisible) {
+      this.chatPanel.show();
+    } else {
+      this.chatPanel.hide();
+    }
 
     // Setup global menu with volume controls, code, chat toggle, pause, and quit
     this.gameMenu = new GameMenuManager();
@@ -357,12 +374,22 @@ class GameScene extends Phaser.Scene {
       showSessionCode: true,
       sessionCode: this.sessionCode,
       chatToggle: {
-        visible: this.chatPanel.isVisible,
+        visible: this.preservedChatVisible,
         onChange: (isVisible) => {
           if (isVisible) {
             this.chatPanel.show();
           } else {
             this.chatPanel.hide();
+          }
+        }
+      },
+      playerToggle: {
+        visible: this.preservedPlayerPanelVisible,
+        onChange: (isVisible) => {
+          if (isVisible) {
+            this.playerPanel.show();
+          } else {
+            this.playerPanel.hide();
           }
         }
       },
@@ -399,6 +426,25 @@ class GameScene extends Phaser.Scene {
     this.chatPanel.onUnreadChange = (count) => {
       this.gameMenu.setUnreadCount(count);
     };
+
+    // Player panel - visible by default, restore state from preserved data
+    this.playerPanel = new PlayerPanel();
+    this.playerPanel.setLocalNickname(networkManager.nickname);
+
+    // Restore visibility state
+    if (this.preservedPlayerPanelVisible) {
+      this.playerPanel.show();
+      if (this.preservedPlayerPanelMinimized) {
+        this.playerPanel.minimize();
+      }
+    } else {
+      this.playerPanel.hide();
+    }
+
+    // Initialize with preserved players if available
+    if (this.preservedPlayers.length > 0) {
+      this.playerPanel.setPlayers(this.preservedPlayers);
+    }
 
     // Pause overlay
     this.pauseOverlay = document.getElementById('pause-overlay');
@@ -534,6 +580,11 @@ class GameScene extends Phaser.Scene {
         this.pauseOverlay.classList.remove('hidden');
         soundManager.pauseMusic();
       }
+
+      // Update player panel with player list from rejoin
+      if (data.players && this.playerPanel) {
+        this.playerPanel.setPlayers(data.players);
+      }
     });
 
     // Handle rejoin error (game was deleted/expired)
@@ -549,6 +600,34 @@ class GameScene extends Phaser.Scene {
         toast: data.message || 'Your game session has ended',
         toastDuration: 4000
       });
+    });
+
+    // Player list update (initial list on game start)
+    this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_LIST, (data) => {
+      if (this.playerPanel) {
+        this.playerPanel.setPlayers(data.players);
+      }
+    });
+
+    // Player joined
+    this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_JOINED, (data) => {
+      if (this.playerPanel) {
+        this.playerPanel.addPlayer({ nickname: data.nickname, isHost: false });
+      }
+    });
+
+    // Player left
+    this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_LEFT, (data) => {
+      if (this.playerPanel) {
+        this.playerPanel.removePlayer(data.nickname);
+      }
+    });
+
+    // Player kicked
+    this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_KICKED, (data) => {
+      if (this.playerPanel) {
+        this.playerPanel.removePlayer(data.nickname);
+      }
     });
 
     // Game state sync

@@ -289,6 +289,9 @@ const SOCKET_EVENTS = {
   PLAYER_KICKED: 'player-kicked',
   KICK_VOTE_FAILED: 'kick-vote-failed',
 
+  // Player List
+  PLAYER_LIST: 'player-list',
+
   // Error Reporting
   CLIENT_ERROR: 'client-error'
 };
@@ -309,6 +312,7 @@ const HOTKEYS = {
   // Game controls
   PAUSE: 'keydown-P',
   CHAT: 'keydown-C',
+  PLAYERS: 'keydown-L',  // L for List
   QUIT: 'keydown-Q',
   CANCEL: 'keydown-ESC',
 
