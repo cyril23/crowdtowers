@@ -23,8 +23,8 @@ function getScaledReward(enemyType, waveNumber) {
   const enemy = ENEMIES[enemyType];
   if (!enemy) return 0;
 
-  // Linear reward scaling: +4% per wave (softer than HP's +30% to maintain challenge)
-  const rewardMultiplier = 1 + (0.04 * (waveNumber - 1));
+  // Linear reward scaling: +2% per wave (softer than HP's +30% to maintain challenge)
+  const rewardMultiplier = 1 + (0.02 * (waveNumber - 1));
 
   return Math.floor(enemy.reward * rewardMultiplier);
 }

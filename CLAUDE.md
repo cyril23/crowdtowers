@@ -84,7 +84,7 @@ Any player can adjust game speed (50% to 1000%) during active gameplay via menu 
 
 ### Scaling Formula
 - **HP:** +30% per wave (linear: `baseHP × (1 + 0.3 × (wave-1))`)
-- **Rewards:** +4% per wave (linear: `baseReward × (1 + 0.04 × (wave-1))`)
+- **Rewards:** +2% per wave (linear: `baseReward × (1 + 0.02 × (wave-1))`)
 - **Speed:** Constant (does not scale)
 - **No victory condition** - game continues until defeat
 
