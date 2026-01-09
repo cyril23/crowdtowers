@@ -4,12 +4,10 @@
 # For initial setup (as root):
 #   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass
 #
-# For subsequent runs (as deploy user):
-#   ansible-playbook playbooks/site.yml --ask-vault-pass
+# For subsequent runs:
+#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass
 #
-# Deploy specific environment:
-#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass --limit staging
-#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass --limit production
+# Note: Deploys to both staging and production (idempotent, unchanged tasks complete quickly)
 
 # =============================================================================
 # Play 1: Infrastructure setup (runs ONCE on the server)

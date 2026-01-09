@@ -173,7 +173,7 @@ Menu scenes use a fixed "design space" (e.g., 400×500) with camera zoom/centeri
 - Push to `main` → auto-deploy to **staging**
 - Manual trigger (workflow_dispatch) → deploy to **production**
 
-**Local Dev Scripts:** `./deploy/scripts/deploy-staging.sh` deploys to staging without committing (useful for mobile testing). See deploy/README.md for details.
+**Local Deploy:** Run `ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass` from `deploy/ansible/` to deploy uncommitted changes (useful for mobile testing).
 
 **Docs:** See [deploy/README.md](deploy/README.md) for setup and troubleshooting.
 

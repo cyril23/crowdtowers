@@ -1,7 +1,7 @@
 ---
 # Application deployment tasks
 # Run via site.yml:
-#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass --limit staging
+#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass
 
 - name: Set MongoDB password for production
   set_fact:

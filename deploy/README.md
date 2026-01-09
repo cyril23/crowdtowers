@@ -97,30 +97,16 @@ curl https://staging.crowdtowers.wochenentwicklung.com/api/health   # Staging
 
 **Why?** GitHub Actions only does `git pull` + `npm install` + `pm2 restart`. It doesn't run Ansible templates or have access to vault secrets. So if you add a new environment variable to `.env.prod.j2`, you must run Ansible to render the template to the actual `.env.prod` file on the server.
 
-### Local Dev Scripts
+### Local Ansible Deploy
 
-For faster iteration during development, you can deploy directly to staging from your local machine without committing or pushing to GitHub. This is useful for testing on mobile devices before committing.
-
-```bash
-# Deploy to staging (bypasses push-to-main workflow)
-./deploy/scripts/deploy-staging.sh
-```
-
-Both scripts build the client bundle (`npm run build`) automatically, prompt for the Ansible vault password, and accept additional ansible args (e.g., `--check` for dry run).
-
-**Note:** A `deploy-prod.sh` script also exists for consistency, but you should generally **not** use it - production should only receive tested, committed code via the GitHub Actions workflow.
-
-### Manual Ansible Commands
-
-The `deploy` user has limited passwordless sudo (only pm2, npm, nginx reload). Use the appropriate command based on what you're changing:
+For deploying uncommitted changes (e.g., mobile testing) or updating vault secrets:
 
 ```bash
+cd deploy/ansible
 ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass
 ```
 
-Add `--limit staging` or `--limit production` to target a specific environment.
-
-The playbook is idempotent - unchanged tasks show "ok" and complete quickly.
+This deploys to both staging and production. The playbook is idempotent - unchanged tasks complete quickly.
 
 ### SSH to Server
 
