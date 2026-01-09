@@ -55,6 +55,7 @@ class GameMenuManager {
     this.setupPlayerToggle();
     this.setupSpeedControl();
     this.setupDocumentClickHandler();
+    this.setupResizeHandler();
 
     gameMenuInstance = this;
   }
@@ -453,6 +454,16 @@ class GameMenuManager {
         if (menu && dropdown && !menu.contains(e.target)) {
           dropdown.classList.add('hidden');
         }
+      });
+    }
+  }
+
+  setupResizeHandler() {
+    // Close dropdown on window resize (dropdown position uses absolute pixels)
+    if (!window._gameMenuResizeHandler) {
+      window._gameMenuResizeHandler = true;
+      window.addEventListener('resize', () => {
+        this.closeDropdown();
       });
     }
   }

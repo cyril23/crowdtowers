@@ -3,9 +3,14 @@ import { DeviceUtils } from '../config.js';
 import { networkManager } from '../managers/NetworkManager.js';
 import { settingsManager, isInputFocused, formatWithHotkey } from '../managers/SettingsManager.js';
 import { ChatPanel } from '../ui/ChatPanel.js';
+import { PlayerPanel } from '../ui/PlayerPanel.js';
 import { GameMenuManager } from '../ui/GameMenuManager.js';
 
 class LobbyScene extends Phaser.Scene {
+  // Design size for lobby UI
+  static DESIGN_WIDTH = 400;
+  static DESIGN_HEIGHT = 600;
+
   constructor() {
     super({ key: 'LobbyScene' });
   }
@@ -32,7 +37,11 @@ class LobbyScene extends Phaser.Scene {
   }
 
   create() {
-    const centerX = this.cameras.main.centerX;
+    // Setup camera for responsive layout
+    this.setupMenuCamera();
+
+    // All positions use DESIGN coordinates (400x600)
+    const centerX = LobbyScene.DESIGN_WIDTH / 2;
 
     // Title
     this.add.text(centerX, 30, 'Game Lobby', {
@@ -90,15 +99,11 @@ class LobbyScene extends Phaser.Scene {
         });
     }
 
-    // Players list
-    this.add.text(centerX, 210, 'Players:', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    this.playerListContainer = this.add.container(centerX, 240);
-    this.updatePlayerList();
+    // Player panel (top-right) - visible by default
+    this.playerPanel = new PlayerPanel();
+    this.playerPanel.setLocalNickname(networkManager.nickname);
+    this.playerPanel.setPlayers(this.players);
+    this.playerPanel.show();
 
     // Start button (host only)
     if (this.isHost) {
@@ -172,7 +177,7 @@ class LobbyScene extends Phaser.Scene {
       this.chatPanel.show();
     }
 
-    // Setup global menu with volume controls, code, chat toggle, and quit
+    // Setup global menu with volume controls, code, chat toggle, player toggle, and quit
     this.gameMenu = new GameMenuManager();
     this.gameMenu.configure({
       showSessionCode: true,
@@ -184,6 +189,16 @@ class LobbyScene extends Phaser.Scene {
             this.chatPanel.show();
           } else {
             this.chatPanel.hide();
+          }
+        }
+      },
+      playerToggle: {
+        visible: this.playerPanel.isVisible,
+        onChange: (isVisible) => {
+          if (isVisible) {
+            this.playerPanel.show();
+          } else {
+            this.playerPanel.hide();
           }
         }
       },
@@ -210,38 +225,41 @@ class LobbyScene extends Phaser.Scene {
       this.gameMenu.setUnreadCount(count);
     };
 
+    // Listen for resize to rebuild layout
+    this.scale.on('resize', this.onResize, this);
+
     // Setup network listeners
     this.setupNetworkListeners();
   }
 
-  updatePlayerList() {
-    this.playerListContainer.removeAll(true);
+  // Setup camera to zoom/center the design space within the canvas
+  setupMenuCamera() {
+    const canvasWidth = this.cameras.main.width;
+    const canvasHeight = this.cameras.main.height;
 
-    const useColumns = this.players.length >= 3;
-    const columnWidth = 150;
-    const rowHeight = 30;
+    const scaleX = canvasWidth / LobbyScene.DESIGN_WIDTH;
+    const scaleY = canvasHeight / LobbyScene.DESIGN_HEIGHT;
+    const zoom = Math.min(scaleX, scaleY, 1.5);
 
-    this.players.forEach((player, index) => {
-      let x = 0;
-      let y = index * rowHeight;
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(LobbyScene.DESIGN_WIDTH / 2, LobbyScene.DESIGN_HEIGHT / 2);
+  }
 
-      if (useColumns) {
-        const col = index % 2;
-        const row = Math.floor(index / 2);
-        x = (col - 0.5) * columnWidth;
-        y = row * rowHeight;
-      }
+  onResize() {
+    // CRITICAL: Remove listener before restart to prevent handler accumulation
+    this.scale.off('resize', this.onResize, this);
 
-      const hostBadge = player.isHost ? ' (Host)' : '';
-      const isMe = player.nickname === networkManager.nickname;
+    if (!this.scene.isActive()) {
+      return;
+    }
 
-      const text = this.add.text(x, y, `${player.nickname}${hostBadge}`, {
-        fontSize: '16px',
-        color: isMe ? '#44ff44' : '#ffffff',
-        fontFamily: 'Arial'
-      }).setOrigin(0.5);
-
-      this.playerListContainer.add(text);
+    // Preserve state for restart
+    this.scene.restart({
+      sessionCode: this.sessionCode,
+      inviteLink: this.inviteLink,
+      maze: this.maze,
+      players: this.players,
+      isHost: this.isHost
     });
   }
 
@@ -257,12 +275,12 @@ class LobbyScene extends Phaser.Scene {
 
     this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_JOINED, (data) => {
       this.players.push({ nickname: data.nickname, isHost: false });
-      this.updatePlayerList();
+      this.playerPanel.addPlayer({ nickname: data.nickname, isHost: false });
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.PLAYER_LEFT, (data) => {
       this.players = this.players.filter(p => p.nickname !== data.nickname);
-      this.updatePlayerList();
+      this.playerPanel.removePlayer(data.nickname);
     });
 
     this.registerNetworkHandler(SOCKET_EVENTS.GAME_STARTED, (data) => {
@@ -312,6 +330,13 @@ class LobbyScene extends Phaser.Scene {
       }
     });
 
+    this.input.keyboard.on(HOTKEYS.PLAYERS, () => {
+      if (isInputFocused()) return;
+      this.playerPanel.toggle();
+      // Sync checkbox state with player panel visibility
+      this.gameMenu.setPlayerToggleState(this.playerPanel.isVisible);
+    });
+
     this.input.keyboard.on(HOTKEYS.QUIT, () => {
       if (isInputFocused()) return;
       this.handleQuitLobby();
@@ -336,6 +361,9 @@ class LobbyScene extends Phaser.Scene {
   }
 
   shutdown() {
+    // Clean up resize listener
+    this.scale.off('resize', this.onResize, this);
+
     // Clean up network handlers to prevent accumulation
     if (this.networkHandlers) {
       this.networkHandlers.forEach(({ event, handler }) => {
