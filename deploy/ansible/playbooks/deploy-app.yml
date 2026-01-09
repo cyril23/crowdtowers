@@ -1,7 +1,7 @@
 ---
 # Application deployment tasks
-# This playbook can be run independently for updates:
-#   ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
+# Run via site.yml:
+#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass --limit staging
 
 - name: Set MongoDB password for production
   set_fact:
@@ -51,11 +51,22 @@
     group: deploy
     mode: '0644'
 
-- name: Install npm dependencies
+- name: Install npm dependencies (including dev for build)
   become_user: deploy
   npm:
     path: "{{ app_path }}"
-    production: yes
+
+- name: Build client bundle
+  become_user: deploy
+  command: npm run build
+  args:
+    chdir: "{{ app_path }}"
+
+- name: Prune dev dependencies
+  become_user: deploy
+  command: npm prune --omit=dev
+  args:
+    chdir: "{{ app_path }}"
 
 - name: Check if PM2 process exists
   become_user: deploy

@@ -16,8 +16,7 @@ echo "=== Deploying to staging ==="
 cd "$PROJECT_ROOT/deploy/ansible"
 ansible-playbook playbooks/site.yml \
     --ask-vault-pass \
-    --tags deploy \
-    -l crowdtowers-staging \
+    --limit staging \
     --extra-vars "ansible_user=root" \
     "$@"
 

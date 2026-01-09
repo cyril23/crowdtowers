@@ -16,8 +16,7 @@ echo "=== Deploying to production ==="
 cd "$PROJECT_ROOT/deploy/ansible"
 ansible-playbook playbooks/site.yml \
     --ask-vault-pass \
-    --tags deploy \
-    -l crowdtowers-prod \
+    --limit production \
     --extra-vars "ansible_user=root" \
     "$@"
 

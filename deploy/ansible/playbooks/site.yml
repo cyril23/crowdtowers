@@ -8,11 +8,8 @@
 #   ansible-playbook playbooks/site.yml --ask-vault-pass
 #
 # Deploy specific environment:
-#   ansible-playbook playbooks/site.yml --ask-vault-pass -l crowdtowers-prod
-#   ansible-playbook playbooks/site.yml --ask-vault-pass -l crowdtowers-staging
-#
-# Run specific tasks with tags:
-#   ansible-playbook playbooks/site.yml --ask-vault-pass --tags deploy
+#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass --limit staging
+#   ansible-playbook playbooks/site.yml --extra-vars "ansible_user=root" --ask-vault-pass --limit production
 
 # =============================================================================
 # Play 1: Infrastructure setup (runs ONCE on the server)
